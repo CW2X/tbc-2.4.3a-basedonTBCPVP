@@ -1,11 +1,8 @@
 # Konno Productions TBC (master)
 
-## Build Status
-
-master
-:------------:
-[![Build Status](https://travis-ci.com/konno-productions/wotlk-3.3.5a.svg?token=vw1XqpGbkt5iwsozQUky&branch=master)](https://travis-ci.com/konno-productions/wotlk-3.3.5a)
-
+| Build Status | Code Quality |
+| ------------- |:-------------:|
+Not in use | Not in use
 ## Requirements
 
 
@@ -21,7 +18,7 @@ Windows, Linux and OS X.
 
 ## Reporting issues
 
-Issues can be reported via the [Github issue tracker](https://github.com/konno-productions/tbc-2.4.3a).
+Issues can be reported via the [Github issue tracker](https://github.com/konno-productions/KPWotlk).
 
 Please take the time to review existing issues before submitting your own to
 prevent duplicates. Incorrect or poorly formed reports are wasteful and are subject to deletion.
