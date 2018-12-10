@@ -1,8 +1,6 @@
 /*
- * Copyright (C) 2010-2012 Project SkyFire <http://www.projectskyfire.org/>
- * Copyright (C) 2010-2012 Oregon <http://www.oregoncore.com/>
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2008-2014 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -28,108 +26,149 @@
  */
 
 #include "MovementGenerator.h"
-#include "DestinationHolder.h"
 #include "WaypointManager.h"
-#include "Path.h"
-#include "Traveller.h"
-
+#include "PathMovementBase.h"
 #include "Player.h"
-#include "PathFinder.h"
 
 #include <vector>
 #include <set>
 
 #define FLIGHT_TRAVEL_UPDATE  100
-#define STOP_TIME_FOR_PLAYER  3 * MINUTE * IN_MILLISECONDS          // 3 Minutes
+#define STOP_TIME_FOR_PLAYER  3 * MINUTE * IN_MILLISECONDS           // 3 Minutes
 #define TIMEDIFF_NEXT_WP      250
 
-template<class T, class P>
-class PathMovementBase
+enum WaypointPathType : uint32
 {
-    public:
-        PathMovementBase() : i_currentNode(0) {}
-        virtual ~PathMovementBase() {};
+    WP_PATH_TYPE_LOOP           = 0,
+    /* Note that for ONCE, the creature must have another movement generator if you don't want the waypoint generator to be started again. 
+    So you'll get no problem with creature where the path is loaded dynamically (as these creature at least the IDLE generator beneath), 
+    but when used from creature_addon the path will loop anyway */
+    WP_PATH_TYPE_ONCE           = 1,
+    WP_PATH_TYPE_ROUND_TRIP     = 2,
 
-        bool MovementInProgress(void) const { return i_currentNode < i_path->size(); }
+    WP_PATH_TYPE_UNSPECIFIED    = 100000, //special value
 
-        void LoadPath(T &);
-        void ReloadPath(T &);
-        uint32 GetCurrentNode() const { return i_currentNode; }
-
-        bool GetDestination(float& x, float& y, float& z) const { i_destinationHolder.GetDestination(x, y, z); return true; }
-        bool GetPosition(float& x, float& y, float& z) const { i_destinationHolder.GetLocationNowNoMicroMovement(x, y, z); return true; }
-
-    protected:
-        uint32 i_currentNode;
-        DestinationHolder< Traveller<T> > i_destinationHolder;
-        P i_path;
+    WP_PATH_TYPE_TOTAL
 };
+
+TC_GAME_API std::string GetWaypointPathTypeName(WaypointPathType type);
+
+enum WaypointPathDirection
+{
+    WP_PATH_DIRECTION_NORMAL    = 0,
+    WP_PATH_DIRECTION_REVERSE   = 1, //travel waypoints decrementaly
+    WP_PATH_DIRECTION_RANDOM    = 2,
+
+    WP_PATH_DIRECTION_TOTAL
+};
+
+TC_GAME_API std::string GetWaypointPathDirectionName(WaypointPathDirection dir);
 
 template<class T>
+class WaypointMovementGenerator;
+class SplineHandler;
 
-class WaypointMovementGenerator
-    : public MovementGeneratorMedium< T, WaypointMovementGenerator<T> >, public PathMovementBase<T, WaypointPath const*>
+/*
+Completely rewritten for sunstrider
+You can set this path as repeatable or not with SetPathType.
+Default type is WP_PATH_TYPE_LOOP.
+Creature will have UNIT_STATE_ROAMING_MOVE and UNIT_STATE_ROAMING when currently moving.
+*/
+template<>
+class TC_GAME_API WaypointMovementGenerator<Creature> : public MovementGeneratorMedium< Creature, WaypointMovementGenerator<Creature> >,
+    public PathMovementBase<Creature, WaypointPath const*>
 {
-    public:
-        WaypointMovementGenerator(uint32 _path_id = 0, bool _repeating = true) :
-          i_nextMoveTime(0), path_id(_path_id), repeating(_repeating), StopedByPlayer(false), node(NULL) {}
+    friend class SplineHandler;
 
-        void Initialize(T &);
-        void Finalize(T &);
-        void MovementInform(T &);
-        void InitTraveller(T &, const WaypointData &);
-        void GeneratePathId(T &);
-        void Reset(T &unit);
-        bool Update(T &, const uint32 &);
-        bool GetDestination(float &x, float &y, float &z) const;
-        MovementGeneratorType GetMovementGeneratorType() { return WAYPOINT_MOTION_TYPE; }
+    public:
+        /* 
+        repeating: path will use its default value, either WP_PATH_TYPE_LOOP or any value specified in waypoint_info table. Using this argument will override the default value.
+        smoothSpline: EXPERIMENTAL. will calculate path to further points to allow using smooth splines. This has better visuals (for flying creatures only) but can lead to more imprecise positions, plus it has bad visual when pausing the waypoint 
+                      Server lag seems to incrase imprecisions for this one.
+        */
+        explicit WaypointMovementGenerator(Movement::PointsArray& points, Optional<bool> repeating = {}, bool smoothSpline = false);
+        explicit WaypointMovementGenerator(WaypointPath& path, Optional<bool> repeating = {}, bool smoothSpline = false);
+        // If path_id is left at 0, will try to get path id from Creature::GetWaypointPathId()
+        explicit WaypointMovementGenerator(uint32 _path_id = 0, Optional<bool> repeating = {}, bool smoothSpline = false);
+        ~WaypointMovementGenerator() override;
+
+        MovementGeneratorType GetMovementGeneratorType() const override;
+
+        void UnitSpeedChanged() override { AddFlag(MOVEMENTGENERATOR_FLAG_SPEED_UPDATE_PENDING); }
+
+        void Pause(uint32 timer = 0) override;
+        void Resume(uint32 overrideTimer = 0) override;
+
+        bool DoInitialize(Creature*);
+        void DoFinalize(Creature* owner, bool active, bool movementInform);
+        void DoReset(Creature*);
+        bool DoUpdate(Creature*, uint32 diff);
+        void DoDeactivate(Creature*);
+
+        // Load path (from Creature::GetWaypointPathId) and start it
+        bool LoadPath(Creature*);
+        
+        WaypointPathType GetPathType() const { return path_type; }
+        //return true if argument is correct
+        bool SetPathType(WaypointPathType type);
+
+        WaypointPathDirection GetPathDirection() const { return direction; }
+        //return true if argument is correct
+        bool SetDirection(WaypointPathDirection dir);
+
+        bool GetResetPosition(Unit*, float& x, float& y, float& z) override;
+
+        bool GetCurrentDestinationPoint(Creature* creature, Position& pos) const;
 
     private:
-        void MoveToNextNode(CreatureTraveller &traveller);
-        WaypointData *node;
-        uint32 path_id;
-        TimeTrackerSmall i_nextMoveTime;
-        WaypointPath *waypoints;
-        bool repeating, StopedByPlayer;
+        WaypointMovementGenerator(float fake);
+
+        void MovementInform(Creature*, uint32 DBNodeId);
+
+        // Return if node is last waypoint depending on current direction
+        bool IsLastMemoryNode(uint32 node);
+
+        // Get next node as current depending on direction, return false if already at last node
+        //Enable allowReverseDirection to allow generator direction to revert if type is WP_PATH_TYPE_ROUND_TRIP and we're at path end
+        bool HasNextMemoryNode(uint32 fromNode, bool allowReverseDirection = true);
+        bool GetNextMemoryNode(uint32 fromNode, uint32& nextNode, bool allowReverseDirection = true);
+        
+        // Get first node in path (depending on direction)
+        uint32 GetFirstMemoryNode();
+
+        /* Handle point relative stuff (memory inform, script, delay)
+        */
+        void OnArrived(Creature*);
+
+        bool StartMove(Creature* c);
+        void StartFormationMove(Creature* creature, uint32 node, uint32 moveType);
+
+        bool IsPaused();
+
+        // Update pause timer if any and return wheter we can continue. Return false if not pausing at the moment.
+        bool UpdatePause(int32 diff);
+        
+        //create a new customPath object with given array
+        bool CreateCustomPath(Movement::PointsArray&);
+
+        TimeTrackerSmall _nextMoveTime; //timer for pauses
+        uint32 _pathId;
+        //this movement generator can be constructed with either a path id or with given points, stored in customPath in this second case
+        WaypointPath* customPath;
+        bool erasePathAtEnd; //
+        WaypointPathType path_type;
+        WaypointPathDirection direction;
+
+        Movement::PointsArray _precomputedPath;
+        bool _recalculateTravel;
+
+        Position _originalHome; //original home position before it was altered by this movegen. Some scripts are currently using the home AFTER the waypoint path. (such as 18970)
+
+        uint32 _splineId;
+        // true when creature has reached the start node in path (it has to travel from its current position to first point)
+        uint32 _reachedFirstNode; 
+        bool _done;
+        bool _useSmoothSpline;
 };
 
-/** FlightPathMovementGenerator generates movement of the player for the paths
- * and hence generates ground and activities for the player.
- */
-class FlightPathMovementGenerator
-: public MovementGeneratorMedium< Player, FlightPathMovementGenerator >,
-public PathMovementBase<Player, TaxiPathNodeList const*>
-{
-    public:
-        explicit FlightPathMovementGenerator(TaxiPathNodeList const& pathnodes, uint32 startNode = 0)
-        {
-            i_path = &pathnodes;
-            i_currentNode = startNode;
-        }
-        void Initialize(Player &);
-        void Reset(Player &u) {};
-        void Finalize(Player &);
-        bool Update(Player &, const uint32 &);
-        MovementGeneratorType GetMovementGeneratorType() { return FLIGHT_MOTION_TYPE; }
-
-        TaxiPathNodeList const& GetPath() { return *i_path; }
-        uint32 GetPathAtMapEnd() const;
-        bool HasArrived() const { return (i_currentNode >= i_path->size()); }
-        void SetCurrentNodeAfterTeleport();
-        void SkipCurrentNode() { ++i_currentNode; }
-        void DoEventIfAny(Player& player, TaxiPathNodeEntry const& node, bool departure);
-
-        bool GetDestination(float& x, float& y, float& z) const { return PathMovementBase<Player, TaxiPathNodeList const*>::GetDestination(x, y, z); }
-
-        void PreloadEndGrid();
-        void InitEndGridInfo();
-    private:
-        // storage for preloading the flightmaster grid at end
-        // before reaching final waypoint
-        uint32 m_endMapId;
-        uint32 m_preloadTargetNode;
-        float m_endGridX;
-        float m_endGridY;
-};
 #endif
-

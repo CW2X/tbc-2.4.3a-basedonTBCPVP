@@ -1,27 +1,7 @@
-/*
- * Copyright (C) 2010-2012 Project SkyFire <http://www.projectskyfire.org/>
- * Copyright (C) 2010-2012 Oregon <http://www.oregoncore.com/>
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 
 #ifndef TRINITY_OBJECTGRIDLOADER_H
 #define TRINITY_OBJECTGRIDLOADER_H
 
-#include "TypeList.h"
 #include "Define.h"
 #include "GridLoader.h"
 #include "GridDefines.h"
@@ -29,7 +9,7 @@
 
 class ObjectWorldLoader;
 
-class ObjectGridLoader
+class TC_GAME_API ObjectGridLoader
 {
     friend class ObjectWorldLoader;
 
@@ -38,14 +18,15 @@ class ObjectGridLoader
             : i_cell(cell), i_grid(grid), i_map(map), i_gameObjects(0), i_creatures(0), i_corpses (0)
             {}
 
-        void Load(GridType &grid);
+        //void Load(GridType &grid);
         void Visit(GameObjectMapType &m);
         void Visit(CreatureMapType &m);
         void Visit(CorpseMapType &) {}
-
         void Visit(DynamicObjectMapType&) { }
 
         void LoadN(void);
+
+		template<class T> static void SetObjectCell(T* obj, CellCoord const& cellCoord);
 
     private:
         Cell i_cell;
@@ -56,79 +37,37 @@ class ObjectGridLoader
         uint32 i_corpses;
 };
 
-class ObjectGridUnloader
+//Stop the creatures before unloading the NGrid
+class TC_GAME_API ObjectGridStoper
 {
-    public:
-        ObjectGridUnloader(NGridType &grid) : i_grid(grid) {}
-
-        void MoveToRespawnN();
-        void UnloadN()
-        {
-            for (unsigned int x=0; x < MAX_NUMBER_OF_CELLS; ++x)
-            {
-                for (unsigned int y=0; y < MAX_NUMBER_OF_CELLS; ++y)
-                {
-                    GridLoader<Player, AllWorldObjectTypes, AllGridObjectTypes> loader;
-                    loader.Unload(i_grid(x, y), *this);
-                }
-            }
-        }
-
-        void Unload(GridType &grid);
-        template<class T> void Visit(GridRefManager<T> &m);
-    private:
-        NGridType &i_grid;
+public:
+	void Visit(CreatureMapType &m);
+	template<class T> void Visit(GridRefManager<T> &) { }
 };
 
-class ObjectGridStoper
+//Move the foreign creatures back to respawn positions before unloading the NGrid
+class TC_GAME_API ObjectGridEvacuator
 {
-    public:
-        ObjectGridStoper(NGridType &grid) : i_grid(grid) {}
-
-        void StopN()
-        {
-            for (unsigned int x=0; x < MAX_NUMBER_OF_CELLS; ++x)
-            {
-                for (unsigned int y=0; y < MAX_NUMBER_OF_CELLS; ++y)
-                {
-                    GridLoader<Player, AllWorldObjectTypes, AllGridObjectTypes> loader;
-                    loader.Stop(i_grid(x, y), *this);
-                }
-            }
-        }
-
-        void Stop(GridType &grid);
-        void Visit(CreatureMapType &m);
-
-        template<class NONACTIVE> void Visit(GridRefManager<NONACTIVE> &) {}
-    private:
-        NGridType &i_grid;
+public:
+	void Visit(CreatureMapType &m);
+	void Visit(GameObjectMapType &m);
+	template<class T> void Visit(GridRefManager<T> &) { }
 };
 
+//Clean up and remove from world
 class ObjectGridCleaner
 {
-    public:
-        ObjectGridCleaner(NGridType &grid) : i_grid(grid) {}
-
-        void CleanN()
-        {
-            for (unsigned int x=0; x < MAX_NUMBER_OF_CELLS; ++x)
-            {
-                for (unsigned int y=0; y < MAX_NUMBER_OF_CELLS; ++y)
-                {
-                    GridLoader<Player, AllWorldObjectTypes, AllGridObjectTypes> loader;
-                    loader.Stop(i_grid(x, y), *this);
-                }
-            }
-        }
-
-        void Stop(GridType &grid);
-        void Visit(CreatureMapType &m);
-        template<class T> void Visit(GridRefManager<T> &);
-    private:
-        NGridType &i_grid;
+public:
+	template<class T> void Visit(GridRefManager<T> &);
 };
 
-typedef GridLoader<Player, AllWorldObjectTypes, AllGridObjectTypes> GridLoaderType;
+//Delete objects before deleting NGrid
+class ObjectGridUnloader
+{
+public:
+	void Visit(CorpseMapType& /*m*/) { }    // corpses are deleted with Map
+	template<class T> void Visit(GridRefManager<T> &m);
+};
+
 #endif
 

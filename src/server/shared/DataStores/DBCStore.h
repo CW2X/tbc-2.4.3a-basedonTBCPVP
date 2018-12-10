@@ -1,98 +1,85 @@
-/*
- * Copyright (C) 2010-2012 Project SkyFire <http://www.projectskyfire.org/>
- * Copyright (C) 2010-2012 Oregon <http://www.oregoncore.com/>
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- */
-
 #ifndef DBCSTORE_H
 #define DBCSTORE_H
 
-#include "DBCFileLoader.h"
+#include "Common.h"
+#include "DBCStorageIterator.h"
+#include <vector>
 
-template<class T>
-class DBCStorage
+/// Interface class for common access
+class TC_SHARED_API DBCStorageBase
 {
-    typedef std::list<char*> StringPoolList;
-    public:
-        explicit DBCStorage(const char *f) : nCount(0), fieldCount(0), fmt(f), indexTable(NULL), m_dataTable(NULL) { }
-        ~DBCStorage() { Clear(); }
+public:
+    DBCStorageBase(char const* fmt);
+    virtual ~DBCStorageBase();
 
-        T const* LookupEntry(uint32 id) const { return (id>=nCount)?NULL:indexTable[id]; }
-        uint32  GetNumRows() const { return nCount; }
-        char const* GetFormat() const { return fmt; }
-        uint32 GetFieldCount() const { return fieldCount; }
+    char const* GetFormat() const { return _fileFormat; }
+    uint32 GetFieldCount() const { return _fieldCount; }
 
-        bool Load(char const* fn)
-        {
-            DBCFileLoader dbc;
-            // Check if load was sucessful, only then continue
-            if (!dbc.Load(fn, fmt))
-                return false;
+    virtual bool Load(char const* path) = 0;
+    virtual bool LoadStringsFrom(char const* path) = 0;
+    virtual void LoadFromDB(char const* table, char const* format, char const* index) = 0;
 
-            fieldCount = dbc.GetCols();
-            m_dataTable = (T*)dbc.AutoProduceData(fmt, nCount,(char**&)indexTable);
+protected:
+    bool Load(char const* path, char**& indexTable);
+    bool LoadStringsFrom(char const* path, char** indexTable);
+    void LoadFromDB(char const* table, char const* format, char const* index, char**& indexTable);
 
-            m_stringPoolList.push_back(dbc.AutoProduceStrings(fmt,(char*)m_dataTable));
+    uint32 _fieldCount;
+    char const* _fileFormat;
+    char* _dataTable;
+    std::vector<char*> _stringPool;
+    uint32 _indexTableSize;
+};
 
-            // error in dbc file at loading if NULL
-            return indexTable!=NULL;
-        }
+template <class T>
+class DBCStorage : public DBCStorageBase
+{
+public:
+    typedef DBCStorageIterator<T> iterator;
 
-        bool LoadStringsFrom(char const* fn)
-        {
-            // DBC must be already loaded using Load
-            if (!indexTable)
-                return false;
+    explicit DBCStorage(char const* fmt) : DBCStorageBase(fmt)
+    {
+        _indexTable.AsT = nullptr;
+    }
 
-            DBCFileLoader dbc;
-            // Check if load was successful, only then continue
-            if (!dbc.Load(fn, fmt))
-                return false;
+    ~DBCStorage()
+    {
+        delete[] reinterpret_cast<char*>(_indexTable.AsT);
+    }
 
-            m_stringPoolList.push_back(dbc.AutoProduceStrings(fmt,(char*)m_dataTable));
+    T const* LookupEntry(uint32 id) const { return (id >= _indexTableSize) ? nullptr : _indexTable.AsT[id]; }
+    T const* AssertEntry(uint32 id) const { return ASSERT_NOTNULL(LookupEntry(id)); }
 
-            return true;
-        }
+    uint32 GetNumRows() const { return _indexTableSize; }
 
-        void Clear()
-        {
-            if (!indexTable)
-                return;
+    bool Load(char const* path) override
+    {
+        return DBCStorageBase::Load(path, _indexTable.AsChar);
+    }
 
-            delete[] ((char*)indexTable);
-            indexTable = NULL;
-            delete[] ((char*)m_dataTable);
-            m_dataTable = NULL;
+    bool LoadStringsFrom(char const* path) override
+    {
+        return DBCStorageBase::LoadStringsFrom(path, _indexTable.AsChar);
+    }
 
-            while(!m_stringPoolList.empty())
-            {
-                delete[] m_stringPoolList.front();
-                m_stringPoolList.pop_front();
-            }
-            nCount = 0;
-        }
+    void LoadFromDB(char const* table, char const* format, char const* index) override
+    {
+        DBCStorageBase::LoadFromDB(table, format, index, _indexTable.AsChar);
+    }
 
-    private:
-        char const* fmt;
-        uint32 nCount;
-        uint32 fieldCount;
-        T** indexTable;
-        T* m_dataTable;
-        StringPoolList m_stringPoolList;
+    iterator begin() { return iterator(_indexTable.AsT, _indexTableSize); }
+    iterator end() { return iterator(_indexTable.AsT, _indexTableSize, _indexTableSize); }
+
+private:
+    union
+    {
+        T** AsT;
+        char** AsChar;
+    }
+    _indexTable;
+
+    DBCStorage(DBCStorage const& right) = delete;
+    DBCStorage& operator=(DBCStorage const& right) = delete;
 };
 
 #endif

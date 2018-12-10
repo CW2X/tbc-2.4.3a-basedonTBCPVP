@@ -1,10 +1,10 @@
 /**
  @file Vector4.cpp
-
+ 
  @maintainer Morgan McGuire, http://graphics.cs.williams.edu
-
+  
  @created 2001-07-09
- @edited  2010-07-05
+ @edited  2010-11-05
  */
 
 #include <stdlib.h>
@@ -20,6 +20,13 @@
 #include "G3D/Any.h"
 
 namespace G3D {
+
+Vector4& Vector4::operator=(const Any& a) {
+    *this = Vector4(a);
+    return *this;
+}
+
+
 Vector4::Vector4(const Any& any) {
     any.verifyName("Vector4");
     any.verifyType(Any::TABLE, Any::ARRAY);
@@ -39,33 +46,39 @@ Vector4::Vector4(const Any& any) {
     }
 }
 
-Vector4::operator Any() const {
+
+Any Vector4::toAny() const {
     Any any(Any::ARRAY, "Vector4");
     any.append(x, y, z, w);
     return any;
 }
 
+
 Vector4::Vector4(const Vector4int8& v) : x(v.x / 127.0f), y(v.y / 127.0f), z(v.z / 127.0f), w(v.w / 127.0f) {
 }
 
-const Vector4& Vector4::inf() {
-    static const Vector4 v((float)G3D::finf(), (float)G3D::finf(), (float)G3D::finf(), (float)G3D::finf());
+
+const Vector4& Vector4::inf() { 
+    static const Vector4 v((float)G3D::finf(), (float)G3D::finf(), (float)G3D::finf(), (float)G3D::finf()); 
+    return v; 
+}
+
+
+const Vector4& Vector4::zero() { 
+    static const Vector4 v(0,0,0,0); 
     return v;
 }
 
-const Vector4& Vector4::zero() {
-    static const Vector4 v(0,0,0,0);
-    return v;
+const Vector4& Vector4::nan() { 
+    static Vector4 v((float)G3D::fnan(), (float)G3D::fnan(), (float)G3D::fnan(), (float)G3D::fnan()); 
+    return v; 
 }
 
-const Vector4& Vector4::nan() {
-    static Vector4 v((float)G3D::fnan(), (float)G3D::fnan(), (float)G3D::fnan(), (float)G3D::fnan());
-    return v;
-}
 
 size_t Vector4::hashCode() const {
     return HashTrait<uint128>::hashCode(*((uint128*)this));
 }
+
 
 Vector4::Vector4(const class Color4& c) {
     x = c.r;
@@ -74,12 +87,14 @@ Vector4::Vector4(const class Color4& c) {
     w = c.a;
 }
 
+
 Vector4::Vector4(const Vector2& v1, const Vector2& v2) {
     x = v1.x;
     y = v1.y;
     z = v2.x;
     w = v2.y;
 }
+
 
 Vector4::Vector4(const Vector2& v1, float fz, float fw) {
     x = v1.x;
@@ -92,12 +107,14 @@ Vector4::Vector4(BinaryInput& b) {
     deserialize(b);
 }
 
+
 void Vector4::deserialize(BinaryInput& b) {
     x = b.readFloat32();
     y = b.readFloat32();
     z = b.readFloat32();
     w = b.readFloat32();
 }
+
 
 void Vector4::serialize(BinaryOutput& b) const {
     b.writeFloat32(x);
@@ -119,11 +136,12 @@ Vector4 Vector4::operator*(const Matrix4& M) const {
     return result;
 }
 
+
 Vector4 Vector4::operator/ (float fScalar) const {
     Vector4 kQuot;
 
     if ( fScalar != 0.0 ) {
-		float fInvScalar = 1.0f / fScalar;
+        float fInvScalar = 1.0f / fScalar;
         kQuot.x = fInvScalar * x;
         kQuot.y = fInvScalar * y;
         kQuot.z = fInvScalar * z;
@@ -137,17 +155,18 @@ Vector4 Vector4::operator/ (float fScalar) const {
 //----------------------------------------------------------------------------
 Vector4& Vector4::operator/= (float fScalar) {
     if (fScalar != 0.0f) {
-		float fInvScalar = 1.0f / fScalar;
+        float fInvScalar = 1.0f / fScalar;
         x *= fInvScalar;
         y *= fInvScalar;
         z *= fInvScalar;
         w *= fInvScalar;
     } else {
-		*this = Vector4::inf();
+        *this = Vector4::inf();
     }
 
     return *this;
 }
+
 
 //----------------------------------------------------------------------------
 
@@ -498,4 +517,13 @@ Vector4 Vector4::xwww() const  { return Vector4       (x, w, w, w); }
 Vector4 Vector4::ywww() const  { return Vector4       (y, w, w, w); }
 Vector4 Vector4::zwww() const  { return Vector4       (z, w, w, w); }
 Vector4 Vector4::wwww() const  { return Vector4       (w, w, w, w); }
+
+void serialize(const Vector4& v, class BinaryOutput& b) {
+    v.serialize(b);
+}
+
+void deserialize(Vector4& v, class BinaryInput& b) {
+    v.deserialize(b);
+}
+
 }; // namespace

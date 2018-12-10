@@ -1,31 +1,8 @@
-/*
- * Copyright (C) 2010-2012 Project SkyFire <http://www.projectskyfire.org/>
- * Copyright (C) 2010-2012 Oregon <http://www.oregoncore.com/>
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- */
-
 #ifndef _WARDEN_WIN_H
 #define _WARDEN_WIN_H
 
-#include "ARC4.h"
-#include "BigNumber.h"
-#include "ByteBuffer.h"
-
 #include <map>
+#include "WardenBase.h"
 
 enum WardenCheckType
 {
@@ -40,11 +17,14 @@ enum WardenCheckType
     MODULE_CHECK            = 0xD9,                         // uint Seed + byte[20] SHA1 (check to ensure module isn't injected)
 };
 
-#if defined(__GNUC__)
-#pragma pack(1)
-#else
+enum WardenAction
+{
+    WA_ACT_LOG      = 0x1,
+    WA_ACT_KICK     = 0x2,
+    WA_ACT_BAN      = 0x4
+};
+
 #pragma pack(push,1)
-#endif
 
 struct WardenInitModuleRequest
 {
@@ -56,7 +36,6 @@ struct WardenInitModuleRequest
     uint8 Type;
     uint8 String_library1;
     uint32 Function1[4];
-
     uint8 Command2;
     uint16 Size2;
     uint32 CheckSumm2;
@@ -65,7 +44,6 @@ struct WardenInitModuleRequest
     uint8 String_library2;
     uint32 Function2;
     uint8 Function2_set;
-
     uint8 Command3;
     uint16 Size3;
     uint32 CheckSumm3;
@@ -76,14 +54,12 @@ struct WardenInitModuleRequest
     uint8 Function3_set;
 };
 
-#if defined(__GNUC__)
-#pragma pack()
-#else
 #pragma pack(pop)
-#endif
 
 class WorldSession;
 class WardenBase;
+class ByteBuffer;
+class BigNumber;
 
 class WardenWin : WardenBase
 {

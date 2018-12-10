@@ -1,28 +1,8 @@
-/*
- * Copyright (C) 2010-2012 Project SkyFire <http://www.projectskyfire.org/>
- * Copyright (C) 2010-2012 Oregon <http://www.oregoncore.com/>
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 
-#ifndef TRINITY_CORPSE_H
-#define TRINITY_CORPSE_H
+#ifndef TRINITYCORE_CORPSE_H
+#define TRINITYCORE_CORPSE_H
 
 #include "Object.h"
-#include "DatabaseEnv.h"
 #include "GridDefines.h"
 #include "LootMgr.h"
 
@@ -48,54 +28,44 @@ enum CorpseFlags
     CORPSE_FLAG_LOOTABLE    = 0x20
 };
 
-class Corpse : public WorldObject, public GridObject<Corpse>
+class TC_GAME_API Corpse : public WorldObject, public GridObject<Corpse>
 {
     public:
-        explicit Corpse(CorpseType type = CORPSE_BONES);
-        ~Corpse();
+        explicit Corpse( CorpseType type = CORPSE_BONES );
+        ~Corpse( ) override;
 
-        void AddToWorld();
-        void RemoveFromWorld();
+        void AddToWorld() override;
+        void RemoveFromWorld() override;
 
-        bool Create(uint32 guidlow, Map *map);
-        bool Create(uint32 guidlow, Player *owner, uint32 mapid, float x, float y, float z, float ang);
+        bool Create(ObjectGuid::LowType guidlow );
+        bool Create(ObjectGuid::LowType guidlow, Player *owner);
 
-        void SaveToDB();
-        bool LoadFromDB(uint32 guid, Field *fields);
+		void SaveToDB();
+		bool LoadCorpseFromDB(ObjectGuid::LowType guid, Field* fields);
 
-        void DeleteBonesFromWorld();
-        void DeleteFromDB();
+		void DeleteFromDB(SQLTransaction& trans);
+		static void DeleteFromDB(ObjectGuid const& ownerGuid, SQLTransaction& trans);
 
-        uint64 const& GetOwnerGUID() const { return GetUInt64Value(CORPSE_FIELD_OWNER); }
+        ObjectGuid GetOwnerGUID() const override;
+        uint32 GetFaction() const override;
 
         time_t const& GetGhostTime() const { return m_time; }
-        void ResetGhostTime() { m_time = time(NULL); }
+        void ResetGhostTime();
         CorpseType GetType() const { return m_type; }
 
-        GridPair const& GetGrid() const { return m_grid; }
-        void SetGrid(GridPair const& grid) { m_grid = grid; }
-
-        bool isVisibleForInState(Player const* u, bool inVisibleList) const;
+		CellCoord const& GetCellCoord() const { return _cellCoord; }
+		void SetCellCoord(CellCoord const& cellCoord) { _cellCoord = cellCoord; }
 
         Loot loot;                                          // remove insignia ONLY at BG
         Player* lootRecipient;
-        bool lootForBody;
 
-        void Say(const char* text, uint32 language, uint64 TargetGuid) { MonsterSay(text, language, TargetGuid); }
-        void Yell(const char* text, uint32 language, uint64 TargetGuid) { MonsterYell(text, language, TargetGuid); }
-        void TextEmote(const char* text, uint64 TargetGuid) { MonsterTextEmote(text, TargetGuid); }
-        void Whisper(const char* text, uint64 receiver) { MonsterWhisper(text, receiver); }
-        void Say(int32 textId, uint32 language, uint64 TargetGuid) { MonsterSay(textId, language, TargetGuid); }
-        void Yell(int32 textId, uint32 language, uint64 TargetGuid) { MonsterYell(textId, language, TargetGuid); }
-        void TextEmote(int32 textId, uint64 TargetGuid) { MonsterTextEmote(textId, TargetGuid); }
-        void Whisper(int32 textId, uint64 receiver) { MonsterWhisper(textId, receiver); }
-
-        bool IsExpired(time_t t) const;
+		bool IsExpired(time_t t) const;
 
     private:
         CorpseType m_type;
         time_t m_time;
-        GridPair m_grid;                                    // gride for corpse position for fast search
+		CellCoord _cellCoord;
+        bool _noDatabaseSave = false;
 };
 #endif
 

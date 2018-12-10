@@ -1,53 +1,34 @@
-/*
- * Copyright (C) 2010-2012 Project SkyFire <http://www.projectskyfire.org/>
- * Copyright (C) 2010-2012 Oregon <http://www.oregoncore.com/>
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 
 #ifndef OUTDOOR_PVP_H_
 #define OUTDOOR_PVP_H_
 
-#include "Util.h"
+#include <map>
+#include <set>
 #include "ZoneScript.h"
+#include "Position.h"
 
-class GameObject;
+#define OPVP_TRIGGER_CREATURE_ENTRY 12999
 
-enum OutdoorPvPTypes
-{
-    OUTDOOR_PVP_HP = 1,
-    OUTDOOR_PVP_NA,
-    OUTDOOR_PVP_TF,
-    OUTDOOR_PVP_ZM,
-    OUTDOOR_PVP_SI,
-    OUTDOOR_PVP_EP
-};
-
-enum ObjectiveStates
-{
+enum ObjectiveStates{
     OBJECTIVESTATE_NEUTRAL = 0,
-    OBJECTIVESTATE_ALLIANCE,
-    OBJECTIVESTATE_HORDE,
-    OBJECTIVESTATE_NEUTRAL_ALLIANCE_CHALLENGE,
-    OBJECTIVESTATE_NEUTRAL_HORDE_CHALLENGE,
-    OBJECTIVESTATE_ALLIANCE_HORDE_CHALLENGE,
-    OBJECTIVESTATE_HORDE_ALLIANCE_CHALLENGE,
+    OBJECTIVESTATE_ALLIANCE = 1,
+    OBJECTIVESTATE_HORDE = 2,
+    OBJECTIVESTATE_NEUTRAL_ALLIANCE_CHALLENGE = 3,
+    OBJECTIVESTATE_NEUTRAL_HORDE_CHALLENGE = 4,
+    OBJECTIVESTATE_ALLIANCE_HORDE_CHALLENGE = 5,
+    OBJECTIVESTATE_HORDE_ALLIANCE_CHALLENGE = 6
 };
 
-#define OTHER_TEAM(a) (a == TEAM_ALLIANCE ? TEAM_HORDE : TEAM_ALLIANCE)
+enum OutdoorPvPTypes{
+    OUTDOOR_PVP_HP = 1,
+    OUTDOOR_PVP_NA = 2,
+    OUTDOOR_PVP_TF = 3,
+    OUTDOOR_PVP_ZM = 4,
+    OUTDOOR_PVP_SI = 5,
+    OUTDOOR_PVP_EP = 6,
+
+    MAX_OUTDOORPVP_TYPES,
+};
 
 // struct for go spawning
 struct go_type{
@@ -82,76 +63,82 @@ class Creature;
 class Unit;
 struct GossipMenuItems;
 
-typedef std::set<Player*> PlayerSet;
-
 class OutdoorPvP;
-class OPvPCapturePoint
+class TC_GAME_API OPvPCapturePoint 
 {
 public:
     OPvPCapturePoint(OutdoorPvP * pvp);
+    virtual ~OPvPCapturePoint() {}
 
-    virtual void FillInitialWorldStates(WorldPacket & /*data*/) {}
+    virtual void FillInitialWorldStates(WorldPacket & data) {}
 
     // send world state update to all players present
-    void SendUpdateWorldState(uint32 field, uint32 value);
+    virtual void SendUpdateWorldState(uint32 field, uint32 value);
     // send kill notify to players in the controlling faction
-    void SendObjectiveComplete(uint32 id, uint64 guid);
+    virtual void SendObjectiveComplete(uint32 id, ObjectGuid guid);
 
     // used when player is activated/inactivated in the area
-    virtual bool HandlePlayerEnter(Player * plr);
-    virtual void HandlePlayerLeave(Player * plr);
-    //virtual void HandlePlayerActivityChanged(Player * plr);
+    bool HandlePlayerEnter(Player * plr);
+    void HandlePlayerLeave(Player * plr);
 
     // checks if player is in range of a capture credit marker
-    bool IsInsideObjective(Player * plr) const;
+    virtual bool IsInsideObjective(Player * plr);
 
     virtual bool HandleCustomSpell(Player *plr, uint32 spellId, GameObject * go);
-    virtual int32 HandleOpenGo(Player *plr, uint64 guid);
+    virtual int32 HandleOpenGo(Player *plr, ObjectGuid guid);
 
     // returns true if the state of the objective has changed, in this case, the OutdoorPvP must send a world state ui update.
     virtual bool Update(uint32 diff);
-    virtual void ChangeState() = 0;
-    virtual void ChangeTeam(TeamId /*oldTeam*/) {}
-    virtual void SendChangePhase();
 
-    virtual bool HandleGossipOption(Player *plr, uint64 guid, uint32 gossipid);
+	virtual void ChangeState() = 0;
 
-    virtual bool CanTalkTo(Player * plr, Creature * c, GossipMenuItems gso);
+	virtual void ChangeTeam(TeamId /*oldTeam*/) { }
+
+	virtual void SendChangePhase();
+
+    virtual bool HandleGossipOption(Player *plr, ObjectGuid guid, uint32 gossipid);
+
+    virtual bool CanTalkTo(Player * plr, Creature * c, GossipMenuItems const& gso);
 
     virtual bool HandleDropFlag(Player * plr, uint32 spellId);
 
     virtual void DeleteSpawns();
 
-    uint32 m_capturePointGUID;
-    GameObject *m_capturePoint;
+	ObjectGuid::LowType m_capturePointSpawnId;
+	GameObject* m_capturePoint;
 
-    void AddGO(uint32 type, uint32 guid, uint32 entry = 0);
-    void AddCre(uint32 type, uint32 guid, uint32 entry = 0);
-    bool SetCapturePointData(uint32 entry, uint32 map, float x, float y, float z, float o = 0, float rotation0 = 0, float rotation1 = 0, float rotation2 = 0, float rotation3 = 0);
+	void AddGO(uint32 type, ObjectGuid::LowType guid, uint32 entry = 0);
+	void AddCre(uint32 type, ObjectGuid::LowType guid, uint32 entry = 0);
 
 protected:
 
-    bool AddObject(uint32 type, uint32 entry, uint32 artKit, uint32 map, float x, float y, float z, float o, float rotation0, float rotation1, float rotation2, float rotation3);
-    bool AddCreature(uint32 type, uint32 entry, uint32 teamval, uint32 map, float x, float y, float z, float o, uint32 spawntimedelay = 0);
+    virtual bool SetCapturePointData(uint32 entry, uint32 map, float x, float y, float z, float o, float rotation0, float rotation1, float rotation2, float rotation3);
+    virtual bool AddObject(uint32 type, uint32 entry, uint32 map, float x, float y, float z, float o, float rotation0, float rotation1, float rotation2, float rotation3);
+    virtual bool AddCreature(uint32 type, uint32 entry, uint32 map, float x, float y, float z, float o, uint32 spawntimedelay = 0);
 
-    bool DelCreature(uint32 type);
-    bool DelObject(uint32 type);
-    bool DelCapturePoint();
+    virtual bool DelCreature(uint32 type);
+    virtual bool DelObject(uint32 type);
+    virtual bool DelCapturePoint();
 
+    virtual void UpdateActivePlayerProximityCheck();
+	
 protected:
     // active players in the area of the objective, 0 - alliance, 1 - horde
-    PlayerSet m_activePlayers[2];
+    GuidSet m_activePlayers[2];
     // total shift needed to capture the objective
     float m_maxValue;
-    float m_minValue;
+	float m_minValue;
+
     // maximum speed of capture
     float m_maxSpeed;
     // the status of the objective
     float m_value;
-    TeamId m_team;
+
+	TeamId m_team;
+
     // objective states
-    ObjectiveStates m_OldState;
-    ObjectiveStates m_State;
+    uint32 m_OldState;
+    uint32 m_State;
     // neutral value on capture bar
     uint32 m_neutralValuePct;
 
@@ -160,16 +147,19 @@ protected:
 
     // map to store the various gameobjects and creatures spawned by the objective
     //        type , guid
-    std::map<uint32, uint64> m_Objects;
-    std::map<uint32, uint64> m_Creatures;
-    std::map<uint64, uint32> m_ObjectTypes;
-    std::map<uint64, uint32> m_CreatureTypes;
+    std::map<uint32, ObjectGuid> m_Objects;
+    std::map<uint32, ObjectGuid> m_Creatures;
+    std::map<ObjectGuid, uint32> m_ObjectTypes;
+    std::map<ObjectGuid, uint32> m_CreatureTypes;
+
+    //uint64 m_CapturePointCreature;
 };
 
 // base class for specific outdoor pvp handlers
-class OutdoorPvP : public ZoneScript
+class TC_GAME_API OutdoorPvP : public ZoneScript
 {
-    friend class OutdoorPvPMgr;
+	friend class OutdoorPvPMgr;
+
 public:
     // ctor
     OutdoorPvP();
@@ -178,76 +168,89 @@ public:
     // deletes all gos/creatures spawned by the pvp
     void DeleteSpawns();
 
-    typedef std::map<uint32/*lowguid*/, OPvPCapturePoint*> OPvPCapturePointMap;
+	typedef std::map<ObjectGuid::LowType/*spawnId*/, OPvPCapturePoint*> OPvPCapturePointMap;
+	typedef std::pair<ObjectGuid::LowType, GameObject*> GoScriptPair;
+	typedef std::pair<ObjectGuid::LowType, Creature*> CreatureScriptPair;
 
-    virtual void FillInitialWorldStates(WorldPacket & /*data*/) {}
+    // called from Player::UpdateZone to add / remove buffs given by outdoor pvp events
+    virtual void HandlePlayerEnterZone(Player * plr, uint32 zone);
+    virtual void HandlePlayerLeaveZone(Player * plr, uint32 zone);
+	virtual void HandlePlayerResurrects(Player* player, uint32 zone);
+
     // called when a player triggers an areatrigger
     virtual bool HandleAreaTrigger(Player * plr, uint32 trigger);
     // called on custom spell
     virtual bool HandleCustomSpell(Player *plr, uint32 spellId, GameObject * go);
     // called on go use
-    virtual bool HandleOpenGo(Player *plr, uint64 guid);
+    virtual bool HandleOpenGo(Player *plr, ObjectGuid guid);
 
     // setup stuff
     virtual bool SetupOutdoorPvP() {return true;}
 
-    void OnGameObjectCreate(GameObject *go, bool add);
-    void OnCreatureCreate(Creature *, bool /*add*/) {}
+	void OnGameObjectCreate(GameObject* go) override;
+	void OnGameObjectRemove(GameObject* go) override;
+	void OnCreatureCreate(Creature*) override;
+	void OnCreatureRemove(Creature*) override;
+
+    // world state stuff
+    virtual void SendRemoveWorldStates(Player * plr) {}
+    virtual void FillInitialWorldStates(WorldPacket & data) {}
 
     // send world state update to all players present
-    void SendUpdateWorldState(uint32 field, uint32 value);
+    virtual void SendUpdateWorldState(uint32 field, uint32 value);
 
     // called by OutdoorPvPMgr, updates the objectives and if needed, sends new worldstateui information
     virtual bool Update(uint32 diff);
 
     // handle npc/player kill
     virtual void HandleKill(Player * killer, Unit * killed);
-    virtual void HandleKillImpl(Player * /*killer*/, Unit * /*killed*/) {}
+    virtual void HandleKillImpl(Player * killer, Unit * killed) {}
 
     // checks if player is in range of a capture credit marker
-    bool IsInsideObjective(Player * plr) const;
+    virtual bool IsInsideObjective(Player * plr);
 
     // awards rewards for player kill
-    virtual void AwardKillBonus(Player * /*plr*/) {}
+    virtual void AwardKillBonus(Player * plr) {}
 
     uint32 GetTypeId() {return m_TypeId;}
 
     virtual bool HandleDropFlag(Player * plr, uint32 spellId);
 
-    virtual bool HandleGossipOption(Player *plr, uint64 guid, uint32 gossipid);
+    virtual bool HandleGossipOption(Player *plr, ObjectGuid guid, uint32 gossipid);
 
-    virtual bool CanTalkTo(Player * plr, Creature * c, GossipMenuItems gso);
+    virtual bool CanTalkTo(Player * plr, Creature * c, GossipMenuItems const& gso);
 
-    void TeamApplyBuff(TeamId team, uint32 spellId, uint32 spellId2 = 0);
+	void SendDefenseMessage(uint32 zoneId, uint32 id);
+
+	Map* GetMap() const { return m_map; }
+
 protected:
     // the map of the objectives belonging to this outdoorpvp
     OPvPCapturePointMap m_capturePoints;
-
-    PlayerSet m_players[2];
+    // players in the zones of this outdoorpvp, 0 - alliance, 1 - horde
+    GuidSet m_players[2];
     uint32 m_TypeId;
 
-    // world state stuff
-    virtual void SendRemoveWorldStates(Player * /*plr*/) {}
+	bool HasPlayer(Player const* player) const;
 
-    virtual void HandlePlayerEnterZone(Player * plr, uint32 zone);
-    virtual void HandlePlayerLeaveZone(Player * plr, uint32 zone);
-
-    void AddCapturePoint(OPvPCapturePoint* cp)
-    {
-        m_capturePoints[cp->m_capturePointGUID] = cp;
-    }
-
-    OPvPCapturePoint * GetCapturePoint(uint32 lowguid) const
-    {
-        OutdoorPvP::OPvPCapturePointMap::const_iterator itr = m_capturePoints.find(lowguid);
-        if (itr != m_capturePoints.end())
-            return itr->second;
-        return NULL;
-    }
+	OPvPCapturePoint * GetCapturePoint(ObjectGuid::LowType guid) const;
 
     void RegisterZone(uint32 zoneid);
-    bool HasPlayer(Player *plr) const;
-    void TeamCastSpell(TeamId team, int32 spellId);
+
+	void AddCapturePoint(OPvPCapturePoint* cp)
+	{
+		m_capturePoints[cp->m_capturePointSpawnId] = cp;
+	}
+
+    template<class Worker>
+    void BroadcastWorker(Worker& _worker, uint32 zoneId);
+
+	// Hack to store map because this code is just shit
+	void SetMapFromZone(uint32 zone);
+	std::map<ObjectGuid::LowType, GameObject*> m_GoScriptStore;
+	std::map<ObjectGuid::LowType, Creature*> m_CreatureScriptStore;
+
+	Map* m_map;
 };
 
 #endif /*OUTDOOR_PVP_H_*/

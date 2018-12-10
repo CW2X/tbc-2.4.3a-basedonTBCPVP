@@ -1,68 +1,45 @@
-/*
- * Copyright (C) 2010-2012 Project SkyFire <http://www.projectskyfire.org/>
- * Copyright (C) 2010-2012 Oregon <http://www.oregoncore.com/>
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 
 #ifndef TRINITY_WAYPOINTMANAGER_H
 #define TRINITY_WAYPOINTMANAGER_H
 
-#include <ace/Singleton.h>
-#include <ace/Null_Mutex.h>
-#include <vector>
+#include <unordered_map>
+#include "WaypointDefines.h"
 
-struct WaypointData
+typedef std::unordered_map<uint32, WaypointPath> WaypointPathContainer;
+
+class TC_GAME_API WaypointMgr
 {
-    uint32 id;
-    float x, y, z;
-    bool run;
-    uint32 delay;
-    uint32 event_id;
-    uint8 event_chance;
-};
-
-typedef std::vector<WaypointData*> WaypointPath;
-
-class WaypointStore
-{
-    private :
-        uint32  records;
-        UNORDERED_MAP<uint32, WaypointPath*> waypoint_map;
-
     public:
-        // Null Mutex is OK because WaypointMgr is initialized in the World thread before World is initialized
-        static WaypointStore* instance() { return ACE_Singleton<WaypointStore, ACE_Null_Mutex>::instance(); }
-
-        ~WaypointStore() { Free(); }
-        void UpdatePath(uint32 id);
-        void Load();
-        void Free();
-
-        WaypointPath* GetPath(uint32 id)
+        static WaypointMgr* instance()
         {
-            if (waypoint_map.find(id) != waypoint_map.end())
-                return waypoint_map[id];
-            else return 0;
+            static WaypointMgr instance;
+            return &instance;
         }
 
-        inline uint32 GetRecordsCount() { return records; }
+        // Attempts to reload a single path from database
+        void ReloadPath(uint32 id);
+
+        // Loads all paths from database, do not reload since the pointers in _waypointStore could still be in use
+        void Load();
+
+        // Returns the path from a given id
+        WaypointPath const* GetPath(uint32 id) const
+        {
+            auto itr = _waypointStore.find(id);
+            if (itr != _waypointStore.end())
+                return &itr->second;
+
+            return nullptr;
+        }
+
+    private:
+        // Only allow instantiation from ACE_Singleton
+        WaypointMgr();
+        ~WaypointMgr();
+
+        WaypointPathContainer _waypointStore;
 };
 
-#define sWaypointMgr WaypointStore::instance()
+#define sWaypointMgr WaypointMgr::instance()
 
 #endif
-

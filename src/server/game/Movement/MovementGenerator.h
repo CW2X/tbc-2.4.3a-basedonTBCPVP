@@ -1,106 +1,148 @@
-/*
- * Copyright (C) 2010-2012 Project SkyFire <http://www.projectskyfire.org/>
- * Copyright (C) 2010-2012 Oregon <http://www.oregoncore.com/>
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 
 #ifndef TRINITY_MOVEMENTGENERATOR_H
 #define TRINITY_MOVEMENTGENERATOR_H
 
 #include "Define.h"
+#include "SelectableAI.h"
+#include "FactoryHolder.h"
+#include "ObjectRegistry.h"
 
-#include "Dynamic/ObjectRegistry.h"
-#include "Dynamic/FactoryHolder.h"
-#include "Common.h"
-#include "MotionMaster.h"
-
-#include <ace/Singleton.h>
-
+class Creature;
 class Unit;
+enum MovementGeneratorType : uint8;
+
+enum MovementGeneratorFlags : uint16
+{
+    MOVEMENTGENERATOR_FLAG_NONE                   = 0x000,
+    MOVEMENTGENERATOR_FLAG_INITIALIZATION_PENDING = 0x001,
+    MOVEMENTGENERATOR_FLAG_INITIALIZED            = 0x002,
+    MOVEMENTGENERATOR_FLAG_SPEED_UPDATE_PENDING   = 0x004,
+    MOVEMENTGENERATOR_FLAG_INTERRUPTED            = 0x008,
+    MOVEMENTGENERATOR_FLAG_PAUSED                 = 0x010,
+    MOVEMENTGENERATOR_FLAG_TIMED_PAUSED           = 0x020,
+    MOVEMENTGENERATOR_FLAG_DEACTIVATED            = 0x040,
+    MOVEMENTGENERATOR_FLAG_INFORM_ENABLED         = 0x080,
+    MOVEMENTGENERATOR_FLAG_FINALIZED              = 0x100,
+
+    MOVEMENTGENERATOR_FLAG_TRANSITORY = MOVEMENTGENERATOR_FLAG_SPEED_UPDATE_PENDING | MOVEMENTGENERATOR_FLAG_INTERRUPTED
+};
 
 class MovementGenerator
 {
     public:
+        MovementGenerator(uint8 mode, uint8 priority, uint32 baseUnitState) :
+            Mode(mode),
+            Priority(priority),
+            BaseUnitState(baseUnitState)
+        {}
+
         virtual ~MovementGenerator();
 
-        virtual void Initialize(Unit &) = 0;
-        virtual void Finalize(Unit &) = 0;
+        // on top first update
+        virtual bool Initialize(Unit*) = 0;
+        //@premature: generator was stopped before expiration
+        /*virtual void Finalize(Unit*, bool premature) = 0;*/ //can be replaced by Deactivate?
+        // on movement delete
+        virtual void Finalize(Unit*, bool, bool) = 0;
+        // on top reassign
+        virtual void Reset(Unit*) = 0;
+        // on current top if another movement replaces
+        virtual void Deactivate(Unit*) = 0;
 
-        virtual void Reset(Unit &) = 0;
+        virtual bool Update(Unit*, uint32 time_diff) = 0;
 
-        virtual bool Update(Unit &, const uint32 &time_diff) = 0;
+        virtual MovementGeneratorType GetMovementGeneratorType() const = 0;
 
-        virtual MovementGeneratorType GetMovementGeneratorType() = 0;
+        virtual void UnitSpeedChanged() { }
+        // timer in ms
+        virtual void Pause(uint32/* timer = 0*/) { } 
+        // timer in ms
+        virtual void Resume(uint32/* overrideTimer = 0*/) { }
 
-        virtual void unitSpeedChanged() { }
+        // used by Evade code for select point to evade with expected restart default movement
+        virtual bool GetResetPosition(Unit*, float&/* x*/, float&/* y*/, float&/* z*/) { return false; } 
 
-        virtual bool GetDestination(float& /*x*/, float& /*y*/, float& /*z*/) const { return false; }
+        void AddFlag(uint16 const flag) { Flags |= flag; }
+        bool HasFlag(uint16 const flag) const { return (Flags & flag) != 0; }
+        void RemoveFlag(uint16 const flag) { Flags &= ~flag; }
 
-        // given destination unreachable? due to pathfinsing or other
-        virtual bool IsReachable() const { return true; }
+        uint8 Mode;
+        uint8 Priority;
+        uint16 Flags = MOVEMENTGENERATOR_FLAG_INITIALIZATION_PENDING;
+        uint32 BaseUnitState;
 };
 
 template<class T, class D>
 class MovementGeneratorMedium : public MovementGenerator
 {
     public:
-        void Initialize(Unit &u)
+        MovementGeneratorMedium(uint8 mode, uint8 priority, uint32 baseUnitState) :
+            MovementGenerator(mode, priority, baseUnitState)
+        {}
+
+        bool Initialize(Unit* owner) override
         {
-            //u->AssertIsType<T>();
-            (static_cast<D*>(this))->Initialize(*((T*)&u));
+            return (static_cast<D*>(this))->DoInitialize(static_cast<T*>(owner));
         }
-        void Finalize(Unit &u)
+
+        void Reset(Unit* owner) override
         {
-            //u->AssertIsType<T>();
-            (static_cast<D*>(this))->Finalize(*((T*)&u));
+            (static_cast<D*>(this))->DoReset(static_cast<T*>(owner));
         }
-        void Reset(Unit &u)
+
+        bool Update(Unit* owner, uint32 time_diff) override
         {
-            //u->AssertIsType<T>();
-            (static_cast<D*>(this))->Reset(*((T*)&u));
+            return (static_cast<D*>(this))->DoUpdate(static_cast<T*>(owner), time_diff);
         }
-        bool Update(Unit &u, const uint32 &time_diff)
+
+        void Deactivate(Unit* owner) override
         {
-            //u->AssertIsType<T>();
-            return (static_cast<D*>(this))->Update(*((T*)&u), time_diff);
+            (static_cast<D*>(this))->DoDeactivate(static_cast<T*>(owner));
         }
-    public:
-        // will not link if not overridden in the generators
-        void Initialize(T &u);
-        void Finalize(T &u);
-        void Reset(T &u);
-        bool Update(T &u, const uint32 &time_diff);
+
+        //@active: Generator is currently active
+        void Finalize(Unit* owner, bool active, bool movementInform) override
+        {
+            (static_cast<D*>(this))->DoFinalize(static_cast<T*>(owner), active, movementInform);
+        }
 };
 
-struct SelectableMovement : public FactoryHolder<MovementGenerator, MovementGeneratorType>
+typedef FactoryHolder<MovementGenerator, Unit, MovementGeneratorType> MovementGeneratorCreator;
+
+template<class Movement>
+struct MovementGeneratorFactory : public MovementGeneratorCreator
 {
-    SelectableMovement(MovementGeneratorType mgt) : FactoryHolder<MovementGenerator, MovementGeneratorType>(mgt) {}
+    MovementGeneratorFactory(MovementGeneratorType movementGeneratorType) : MovementGeneratorCreator(movementGeneratorType) { }
+
+    MovementGenerator* Create(Unit* /*object*/) const override
+    {
+        return new Movement();
+    }
 };
 
-template<class REAL_MOVEMENT>
-struct MovementGeneratorFactory : public SelectableMovement
+struct IdleMovementFactory : public MovementGeneratorCreator
 {
-    MovementGeneratorFactory(MovementGeneratorType mgt) : SelectableMovement(mgt) {}
+    IdleMovementFactory();
 
-    MovementGenerator* Create(void *) const;
+    MovementGenerator* Create(Unit* object) const override;
 };
 
-typedef FactoryHolder<MovementGenerator, MovementGeneratorType> MovementGeneratorCreator;
-typedef FactoryHolder<MovementGenerator, MovementGeneratorType>::FactoryHolderRegistry MovementGeneratorRegistry;
-typedef FactoryHolder<MovementGenerator, MovementGeneratorType>::FactoryHolderRepository MovementGeneratorRepository;
+struct RandomMovementFactory : public MovementGeneratorCreator
+{
+    RandomMovementFactory();
+
+    MovementGenerator* Create(Unit* object) const override;
+};
+
+struct WaypointMovementFactory : public MovementGeneratorCreator
+{
+    WaypointMovementFactory();
+	 
+    MovementGenerator* Create(Unit* object) const override;
+};
+
+typedef MovementGeneratorCreator::FactoryHolderRegistry MovementGeneratorRegistry;
+
+#define sMovementGeneratorRegistry MovementGeneratorRegistry::instance()
+
 #endif
-

@@ -1,88 +1,102 @@
 /*
- * Copyright (C) 2010-2012 Project SkyFire <http://www.projectskyfire.org/>
- * Copyright (C) 2010-2012 Oregon <http://www.oregoncore.com/>
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2008 MaNGOS <http://www.mangosproject.org/>
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
+ * Copyright (C) 2008 Trinity <http://www.trinitycore.org/>
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
  *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
 #include "Common.h"
 #include "Log.h"
 #include "WorldPacket.h"
 #include "WorldSession.h"
+#include "World.h"
 #include "ObjectAccessor.h"
 #include "CreatureAI.h"
-#include "ObjectGuid.h"
+#include "ObjectDefines.h"
 
-void WorldSession::HandleAttackSwingOpcode(WorldPacket & recv_data)
+void WorldSession::HandleAttackSwingOpcode( WorldPacket & recvData )
 {
     ObjectGuid guid;
-    recv_data >> guid;
+    recvData >> guid;
 
-    sLog->outDebug("WORLD: Recvd CMSG_ATTACKSWING Message %s", guid.GetString().c_str());
+    Unit* enemy = ObjectAccessor::GetUnit(*_player, guid);
 
-    Unit *pEnemy = ObjectAccessor::GetUnit(*_player, guid.GetRawValue());
-
-    if (!pEnemy)
-    {
-        if (!guid.IsUnit())
-            sLog->outError("WORLD: %s isn't player, pet or creature", guid.GetString().c_str());
-        else
-            sLog->outError("WORLD: Enemy %s not found", guid.GetString().c_str());
-
+    if (!enemy) {
         // stop attack state at client
-        SendAttackStop(NULL);
+        SendMeleeAttackStop(nullptr);
         return;
     }
 
-    if (!_player->canAttack(pEnemy))
+    if (!_player->IsValidAttackTarget(enemy))
     {
-        sLog->outError("WORLD: Enemy %s is friendly", guid.GetString().c_str());
-
         // stop attack state at client
-        SendAttackStop(pEnemy);
+        SendMeleeAttackStop(enemy);
         return;
     }
 
-    _player->Attack(pEnemy, true);
+#ifdef LICH_KING
+
+    //! Client explicitly checks the following before sending CMSG_ATTACKSWING packet,
+    //! so we'll place the same check here. Note that it might be possible to reuse this snippet
+    //! in other places as well.
+    if (Vehicle* vehicle = _player->GetVehicle())
+    {
+        VehicleSeatEntry const* seat = vehicle->GetSeatForPassenger(_player);
+        ASSERT(seat);
+        if (!(seat->m_flags & VEHICLE_SEAT_FLAG_CAN_ATTACK))
+        {
+            SendAttackStop(pEnemy);
+            return;
+        }
+    }
+#endif
+
+    _player->Attack(enemy, true);
 }
 
-void WorldSession::HandleAttackStopOpcode(WorldPacket & /*recv_data*/)
+void WorldSession::HandleAttackStopOpcode( WorldPacket & /*recvData*/ )
 {
     GetPlayer()->AttackStop();
 }
 
-void WorldSession::HandleSetSheathedOpcode(WorldPacket & recv_data)
+void WorldSession::HandleSetSheathedOpcode( WorldPacket & recvData )
 {
     uint32 sheathed;
-    recv_data >> sheathed;
+    recvData >> sheathed;
 
     if (sheathed >= MAX_SHEATH_STATE)
     {
-        sLog->outError("Unknown sheath state %u ??", sheathed);
+        TC_LOG_ERROR("network", "Unknown sheath state %u ?", sheathed);
         return;
     }
+
+    //TC_LOG_DEBUG("network.opcode", "WORLD: Recvd CMSG_SETSHEATHED Message guidlow:%u value1:%u", GetPlayer()->GetGUID().GetCounter(), sheathed );
 
     GetPlayer()->SetSheath(SheathState(sheathed));
 }
 
-void WorldSession::SendAttackStop(Unit const* enemy)
+void WorldSession::SendMeleeAttackStop(Unit const* enemy)
 {
-    WorldPacket data(SMSG_ATTACKSTOP, (4+20));              // we guess size
+    WorldPacket data( SMSG_ATTACKSTOP, (4+20) );            // we guess size
     data << GetPlayer()->GetPackGUID();
-    data << (enemy ? enemy->GetPackGUID() : PackedGuid());  // must be packed guid
+    if (enemy)
+        data << enemy->GetPackGUID();
+    else
+        data << uint8(0);
+
     data << uint32(0);                                      // unk, can be 1 also
     SendPacket(&data);
 }

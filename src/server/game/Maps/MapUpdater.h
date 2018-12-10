@@ -1,57 +1,72 @@
-/*
- * Copyright (C) 2010-2012 Project SkyFire <http://www.projectskyfire.org/>
- * Copyright (C) 2010-2012 Oregon <http://www.oregoncore.com/>
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 
 #ifndef _MAP_UPDATER_H_INCLUDED
 #define _MAP_UPDATER_H_INCLUDED
 
-#include <ace/Thread_Mutex.h>
-#include <ace/Condition_Thread_Mutex.h>
+#include "Define.h"
+#include <mutex>
+#include <thread>
+#include <condition_variable>
+#include "ProducerConsumerQueue.h"
 
-#include "DelayExecutor.h"
-
+class MapUpdateRequest;
 class Map;
 
+/**
+Two kinds of maps:
+- Maps we update only once (continents, instances base maps)
+- Maps we keep updating until the first type has finished (instances, battlegrounds)
+*/
 class MapUpdater
 {
-    public:
-        MapUpdater();
-        virtual ~MapUpdater();
+public:
 
-        friend class MapUpdateRequest;
+    MapUpdater() : _cancelationToken(false), _enable_updates_loop(false), pending_once_maps(0), pending_loop_maps(0) {}
+    ~MapUpdater();
 
-        int schedule_update(Map& map, ACE_UINT32 diff);
+    friend class MapUpdateRequest;
 
-        int wait();
+    void schedule_update(Map& map, uint32 diff);
 
-        int activate(size_t num_threads);
+    void waitUpdateOnces();
+    //when enabled, instance update requests are re enqueued instead of consumed
+    void enableUpdateLoop(bool enable);
+    void waitUpdateLoops();
 
-        int deactivate(void);
+    void activate(size_t num_threads);
 
-        bool activated();
-    private:
-        void update_finished();
+    void deactivate();
 
-        DelayExecutor m_executor;
-        ACE_Condition_Thread_Mutex m_condition;
-        ACE_Thread_Mutex m_mutex;
-        size_t pedning_requests;
+    bool activated();
+private:
+
+    void onceMapFinished();
+    void loopMapFinished();
+
+	//this will ensure once_map_workerThreads match the pending_once_maps count
+	void spawnMissingOnceUpdateThreads();
+
+    ProducerConsumerQueue<MapUpdateRequest*> _loop_queue;
+	ProducerConsumerQueue<MapUpdateRequest*> _once_queue;
+
+    std::vector<std::thread> _loop_maps_workerThreads; 
+    std::vector<std::thread> _once_maps_workerThreads; //created/deleted at each loop, one for each continent
+    std::atomic<bool> _cancelationToken;
+    std::atomic<bool> _enable_updates_loop;
+
+    std::mutex _lock;
+    //notified when an update loop request is finished
+    std::condition_variable _loops_finished_condition;
+    //notified when an update once request is finished
+    std::condition_variable _onces_finished_condition;
+    std::atomic<uint32> pending_once_maps;
+    std::atomic<uint32> pending_loop_maps;
+
+    /* Loop workers keep running and processing _loop_queue, updating maps and requeuing them afterwards.
+    When onceMapsFinished becomes true, the worker finish the current request and delete the request instead of requeuing it.
+    */
+    void LoopWorkerThread(std::atomic<bool>* onceMapsFinished);
+    //Single update, descrease pending_once_maps when done
+	void OnceWorkerThread();
 };
-#endif //_MAP_UPDATER_H_INCLUDED
 
+#endif //_MAP_UPDATER_H_INCLUDED

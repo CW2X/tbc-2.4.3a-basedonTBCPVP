@@ -1,20 +1,21 @@
 /**
  @file Vector2.cpp
-
+ 
  2D vector class, used for texture coordinates primarily.
-
+ 
  @maintainer Morgan McGuire, http://graphics.cs.williams.edu
-
+ 
  @cite Portions based on Dave Eberly'x Magic Software Library
   at http://www.magic-software.com
-
+ 
  @created 2001-06-02
- @edited  2009-11-16
+ @edited  2010-11-16
  */
 
 #include "G3D/platform.h"
 #include <stdlib.h>
 #include "G3D/Vector2.h"
+#include "G3D/Vector2int32.h"
 #include "G3D/g3dmath.h"
 #include "G3D/format.h"
 #include "G3D/BinaryInput.h"
@@ -24,8 +25,13 @@
 #include "G3D/Any.h"
 
 namespace G3D {
+
+Vector2::Vector2(const Vector2int32& other) : x((float)other.x), y((float)other.y) {
+}
+
+
 Vector2::Vector2(const Any& any) {
-    any.verifyName("Vector2");
+    any.verifyName("Vector2", "Point2");
     any.verifyType(Any::TABLE, Any::ARRAY);
     any.verifySize(2);
 
@@ -39,15 +45,24 @@ Vector2::Vector2(const Any& any) {
     }
 }
 
-Vector2::operator Any() const {
+
+Vector2& Vector2::operator=(const Any& a) {
+    *this = Vector2(a);
+    return *this;
+}
+
+
+Any Vector2::toAny() const {
     Any any(Any::ARRAY, "Vector2");
     any.append(x, y);
     return any;
 }
 
-const Vector2& Vector2::one() {
-    static const Vector2 v(1, 1); return v;
+
+const Vector2& Vector2::one() { 
+    static const Vector2 v(1, 1); return v; 
 }
+
 
 const Vector2& Vector2::zero() {
     static Vector2 v(0, 0);
@@ -64,25 +79,29 @@ const Vector2& Vector2::unitY() {
     return v;
 }
 
-const Vector2& Vector2::inf() {
-	static Vector2 v((float)G3D::finf(), (float)G3D::finf());
-	return v;
+const Vector2& Vector2::inf() { 
+    static Vector2 v(G3D::finf(), G3D::finf());
+    return v; 
 }
 
-const Vector2& Vector2::nan() {
-	static Vector2 v((float)G3D::fnan(), (float)G3D::fnan());
-	return v;
+
+const Vector2& Vector2::nan() { 
+    static Vector2 v(G3D::fnan(), G3D::fnan()); 
+    return v; 
 }
+
 
 const Vector2& Vector2::minFinite() {
-	static Vector2 v(-FLT_MAX, -FLT_MAX);
-	return v;
+    static Vector2 v(-FLT_MAX, -FLT_MAX); 
+    return v; 
 }
 
+
 const Vector2& Vector2::maxFinite() {
-	static Vector2 v(FLT_MAX, FLT_MAX);
-	return v;
+    static Vector2 v(FLT_MAX, FLT_MAX); 
+    return v; 
 }
+
 
 size_t Vector2::hashCode() const {
     unsigned int xhash = (*(int*)(void*)(&x));
@@ -91,19 +110,23 @@ size_t Vector2::hashCode() const {
     return xhash + (yhash * 37);
 }
 
+
 Vector2::Vector2(BinaryInput& b) {
     deserialize(b);
 }
+
 
 void Vector2::deserialize(BinaryInput& b) {
     x = b.readFloat32();
     y = b.readFloat32();
 }
 
+
 void Vector2::serialize(BinaryOutput& b) const {
     b.writeFloat32(x);
     b.writeFloat32(y);
 }
+
 
 void Vector2::deserialize(TextInput& t) {
     t.readSymbol("(");
@@ -112,6 +135,7 @@ void Vector2::deserialize(TextInput& t) {
     y = (float)t.readNumber();
     t.readSymbol(")");
 }
+
 
 void Vector2::serialize(TextOutput& t) const {
    t.writeSymbol("(");
@@ -128,12 +152,12 @@ Vector2 Vector2::random(G3D::Random& r) {
 
     do {
         result = Vector2(r.uniform(-1, 1), r.uniform(-1, 1));
+
     } while (result.squaredLength() >= 1.0f);
 
-    result.unitize();
-
-    return result;
+    return result.direction();
 }
+
 
 Vector2 Vector2::operator/ (float k) const {
     return *this * (1.0f / k);
@@ -145,20 +169,6 @@ Vector2& Vector2::operator/= (float k) {
     return *this;
 }
 
-//----------------------------------------------------------------------------
-float Vector2::unitize (float fTolerance) {
-	float fLength = length();
-
-    if (fLength > fTolerance) {
-		float fInvLength = 1.0f / fLength;
-        x *= fInvLength;
-        y *= fInvLength;
-    } else {
-        fLength = 0.0;
-    }
-
-    return fLength;
-}
 
 //----------------------------------------------------------------------------
 
@@ -202,4 +212,14 @@ Vector4 Vector2::xxyy() const  { return Vector4       (x, x, y, y); }
 Vector4 Vector2::yxyy() const  { return Vector4       (y, x, y, y); }
 Vector4 Vector2::xyyy() const  { return Vector4       (x, y, y, y); }
 Vector4 Vector2::yyyy() const  { return Vector4       (y, y, y, y); }
+
+
+void serialize(const Vector2& v, class BinaryOutput& b) {
+    v.serialize(b);
+}
+
+void deserialize(Vector2& v, class BinaryInput& b) {
+    v.deserialize(b);
+}
+
 } // namespace

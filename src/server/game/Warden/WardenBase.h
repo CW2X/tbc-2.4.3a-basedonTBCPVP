@@ -1,31 +1,10 @@
-/*
- * Copyright (C) 2010-2012 Project SkyFire <http://www.projectskyfire.org/>
- * Copyright (C) 2010-2012 Oregon <http://www.oregoncore.com/>
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 
 #ifndef _WARDEN_BASE_H
 #define _WARDEN_BASE_H
-
 #include "ARC4.h"
+#include <map>
 #include "BigNumber.h"
 #include "ByteBuffer.h"
-
-#include <map>
 
 enum WardenOpcodes
 {
@@ -46,11 +25,7 @@ enum WardenOpcodes
     WARDEN_SMSG_HASH_REQUEST                    = 5
 };
 
-#if defined(__GNUC__)
-#pragma pack(1)
-#else
 #pragma pack(push,1)
-#endif
 
 struct WardenModuleUse
 {
@@ -73,11 +48,7 @@ struct WardenHashRequest
     uint8 Seed[16];
 };
 
-#if defined(__GNUC__)
-#pragma pack()
-#else
 #pragma pack(pop)
-#endif
 
 struct ClientWardenModule
 {
@@ -96,7 +67,7 @@ class WardenBase
 
     public:
         WardenBase();
-        ~WardenBase();
+        virtual ~WardenBase();
 
         virtual void Init(WorldSession *pClient, BigNumber *K);
         virtual ClientWardenModule *GetModuleForClient(WorldSession *session);
@@ -118,15 +89,18 @@ class WardenBase
 
     private:
         WorldSession *Client;
+        
         uint8 InputKey[16];
         uint8 OutputKey[16];
         uint8 Seed[16];
+        
         ARC4 iCrypto;
         ARC4 oCrypto;
-        uint32 m_WardenCheckTimer;                          // timer between data packets
-        bool m_WardenDataSent;
-        uint32 m_WardenKickTimer;                           // time after send packet
-        uint32 m_WardenTimer;
+        
+        uint32 _wardenCheckTimer;                          // timer between data packets
+        bool _wardenDataSent;
+        uint32 _wardenKickTimer;                           // time after send packet
+        uint32 _wardenTimer;
         ClientWardenModule *Module;
         bool m_initialized;
 };

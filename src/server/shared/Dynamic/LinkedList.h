@@ -1,21 +1,21 @@
 /*
- * Copyright (C) 2010-2012 Project SkyFire <http://www.projectskyfire.org/>
- * Copyright (C) 2010-2012 Oregon <http://www.oregoncore.com/>
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2008 MaNGOS <http://www.mangosproject.org/>
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
+ * Copyright (C) 2008 Trinity <http://www.trinitycore.org/>
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
  *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
 #ifndef _LINKEDLIST
@@ -23,6 +23,7 @@
 
 #include "Common.h"
 
+//============================================
 class LinkedListHead;
 
 class LinkedListElement
@@ -33,17 +34,16 @@ class LinkedListElement
         LinkedListElement* iNext;
         LinkedListElement* iPrev;
     public:
-        LinkedListElement() { iNext = NULL; iPrev = NULL; }
-        ~LinkedListElement() { delink(); }
+        LinkedListElement() { iNext = nullptr; iPrev = nullptr; }
 
-        bool hasNext() const { return(iNext && iNext->iNext != NULL); }
-        bool hasPrev() const { return(iPrev && iPrev->iPrev != NULL); }
-        bool isInList() const { return(iNext != NULL && iPrev != NULL); }
+        bool hasNext() const { return(iNext->iNext != nullptr); }
+        bool hasPrev() const { return(iPrev->iPrev != nullptr); }
+        bool isInList() const { return(iNext != nullptr && iPrev != nullptr); }
 
-        LinkedListElement      * next()       { return hasNext() ? iNext : NULL; }
-        LinkedListElement const* next() const { return hasNext() ? iNext : NULL; }
-        LinkedListElement      * prev()       { return hasPrev() ? iPrev : NULL; }
-        LinkedListElement const* prev() const { return hasPrev() ? iPrev : NULL; }
+        LinkedListElement      * next()       { return hasNext() ? iNext : nullptr; }
+        LinkedListElement const* next() const { return hasNext() ? iNext : nullptr; }
+        LinkedListElement      * prev()       { return hasPrev() ? iPrev : nullptr; }
+        LinkedListElement const* prev() const { return hasPrev() ? iPrev : nullptr; }
 
         LinkedListElement      * nocheck_next()       { return iNext; }
         LinkedListElement const* nocheck_next() const { return iNext; }
@@ -52,10 +52,13 @@ class LinkedListElement
 
         void delink()
         {
-            if (isInList())
-            {
-                iNext->iPrev = iPrev; iPrev->iNext = iNext; iNext = NULL; iPrev = NULL;
-            }
+            if(!isInList())
+                return;
+
+            iNext->iPrev = iPrev; 
+            iPrev->iNext = iNext; 
+            iNext = nullptr; 
+            iPrev = nullptr;
         }
 
         void insertBefore(LinkedListElement* pElem)
@@ -73,7 +76,17 @@ class LinkedListElement
             iNext->iPrev = pElem;
             iNext = pElem;
         }
+
+    private:
+        //prevent copy construction
+        LinkedListElement(LinkedListElement const&) = delete;
+        LinkedListElement& operator=(LinkedListElement const&) = delete;
+
+    protected:
+        ~LinkedListElement() { delink(); }
 };
+
+//============================================
 
 class LinkedListHead
 {
@@ -91,13 +104,13 @@ class LinkedListHead
             iSize = 0;
         }
 
-        bool isEmpty() const { return(!iFirst.iNext->isInList()); }
+        bool isEmpty() const { return(!iFirst.iNext || !iFirst.iNext->isInList()); }
 
-        LinkedListElement      * getFirst()       { return(isEmpty() ? NULL : iFirst.iNext); }
-        LinkedListElement const* getFirst() const { return(isEmpty() ? NULL : iFirst.iNext); }
+        LinkedListElement      * getFirst()       { return(isEmpty() ? nullptr : iFirst.iNext); }
+        LinkedListElement const* getFirst() const { return(isEmpty() ? nullptr : iFirst.iNext); }
 
-        LinkedListElement      * getLast() { return(isEmpty() ? NULL : iLast.iPrev); }
-        LinkedListElement const* getLast() const  { return(isEmpty() ? NULL : iLast.iPrev); }
+        LinkedListElement      * getLast() { return(isEmpty() ? nullptr : iLast.iPrev); }
+        LinkedListElement const* getLast() const  { return(isEmpty() ? nullptr : iLast.iPrev); }
 
         void insertFirst(LinkedListElement* pElem)
         {
@@ -111,7 +124,7 @@ class LinkedListHead
 
         uint32 getSize() const
         {
-            if (!iSize)
+            if(!iSize)
             {
                 uint32 result = 0;
                 LinkedListElement const* e = getFirst();
@@ -142,7 +155,8 @@ class LinkedListHead
                 typedef _Ty&                                reference;
                 typedef _Ty const &                         const_reference;
 
-                Iterator() : _Ptr(0)
+
+                Iterator() : _Ptr(nullptr)
                 {                                           // construct with null node pointer
                 }
 
@@ -227,6 +241,7 @@ class LinkedListHead
                     return (_Ptr != &_Right);
                 }
 
+
                 pointer _Mynode()
                 {                                           // return node pointer
                     return (_Ptr);
@@ -239,5 +254,6 @@ class LinkedListHead
         typedef Iterator<LinkedListElement> iterator;
 };
 
+//============================================
 #endif
 

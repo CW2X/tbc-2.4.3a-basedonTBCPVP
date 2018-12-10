@@ -1,193 +1,157 @@
-/*
- * Copyright (C) 2010-2012 Project SkyFire <http://www.projectskyfire.org/>
- * Copyright (C) 2010-2012 Oregon <http://www.oregoncore.com/>
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 
 #include "Creature.h"
 #include "MapManager.h"
-#include "Opcodes.h"
 #include "ConfusedMovementGenerator.h"
-#include "DestinationHolderImp.h"
-#include "VMapFactory.h"
+#include "PathGenerator.h"
+#include "Management/VMapFactory.h"
+#include "MoveSplineInit.h"
+#include "MoveSpline.h"
+#include "Player.h"
+#include "MovementDefines.h"
+
 
 template<class T>
-void
-ConfusedMovementGenerator<T>::Initialize(T &unit)
+ConfusedMovementGenerator<T>::ConfusedMovementGenerator() :
+    MovementGeneratorMedium<T, ConfusedMovementGenerator<T>>(MOTION_MODE_DEFAULT, MOTION_PRIORITY_HIGHEST, UNIT_STATE_CONFUSED),
+    _nextMoveTime(0)
+{ }
+
+template<class T>
+MovementGeneratorType ConfusedMovementGenerator<T>::GetMovementGeneratorType() const
 {
-    const float wander_distance = 6;
-    float x, y, z;
-    x = unit.GetPositionX();
-    y = unit.GetPositionY();
-    z = unit.GetPositionZ();
-
-    Map const* map = unit.GetBaseMap();
-
-    i_nextMove = 1;
-
-    bool is_water_ok, is_land_ok;
-    _InitSpecific(unit, is_water_ok, is_land_ok);
-
-    VMAP::IVMapManager *vMaps = VMAP::VMapFactory::createOrGetVMapManager();
-
-    for (uint8 idx = 0; idx <= MAX_CONF_WAYPOINTS; ++idx)
-    {
-        float wanderX = x + wander_distance*rand_norm() - wander_distance/2;
-        float wanderY = y + wander_distance*rand_norm() - wander_distance/2;
-        Trinity::NormalizeMapCoord(wanderX);
-        Trinity::NormalizeMapCoord(wanderY);
-
-        float new_z = map->GetHeight(wanderX, wanderY, z, true);
-        if (new_z > INVALID_HEIGHT && unit.IsWithinLOS(wanderX, wanderY, new_z))
-        {
-            // Don't move in water if we're not already in
-            // Don't move on land if we're not already on it either
-            bool is_water_now = map->IsInWater(x, y, z);
-            bool is_water_next = map->IsInWater(wanderX, wanderY, new_z);
-            if ((is_water_now && !is_water_next && !is_land_ok) || (!is_water_now && is_water_next && !is_water_ok))
-            {
-                i_waypoints[idx][0] = idx > 0 ? i_waypoints[idx-1][0] : x; // Back to previous location
-                i_waypoints[idx][1] = idx > 0 ? i_waypoints[idx-1][1] : y;
-                i_waypoints[idx][2] = idx > 0 ? i_waypoints[idx-1][2] : z;
-                continue;
-            }
-
-            i_waypoints[idx][0] = wanderX;
-            i_waypoints[idx][1] = wanderY;
-            i_waypoints[idx][2] = new_z;
-
-            // prevent falling down over an edge and check vmap if possible
-            if (z > i_waypoints[idx][2] + 3.0f ||
-                vMaps && !vMaps->isInLineOfSight(map->GetId(), x, y, z + 2.0f, i_waypoints[idx][0], i_waypoints[idx][1], i_waypoints[idx][2]))
-            {
-                i_waypoints[idx][0] = idx > 0 ? i_waypoints[idx-1][0] : x;
-                i_waypoints[idx][1] = idx > 0 ? i_waypoints[idx-1][1] : y;
-                i_waypoints[idx][2] = idx > 0 ? i_waypoints[idx-1][2] : z;
-            }
-        }
-        else    // Back to previous location
-        {
-            i_waypoints[idx][0] = idx > 0 ? i_waypoints[idx-1][0] : x;
-            i_waypoints[idx][1] = idx > 0 ? i_waypoints[idx-1][1] : y;
-            i_waypoints[idx][2] = idx > 0 ? i_waypoints[idx-1][2] : z;
-            continue;
-        }
-    }
-
-    unit.SetUInt64Value(UNIT_FIELD_TARGET, 0);
-    unit.SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_CONFUSED);
-    unit.CastStop();
-    unit.StopMoving();
-    unit.RemoveUnitMovementFlag(MOVEFLAG_WALK_MODE);
-    unit.addUnitState(UNIT_STAT_CONFUSED);
-}
-
-template<>
-void
-ConfusedMovementGenerator<Creature>::_InitSpecific(Creature &creature, bool &is_water_ok, bool &is_land_ok)
-{
-    is_water_ok = creature.canSwim();
-    is_land_ok  = creature.canWalk();
-}
-
-template<>
-void
-ConfusedMovementGenerator<Player>::_InitSpecific(Player &, bool &is_water_ok, bool &is_land_ok)
-{
-    is_water_ok = true;
-    is_land_ok  = true;
+    return CONFUSED_MOTION_TYPE;
 }
 
 template<class T>
-void ConfusedMovementGenerator<T>::Reset(T &unit)
+bool ConfusedMovementGenerator<T>::DoInitialize(T* owner)
 {
-    i_nextMove = 1;
-    i_nextMoveTime.Reset(0);
-    i_destinationHolder.ResetUpdate();
-    unit.StopMoving();
-}
+    MovementGenerator::RemoveFlag(MOVEMENTGENERATOR_FLAG_INITIALIZATION_PENDING | MOVEMENTGENERATOR_FLAG_DEACTIVATED | MOVEMENTGENERATOR_FLAG_TRANSITORY);
+    MovementGenerator::AddFlag(MOVEMENTGENERATOR_FLAG_INITIALIZED);
 
-template<class T>
-bool ConfusedMovementGenerator<T>::Update(T &unit, const uint32 &diff)
-{
-    if (!&unit)
-        return true;
+    if (!owner || !owner->IsAlive())
+        return false;
 
-    if (unit.hasUnitState(UNIT_STAT_ROOT | UNIT_STAT_STUNNED | UNIT_STAT_DISTRACTED))
-        return true;
+    // TODO: UNIT_FIELD_FLAGS should not be handled by generators
+    owner->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_CONFUSED);
+    owner->StopMoving();
 
-    if (i_nextMoveTime.Passed())
-    {
-        // currently moving, update location
-        Traveller<T> traveller(unit);
-        if (i_destinationHolder.UpdateTraveller(traveller, diff))
-        {
-            if (!i_waitForFinalize)
-            {
-                // arrived, stop and wait a bit
-                unit.clearUnitState(UNIT_STAT_MOVE);
-                unit.StopMoving();
+    _nextMoveTime.Reset(0);
+    _reference = owner->GetPosition();
+    _path = nullptr;
 
-                i_nextMove = urand(1, MAX_CONF_WAYPOINTS);
-                i_nextMoveTime.Reset(urand(200, 500));     // TODO: check the minimum reset time, should be probably higher
-            }
-            else if (i_destinationHolder.HasArrived())
-            {
-                // arrived, stop and wait a bit
-                unit.clearUnitState(UNIT_STAT_MOVE);
-
-                i_nextMove = urand(1, MAX_CONF_WAYPOINTS);
-                i_nextMoveTime.Reset(urand(100, 1000));     // TODO: check the minimum reset time, should be probably higher
-            }
-        }
-    }
-    else
-    {
-        // waiting for next move
-        i_nextMoveTime.Update(diff);
-        if (i_nextMoveTime.Passed())
-        {
-            // start moving
-            ASSERT(i_nextMove <= MAX_CONF_WAYPOINTS);
-            const float x = i_waypoints[i_nextMove][0];
-            const float y = i_waypoints[i_nextMove][1];
-            const float z = i_waypoints[i_nextMove][2];
-            Traveller<T> traveller(unit);
-            i_destinationHolder.SetDestination(traveller, x, y, z);
-        }
-    }
     return true;
 }
 
 template<class T>
-void ConfusedMovementGenerator<T>::Finalize(T &unit)
+void ConfusedMovementGenerator<T>::DoReset(T* owner)
 {
-    unit.RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_CONFUSED);
-    unit.clearUnitState(UNIT_STAT_CONFUSED);
-    if (unit.GetTypeId() == TYPEID_UNIT && unit.getVictim())
-        unit.SetUInt64Value(UNIT_FIELD_TARGET, unit.getVictim()->GetGUID());
+    MovementGenerator::RemoveFlag(MOVEMENTGENERATOR_FLAG_TRANSITORY | MOVEMENTGENERATOR_FLAG_DEACTIVATED);
+
+    DoInitialize(owner);
 }
 
-template void ConfusedMovementGenerator<Player>::Initialize(Player &player);
-template void ConfusedMovementGenerator<Creature>::Initialize(Creature &creature);
-template void ConfusedMovementGenerator<Player>::Finalize(Player &player);
-template void ConfusedMovementGenerator<Creature>::Finalize(Creature &creature);
-template void ConfusedMovementGenerator<Player>::Reset(Player &player);
-template void ConfusedMovementGenerator<Creature>::Reset(Creature &creature);
-template bool ConfusedMovementGenerator<Player>::Update(Player &player, const uint32 &diff);
-template bool ConfusedMovementGenerator<Creature>::Update(Creature &creature, const uint32 &diff);
+template<class T>
+bool ConfusedMovementGenerator<T>::DoUpdate(T* owner, uint32 diff)
+{
+    if (!owner || !owner->IsAlive())
+        return false;
 
+    if (owner->HasUnitState(UNIT_STATE_NOT_MOVE) || owner->IsMovementPreventedByCasting() || owner->HasUnitMovementFlag(MOVEMENTFLAG_JUMPING_OR_FALLING)) //sun: added falling
+    {
+        MovementGenerator::AddFlag(MOVEMENTGENERATOR_FLAG_INTERRUPTED);
+        owner->StopMoving();
+        _path = nullptr;
+        return true;
+    }
+    else
+        MovementGenerator::RemoveFlag(MOVEMENTGENERATOR_FLAG_INTERRUPTED);
+
+    // waiting for next move
+    _nextMoveTime.Update(diff);
+    if ((MovementGenerator::HasFlag(MOVEMENTGENERATOR_FLAG_SPEED_UPDATE_PENDING) && !owner->movespline->Finalized()) || (_nextMoveTime.Passed() && owner->movespline->Finalized()))
+    {
+        // start moving
+        MovementGenerator::RemoveFlag(MOVEMENTGENERATOR_FLAG_TRANSITORY);
+
+        float dest = 4.0f * (float)rand_norm() - 2.0f;
+
+        Position destination;
+        destination.Relocate(_reference);
+        owner->MovePositionToFirstWalkableCollision(destination, dest, 0.0f);
+
+        if (!_path)
+        {
+            _path = std::make_unique<PathGenerator>(owner);
+            _path->SetPathLengthLimit(10.0f);
+            _path->ExcludeSteepSlopes();
+        }
+        Transport* ownerTransport = owner->GetTransport();
+        _path->SetTransport(ownerTransport);
+
+        bool result = _path->CalculatePath(destination.m_positionX, destination.m_positionY, destination.m_positionZ);
+        if (!result || (_path->GetPathType() & PATHFIND_NOPATH))
+        {
+            _nextMoveTime.Reset(100);
+            return true;
+        }
+
+        owner->AddUnitState(UNIT_STATE_CONFUSED_MOVE);
+
+        Movement::MoveSplineInit init(owner);
+        init.MovebyPath(_path->GetPath(), 0, ownerTransport);
+        init.SetWalk(true);
+        int32 traveltime = init.Launch();
+        _nextMoveTime.Reset(traveltime + urand(800, 1500));
+    }
+
+    return true;
+}
+
+template<class T>
+void ConfusedMovementGenerator<T>::DoDeactivate(T* owner)
+{
+    MovementGenerator::AddFlag(MOVEMENTGENERATOR_FLAG_DEACTIVATED);
+    owner->ClearUnitState(UNIT_STATE_CONFUSED_MOVE);
+}
+
+template<class T>
+void ConfusedMovementGenerator<T>::DoFinalize(T*, bool, bool) { }
+
+template<>
+void ConfusedMovementGenerator<Player>::DoFinalize(Player* owner, bool active, bool/* movementInform*/)
+{
+    AddFlag(MOVEMENTGENERATOR_FLAG_FINALIZED);
+
+     if (active)
+    {
+        owner->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_CONFUSED);
+        owner->StopMoving();
+    }
+}
+
+template<>
+void ConfusedMovementGenerator<Creature>::DoFinalize(Creature* owner, bool active, bool/* movementInform*/)
+{
+    AddFlag(MOVEMENTGENERATOR_FLAG_FINALIZED);
+
+    if (active)
+    {
+        owner->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_CONFUSED);
+        owner->ClearUnitState(UNIT_STATE_CONFUSED | UNIT_STATE_CONFUSED_MOVE);
+        if (owner->GetVictim())
+            owner->SetTarget(owner->EnsureVictim()->GetGUID());
+    }
+}
+
+template ConfusedMovementGenerator<Player>::ConfusedMovementGenerator();
+template ConfusedMovementGenerator<Creature>::ConfusedMovementGenerator();
+template MovementGeneratorType ConfusedMovementGenerator<Player>::GetMovementGeneratorType() const;
+template MovementGeneratorType ConfusedMovementGenerator<Creature>::GetMovementGeneratorType() const;
+template bool ConfusedMovementGenerator<Player>::DoInitialize(Player*);
+template bool ConfusedMovementGenerator<Creature>::DoInitialize(Creature*);
+template void ConfusedMovementGenerator<Player>::DoReset(Player*);
+template void ConfusedMovementGenerator<Creature>::DoReset(Creature*);
+template bool ConfusedMovementGenerator<Player>::DoUpdate(Player*, uint32);
+template bool ConfusedMovementGenerator<Creature>::DoUpdate(Creature*, uint32);
+template void ConfusedMovementGenerator<Player>::DoDeactivate(Player*);
+template void ConfusedMovementGenerator<Creature>::DoDeactivate(Creature*);

@@ -1,22 +1,3 @@
-/*
- * Copyright (C) 2010-2012 Project SkyFire <http://www.projectskyfire.org/>
- * Copyright (C) 2010-2012 Oregon <http://www.oregoncore.com/>
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 
 #ifndef _UPDATEFIELDS_AUTO_H
 #define _UPDATEFIELDS_AUTO_H
@@ -90,9 +71,9 @@ enum EUnitFields
     UNIT_FIELD_FLAGS                          = OBJECT_END + 0x0028, // Size: 1, Type: INT, Flags: PUBLIC
     UNIT_FIELD_FLAGS_2                        = OBJECT_END + 0x0029, // Size: 1, Type: INT, Flags: PUBLIC
     UNIT_FIELD_AURA                           = OBJECT_END + 0x002A, // Size: 56, Type: INT, Flags: PUBLIC
-    UNIT_FIELD_AURAFLAGS                      = OBJECT_END + 0x0062, // Size: 14, Type: BYTES, Flags: PUBLIC
-    UNIT_FIELD_AURALEVELS                     = OBJECT_END + 0x0070, // Size: 14, Type: BYTES, Flags: PUBLIC
-    UNIT_FIELD_AURAAPPLICATIONS               = OBJECT_END + 0x007E, // Size: 14, Type: BYTES, Flags: PUBLIC
+    UNIT_FIELD_AURAFLAGS                      = OBJECT_END + 0x0062, // Size: 14, Type: BYTES, Flags: PUBLIC (8 bits per aura)
+    UNIT_FIELD_AURALEVELS                     = OBJECT_END + 0x0070, // Size: 14, Type: BYTES, Flags: PUBLIC (8 bits per aura)
+    UNIT_FIELD_AURAAPPLICATIONS               = OBJECT_END + 0x007E, // Size: 14, Type: BYTES, Flags: PUBLIC (8 bits per aura)
     UNIT_FIELD_AURASTATE                      = OBJECT_END + 0x008C, // Size: 1, Type: INT, Flags: PUBLIC
     UNIT_FIELD_BASEATTACKTIME                 = OBJECT_END + 0x008D, // Size: 2, Type: INT, Flags: PUBLIC
     UNIT_FIELD_RANGEDATTACKTIME               = OBJECT_END + 0x008F, // Size: 1, Type: INT, Flags: PRIVATE
@@ -347,7 +328,7 @@ enum EUnitFields
     PLAYER_FIELD_KEYRING_SLOT_1               = UNIT_END + 0x024C, // Size: 64, Type: LONG, Flags: PRIVATE
     PLAYER_FIELD_VANITYPET_SLOT_1             = UNIT_END + 0x028C, // Size: 36, Type: LONG, Flags: PRIVATE
     PLAYER_FARSIGHT                           = UNIT_END + 0x02B0, // Size: 2, Type: LONG, Flags: PRIVATE
-    PLAYER__FIELD_KNOWN_TITLES                = UNIT_END + 0x02B2, // Size: 2, Type: LONG, Flags: PRIVATE
+    PLAYER_FIELD_KNOWN_TITLES                 = UNIT_END + 0x02B2, // Size: 2, Type: LONG, Flags: PRIVATE
     PLAYER_XP                                 = UNIT_END + 0x02B4, // Size: 1, Type: INT, Flags: PRIVATE
     PLAYER_NEXT_LEVEL_XP                      = UNIT_END + 0x02B5, // Size: 1, Type: INT, Flags: PRIVATE
     PLAYER_SKILL_INFO_1_1                     = UNIT_END + 0x02B6, // Size: 384, Type: TWO_SHORT, Flags: PRIVATE
@@ -402,7 +383,7 @@ enum EGameObjectFields
     OBJECT_FIELD_CREATED_BY                   = OBJECT_END + 0x0000, // Size: 2, Type: LONG, Flags: PUBLIC
     GAMEOBJECT_DISPLAYID                      = OBJECT_END + 0x0002, // Size: 1, Type: INT, Flags: PUBLIC
     GAMEOBJECT_FLAGS                          = OBJECT_END + 0x0003, // Size: 1, Type: INT, Flags: PUBLIC
-    GAMEOBJECT_ROTATION                       = OBJECT_END + 0x0004, // Size: 4, Type: FLOAT, Flags: PUBLIC
+    GAMEOBJECT_PARENTROTATION                 = OBJECT_END + 0x0004, // Size: 4, Type: FLOAT, Flags: PUBLIC
     GAMEOBJECT_STATE                          = OBJECT_END + 0x0008, // Size: 1, Type: INT, Flags: PUBLIC
     GAMEOBJECT_POS_X                          = OBJECT_END + 0x0009, // Size: 1, Type: FLOAT, Flags: PUBLIC
     GAMEOBJECT_POS_Y                          = OBJECT_END + 0x000A, // Size: 1, Type: FLOAT, Flags: PUBLIC

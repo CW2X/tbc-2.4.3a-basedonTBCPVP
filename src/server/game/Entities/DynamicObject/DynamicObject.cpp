@@ -1,22 +1,3 @@
-/*
- * Copyright (C) 2010-2012 Project SkyFire <http://www.projectskyfire.org/>
- * Copyright (C) 2010-2012 Oregon <http://www.oregoncore.com/>
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 
 #include "Common.h"
 #include "GameObject.h"
@@ -26,167 +7,263 @@
 #include "WorldSession.h"
 #include "World.h"
 #include "ObjectAccessor.h"
-#include "DatabaseEnv.h"
+#include "Database/DatabaseEnv.h"
 #include "SpellAuras.h"
 #include "MapManager.h"
 #include "GridNotifiers.h"
 #include "CellImpl.h"
 #include "GridNotifiersImpl.h"
+#include "Transport.h"
+#include "GameTime.h"
+#include "DynamicObject.h"
 
-DynamicObject::DynamicObject() : WorldObject()
+DynamicObject::DynamicObject(bool isWorldObject) : WorldObject(isWorldObject),
+    _isViewpoint(false), _duration(0), _caster(nullptr), _aura(nullptr), _removedAura(nullptr)
 {
+
     m_objectType |= TYPEMASK_DYNAMICOBJECT;
     m_objectTypeId = TYPEID_DYNAMICOBJECT;
-                                                            // 2.3.2 - 0x58
-    m_updateFlag = (UPDATEFLAG_LOWGUID | UPDATEFLAG_HIGHGUID | UPDATEFLAG_HAS_POSITION);
+                                                            
+#ifdef LICH_KING
+    m_updateFlag = (UPDATEFLAG_LOWGUID | UPDATEFLAG_STATIONARY_POSITION | UPDATEFLAG_POSITION);
+#else
+    m_updateFlag = (UPDATEFLAG_LOWGUID | UPDATEFLAG_HIGHGUID | UPDATEFLAG_STATIONARY_POSITION); // 2.3.2 - 0x58
+#endif
 
     m_valuesCount = DYNAMICOBJECT_END;
 }
 
+DynamicObject::~DynamicObject()
+{
+    // make sure all references were properly removed
+    ASSERT(!_aura);
+    ASSERT(!_caster);
+    ASSERT(!_isViewpoint);
+    ASSERT(!_isViewpoint);  
+    ASSERT(!GetTransport()); //sun: extra check 
+}
+
 void DynamicObject::AddToWorld()
 {
-    // Register the dynamicObject for guid lookup
-    if (!IsInWorld())
+    ///- Register the dynamicObject for guid lookup
+    if(!IsInWorld())
     {
-        sObjectAccessor->AddObject(this);
+        GetMap()->GetObjectsStore().Insert<DynamicObject>(GetGUID(), this);
         WorldObject::AddToWorld();
+        BindToCaster();
     }
 }
 
 void DynamicObject::RemoveFromWorld()
 {
-    // Remove the dynamicObject from the accessor
-    if (IsInWorld())
+    ///- Remove the dynamicObject from the accessor
+    if(IsInWorld())
     {
-        if (m_isWorldObject)
-        {
-            if (Unit *caster = GetCaster())
-            {
-                if (caster->GetTypeId() == TYPEID_PLAYER)
-                    ((Player*)caster)->SetViewpoint(this, false);
-            }
-            else
-            {
-                sLog->outCrash("DynamicObject::RemoveFromWorld cannot find viewpoint owner");
-            }
-        }
+        if (_isViewpoint)
+            RemoveCasterViewpoint();
+
+        if (_aura)
+            RemoveAura();
+
+        // dynobj could get removed in Aura::RemoveAura
+        if (!IsInWorld())
+            return;
+
+        UnbindFromCaster();
         WorldObject::RemoveFromWorld();
-        sObjectAccessor->RemoveObject(this);
+        GetMap()->GetObjectsStore().Remove<DynamicObject>(GetGUID());
+        if(GetTransport())
+            GetTransport()->RemovePassenger(this);
     }
 }
 
-bool DynamicObject::Create(uint32 guidlow, Unit *caster, uint32 spellId, uint32 effIndex, const Position &pos, int32 duration, float radius)
+bool DynamicObject::CreateDynamicObject(ObjectGuid::LowType guidlow, Unit *caster, uint32 spellId, Position const& pos, float radius, DynamicObjectType type)
 {
     SetMap(caster->GetMap());
     Relocate(pos);
-    if (!IsPositionValid())
+    if(!IsPositionValid())
     {
-        sLog->outError("DynamicObject (spell %u eff %u) not created. Suggested coordinates isn't valid (X: %f Y: %f)", spellId, effIndex, GetPositionX(), GetPositionY());
+        TC_LOG_ERROR("misc","ERROR: DynamicObject (spell %u) not created. Suggested coordinates isn't valid (X: %f Y: %f)", spellId, GetPositionX(), GetPositionY());
         return false;
     }
 
-    WorldObject::_Create(guidlow, HIGHGUID_DYNAMICOBJECT, caster->GetPhaseMask());
+    WorldObject::_Create(guidlow, HighGuid::DynamicObject, caster->GetPhaseMask());
+    /*
+    float visualRadius = radius;
+    // For some reason visual size in client seems incorrect for some spells. Can't seem to find the proper rule.
+    if(SpellInfo const *spellInfo = sSpellMgr->GetSpellInfo(spellId))
+    {
+        if (spellInfo->GetMaxRange() == 0 || spellInfo->HasVisual(10383))  //Personal range. Ice trap, consecration... + (Flamestrike : 10383)
+            visualRadius = radius * 2.2;
+        
+        else if (spellInfo->Id == 45848)
+            visualRadius = radius * 0.4;
+    }
+    */
 
     SetEntry(spellId);
-    SetFloatValue(OBJECT_FIELD_SCALE_X, 1);
-    SetUInt64Value(DYNAMICOBJECT_CASTER, caster->GetGUID());
+    SetObjectScale(1.0f);
+    SetUInt64Value( DYNAMICOBJECT_CASTER, caster->GetGUID() );
 
     // The lower word of DYNAMICOBJECT_BYTES must be 0x0001. This value means that the visual radius will be overriden
     // by client for most of the "ground patch" visual effect spells and a few "skyfall" ones like Hurricane.
     // If any other value is used, the client will _always_ use the radius provided in DYNAMICOBJECT_RADIUS, but
     // precompensation is necessary (eg radius *= 2) for many spells. Anyway, blizz sends 0x0001 for all the spells
     // I saw sniffed...
-    SetUInt32Value(DYNAMICOBJECT_BYTES, 0x00000001);
-    SetUInt32Value(DYNAMICOBJECT_SPELLID, spellId);
-    SetFloatValue(DYNAMICOBJECT_RADIUS, radius);
-    SetFloatValue(DYNAMICOBJECT_POS_X, pos.m_positionX);
-    SetFloatValue(DYNAMICOBJECT_POS_Y, pos.m_positionY);
-    SetFloatValue(DYNAMICOBJECT_POS_Z, pos.m_positionZ);
-    SetUInt32Value(DYNAMICOBJECT_CASTTIME, getMSTime());
+    SetByteValue(DYNAMICOBJECT_BYTES, 0, type);
+    SetUInt32Value( DYNAMICOBJECT_SPELLID, spellId );
+    SetFloatValue( DYNAMICOBJECT_RADIUS, radius);
+    SetFloatValue( DYNAMICOBJECT_POS_X, pos.GetPositionX() );
+    SetFloatValue( DYNAMICOBJECT_POS_Y, pos.GetPositionY() );
+    SetFloatValue( DYNAMICOBJECT_POS_Z, pos.GetPositionZ() );
+    SetUInt32Value( DYNAMICOBJECT_CASTTIME, GetMap()->GetGameTimeMS());
 
-    m_aliveDuration = duration;
-    m_radius = radius;
-    m_effIndex = effIndex;
-    m_spellId = spellId;
-    m_casterGuid = caster->GetGUID();
-    m_updateTimer = 0;
+    if (IsWorldObject())
+        SetKeepActive(true);    //must before add to map to be put in world container
 
-    if (m_effIndex == 4)
-        m_isWorldObject = true;
+#ifdef LICH_KING
+    Transport* transport = caster->GetTransport();
+    if (transport)
+    {
+        // This object must be added to transport before adding to map for the client to properly display it
+        transport->AddPassenger(this, true);
+    }
+#else
+    //It seems BC do not handled neither gobject or dynamic object on transport... Object::BuildMovementUpdate does not include the info at least.
+    //No use handling it here if this is true.
+#endif
+
+    if (!GetMap()->AddToMap(this))
+    {
+#ifdef LICH_KING
+        if (transport) 
+            transport->RemovePassenger(this);
+#endif
+
+        return false;
+    }
 
     return true;
 }
 
-Unit* DynamicObject::GetCaster() const
-{
-    // can be not found in some cases
-    return ObjectAccessor::GetUnit(*this, GetCasterGUID());
-}
-
 void DynamicObject::Update(uint32 p_time)
 {
-    // caster can be not in world at time dynamic object update, but dynamic object not yet deleted in Unit destructor
-    Unit* caster = GetCaster();
-    if (!caster)
+    // caster has to be always available and in the same map
+    ASSERT(_caster);
+    ASSERT(_caster->GetMap() == GetMap());
+
+    bool expired = false;
+
+    if (_aura)
     {
-        Delete();
-        return;
+        if (!_aura->IsRemoved())
+            _aura->UpdateOwner(p_time, this);
+
+        // _aura may be set to null in Aura::UpdateOwner call
+        if ((_aura->IsRemoved() || _aura->IsExpired()))
+            expired = true;
     }
-
-    bool deleteThis = false;
-
-    if (m_aliveDuration > int32(p_time))
-        m_aliveDuration -= p_time;
     else
-        deleteThis = true;
-
-    if (m_effIndex < 4)
     {
-        if (m_updateTimer < p_time)
-        {
-            Trinity::DynamicObjectUpdater notifier(*this, caster);
-            VisitNearbyObject(GetRadius(), notifier);
-            m_updateTimer = 500; // is this official-like?
-        }else m_updateTimer -= p_time;
+        if (GetDuration() > int32(p_time))
+            _duration -= p_time;
+        else
+            expired = true;
     }
 
-    if (deleteThis)
+    if (expired)
+        Remove();
+    /* TC else
+    sScriptMgr->OnDynamicObjectUpdate(this, p_time);*/
+}
+
+void DynamicObject::Remove()
+{
+    if (IsInWorld())
     {
-        caster->RemoveDynObjectWithGUID(GetGUID());
-        Delete();
-    }
-    
-    // Shifting naaru silver
-    if (m_spellId == 45043)
-    {
-        if (GetDistance(caster) <= m_radius && !deleteThis)
-        {
-            if (!caster->HasAura(45044, 0 ))
-                caster->CastSpell(caster, 45044, true);
-        }
-        else if (caster->HasAura(45044, 0))
-            caster->RemoveAurasDueToSpell(45044);
+        SendObjectDeSpawnAnim(GetGUID());
+        RemoveFromWorld();
+        AddObjectToRemoveList();
     }
 }
 
-void DynamicObject::Delete()
+int32 DynamicObject::GetDuration() const
 {
-    SendObjectDeSpawnAnim(GetGUID());
-    RemoveFromWorld();
-    AddObjectToRemoveList();
+    if (!_aura)
+        return _duration;
+    else
+        return _aura->GetDuration();
+}
+
+void DynamicObject::SetDuration(int32 newDuration)
+{
+    if (!_aura)
+        _duration = newDuration;
+    else
+        _aura->SetDuration(newDuration);
 }
 
 void DynamicObject::Delay(int32 delaytime)
 {
-    m_aliveDuration -= delaytime;
-    for (AffectedSet::iterator iunit= m_affected.begin();iunit != m_affected.end();++iunit)
-        if (*iunit)
-            (*iunit)->DelayAura(m_spellId, m_effIndex, delaytime);
+    SetDuration(GetDuration() - delaytime);
 }
 
-bool DynamicObject::isVisibleForInState(Player const* u, bool inVisibleList) const
+void DynamicObject::SetAura(Aura* aura)
 {
-    return IsInWorld() && u->IsInWorld() && !canNeverSee(u)
-        && (IsWithinDistInMap(u->m_seer, World::GetMaxVisibleDistanceForObject() + (inVisibleList ? World::GetVisibleObjectGreyDistance() : 0.0f), false));
+    ASSERT(!_aura && aura);
+    _aura = aura;
 }
 
+void DynamicObject::RemoveAura()
+{
+    ASSERT(_aura && !_removedAura);
+    _removedAura = _aura;
+    _aura = nullptr;
+    if (!_removedAura->IsRemoved())
+        _removedAura->_Remove(AURA_REMOVE_BY_DEFAULT);
+}
+
+void DynamicObject::SetCasterViewpoint()
+{
+    if (Player* caster = _caster->ToPlayer())
+    {
+        caster->ToPlayer()->SetViewpoint(this, true);
+        _isViewpoint = true;
+    }
+}
+
+void DynamicObject::RemoveCasterViewpoint()
+{
+    if (Player* caster = _caster->ToPlayer())
+    {
+        caster->ToPlayer()->SetViewpoint(this, false);
+        _isViewpoint = false;
+    }
+}
+
+uint32 DynamicObject::GetFaction() const
+{
+    ASSERT(_caster);
+    return _caster->GetFaction();
+}
+
+void DynamicObject::BindToCaster()
+{
+    ASSERT(!_caster);
+    _caster = ObjectAccessor::GetUnit(*this, GetCasterGUID());
+    ASSERT(_caster);
+    ASSERT(_caster->GetMap() == GetMap());
+    _caster->_RegisterDynObject(this);
+}
+
+void DynamicObject::UnbindFromCaster()
+{
+    ASSERT(_caster);
+    _caster->_UnregisterDynObject(this);
+    _caster = nullptr;
+}
+
+SpellInfo const* DynamicObject::GetSpellInfo() const
+{
+    return sSpellMgr->GetSpellInfo(GetSpellId());
+}

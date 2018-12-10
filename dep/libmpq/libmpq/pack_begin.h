@@ -1,7 +1,7 @@
 /*
  *  pack_begin.h -- header file for struct packing used by libmpq.
  *
- *  Copyright (c) 2010 Georg Lukas <georg@op-co.de>
+ *  Copyright (c) 2010-2011 Georg Lukas <georg@op-co.de>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -31,3 +31,4 @@
   /* we assume GNU here */
   #define PACK_STRUCT __attribute__((packed))
 #endif
+

@@ -1,72 +1,51 @@
-/*
- * Copyright (C) 2010-2012 Project SkyFire <http://www.projectskyfire.org/>
- * Copyright (C) 2010-2012 Oregon <http://www.oregoncore.com/>
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 
 #include "GridStates.h"
 #include "GridNotifiers.h"
-#include "Grid.h"
 #include "Log.h"
+#include "ObjectGridLoader.h"
 
-void InvalidState::Update(Map &, NGridType &, GridInfo &, const uint32 &/*x*/, const uint32 &/*y*/, const uint32) const
-{
-}
+void InvalidState::Update(Map&, NGridType&, GridInfo&, uint32) const
+{ }
 
-void ActiveState::Update(Map &m, NGridType &grid, GridInfo & info, const uint32 &x, const uint32 &y, const uint32 t_diff) const
+void ActiveState::Update(Map& map, NGridType& grid, GridInfo&  info, uint32 diff) const
 {
     // Only check grid activity every (grid_expiry/10) ms, because it's really useless to do it every cycle
-    info.UpdateTimeTracker(t_diff);
+    info.UpdateTimeTracker(diff);
     if (info.getTimeTracker().Passed())
     {
-        if (grid.ActiveObjectsInGrid() == 0 && !m.ActiveObjectsNearGrid(x, y))
+        if (!grid.GetWorldObjectCountInNGrid<Player>() && !map.ActiveObjectsNearGrid(grid))
         {
-            ObjectGridStoper stoper(grid);
-            stoper.StopN();
+            ObjectGridStoper worker;
+            TypeContainerVisitor<ObjectGridStoper, GridTypeMapContainer> visitor(worker);
+            grid.VisitAllGrids(visitor);
             grid.SetGridState(GRID_STATE_IDLE);
-            sLog->outDebug("Grid[%u, %u] on map %u moved to IDLE state", x, y, m.GetId());
+            TC_LOG_DEBUG("maps", "Grid[%u, %u] on map %u moved to IDLE state", grid.getX(), grid.getY(), map.GetId());
         }
         else
-        {
-            m.ResetGridExpiry(grid, 0.1f);
-        }
+            map.ResetGridExpiry(grid, 0.1f);
     }
 }
 
-void IdleState::Update(Map &m, NGridType &grid, GridInfo &, const uint32 &x, const uint32 &y, const uint32) const
+void IdleState::Update(Map& map, NGridType& grid, GridInfo&, uint32) const
 {
-    m.ResetGridExpiry(grid);
+    /*
+    map.ResetGridExpiry(grid);
     grid.SetGridState(GRID_STATE_REMOVAL);
-    sLog->outDebug("Grid[%u, %u] on map %u moved to REMOVAL state", x, y, m.GetId());
+    TC_LOG_DEBUG("maps", "Grid[%u, %u] on map %u moved to REMOVAL state", grid.getX(), grid.getY(), map.GetId());
+    */
 }
 
-void RemovalState::Update(Map &m, NGridType &grid, GridInfo &info, const uint32 &x, const uint32 &y, const uint32 t_diff) const
+/*
+void RemovalState::Update(Map& map, NGridType& grid, GridInfo& info, uint32 diff) const
 {
     if (!info.getUnloadLock())
     {
-        info.UpdateTimeTracker(t_diff);
-        if (info.getTimeTracker().Passed())
+        info.UpdateTimeTracker(diff);
+        if (info.getTimeTracker().Passed() && !map.UnloadGrid(grid, false))
         {
-            if (!m.UnloadGrid(x, y, false))
-            {
-                sLog->outDebug("Grid[%u, %u] for map %u differed unloading due to players or active objects nearby", x, y, m.GetId());
-                m.ResetGridExpiry(grid);
-            }
+            TC_LOG_DEBUG("maps", "Grid[%u, %u] for map %u differed unloading due to players or active objects nearby", grid.getX(), grid.getY(), map.GetId());
+            map.ResetGridExpiry(grid);
         }
     }
 }
-
+*/

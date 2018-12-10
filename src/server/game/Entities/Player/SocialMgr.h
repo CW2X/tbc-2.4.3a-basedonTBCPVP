@@ -1,30 +1,6 @@
-/*
- * Copyright (C) 2010-2012 Project SkyFire <http://www.projectskyfire.org/>
- * Copyright (C) 2010-2012 Oregon <http://www.oregoncore.com/>
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 
 #ifndef __TRINITY_SOCIALMGR_H
 #define __TRINITY_SOCIALMGR_H
-
-#include "DatabaseEnv.h"
-#include "Common.h"
-
-#include <ace/Singleton.h>
 
 class SocialMgr;
 class PlayerSocial;
@@ -80,7 +56,7 @@ struct FriendInfo
 typedef std::map<uint32, FriendInfo> PlayerSocialMap;
 typedef std::map<uint32, PlayerSocial> SocialMap;
 
-// Results of friend related commands
+/// Results of friend related commands
 enum FriendsResult
 {
     FRIEND_DB_ERROR         = 0x00,
@@ -115,48 +91,54 @@ enum FriendsResult
 #define SOCIALMGR_FRIEND_LIMIT  50
 #define SOCIALMGR_IGNORE_LIMIT  25
 
-class PlayerSocial
+class TC_GAME_API PlayerSocial
 {
     friend class SocialMgr;
     public:
         PlayerSocial();
         ~PlayerSocial();
         // adding/removing
-        bool AddToSocialList(uint32 friend_guid, bool ignore);
-        void RemoveFromSocialList(uint32 friend_guid, bool ignore);
-        void SetFriendNote(uint32 friend_guid, std::string note);
+        bool AddToSocialList(ObjectGuid::LowType friend_guid, bool ignore);
+        void RemoveFromSocialList(ObjectGuid::LowType friend_guid, bool ignore);
+        void SetFriendNote(ObjectGuid::LowType friend_guid, std::string note);
         // Packet send's
         void SendSocialList();
         // Misc
-        bool HasFriend(uint32 friend_guid);
-        bool HasIgnore(uint32 ignore_guid);
-        uint32 GetPlayerGUID() { return m_playerGUID; }
-        void SetPlayerGUID(uint32 guid) { m_playerGUID = guid; }
+        bool HasFriend(ObjectGuid::LowType friend_guid);
+        bool HasIgnore(ObjectGuid::LowType ignore_guid);
+        ObjectGuid::LowType GetPlayerGUID() { return m_playerGUID; }
+        void SetPlayerGUID(ObjectGuid::LowType guid) { m_playerGUID = guid; }
         uint32 GetNumberOfSocialsWithFlag(SocialFlag flag);
     private:
         PlayerSocialMap m_playerSocialMap;
-        uint32 m_playerGUID;
+        ObjectGuid::LowType m_playerGUID;
 };
 
-class SocialMgr
+class TC_GAME_API SocialMgr
 {
-    friend class ACE_Singleton<SocialMgr, ACE_Null_Mutex>;
-    SocialMgr();
-    public:
+    private:
+        SocialMgr();
         ~SocialMgr();
+    public:
+        static SocialMgr* instance()
+        {
+            static SocialMgr instance;
+            return &instance;
+        }
         // Misc
-        void RemovePlayerSocial(uint32 guid) { m_socialMap.erase(guid); }
-
-        void GetFriendInfo(Player* player, uint32 friendGUID, FriendInfo &friendInfo);
+        void RemovePlayerSocial(ObjectGuid::LowType guid);
+        void GetFriendInfo(Player *player, ObjectGuid::LowType friendGUID, FriendInfo &friendInfo);
         // Packet management
-        void MakeFriendStatusPacket(FriendsResult result, uint32 friend_guid, WorldPacket *data);
-        void SendFriendStatus(Player* player, FriendsResult result, uint32 friend_guid, bool broadcast);
-        void BroadcastToFriendListers(Player* player, WorldPacket *packet);
+        void MakeFriendStatusPacket(FriendsResult result, ObjectGuid::LowType friend_guid, WorldPacket *data);
+        void SendFriendStatus(Player *player, FriendsResult result, ObjectGuid::LowType friend_guid, bool broadcast);
+        void BroadcastToFriendListers(Player *player, WorldPacket *packet);
         // Loading
-        PlayerSocial *LoadFromDB(QueryResult_AutoPtr result, uint32 guid);
+        PlayerSocial* LoadFromDB(PreparedQueryResult result, ObjectGuid::LowType guid);
+        PlayerSocial* GetDefault(ObjectGuid::LowType guid);
     private:
         SocialMap m_socialMap;
 };
 
-#define sSocialMgr ACE_Singleton<SocialMgr, ACE_Null_Mutex>::instance()
+#define sSocialMgr SocialMgr::instance()
 #endif
+

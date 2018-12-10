@@ -1,147 +1,204 @@
-/*
- * Copyright (C) 2010-2012 Project SkyFire <http://www.projectskyfire.org/>
- * Copyright (C) 2010-2012 Oregon <http://www.oregoncore.com/>
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- */
+
+#include <mutex>
+#include <condition_variable>
 
 #include "MapUpdater.h"
-#include "DelayExecutor.h"
 #include "Map.h"
-#include "DatabaseEnv.h"
+#include "Monitor.h"
+#include "World.h"
+#include "MapManager.h"
 
-#include <ace/Guard_T.h>
-#include <ace/Method_Request.h>
+#define MINIMUM_MAP_UPDATE_INTERVAL 30
 
-//the reason this things are here is that i want to make
-//the netcode patch and the multithreaded maps independant
-//once they are merged 1 class should be used
-class WDBThreadStartReq1 : public ACE_Method_Request
+class MapUpdateRequest
 {
-    public:
-        WDBThreadStartReq1(){}
-        virtual int
+    private:
 
-    call (void)
-    {
-        WorldDatabase.ThreadStart();
-        return 0;
-    }
-};
-
-class WDBThreadEndReq1 : public ACE_Method_Request
-{
-    public:
-        WDBThreadEndReq1(){}
-        virtual int
-
-    call (void)
-    {
-        WorldDatabase.ThreadEnd();
-        return 0;
-    }
-};
-
-class MapUpdateRequest : public ACE_Method_Request
-{
-    public:
         Map& m_map;
         MapUpdater& m_updater;
-        ACE_UINT32 m_diff;
-        MapUpdateRequest(Map& m, MapUpdater& u, ACE_UINT32 d) : m_map(m), m_updater(u), m_diff(d){}
-        virtual int
+        uint32 m_diff;
+        uint32 m_loopCount;
 
-    call (void)
-    {
-        m_map.Update (m_diff);
-        m_updater.update_finished ();
-        return 0;
-    }
+    public:
+
+        MapUpdateRequest(Map& m, MapUpdater& u, uint32 d) :
+            m_map(m), 
+            m_updater(u), 
+            m_diff(d), 
+            m_loopCount(0)
+        {
+        }
+
+        Map const* getMap() { return &m_map; }
+
+        void call()
+        {
+            sMonitor->MapUpdateStart(m_map);
+            m_map.DoUpdate(m_diff, MINIMUM_MAP_UPDATE_INTERVAL);
+            sMonitor->MapUpdateEnd(m_map);
+            m_loopCount++;
+        }
 };
-
-MapUpdater::MapUpdater() :
-m_mutex(),
-m_condition(m_mutex),
-m_executor(),
-pedning_requests(0)
-{
-    return;
-}
 
 MapUpdater::~MapUpdater()
 {
-    this->deactivate();
+    if(activated())
+        deactivate();
 }
 
-int MapUpdater::activate(size_t num_threads)
+void MapUpdater::activate(size_t num_threads)
 {
-    return this->m_executor.activate(static_cast<int> (num_threads), new WDBThreadStartReq1, new WDBThreadEndReq1);
+    //spawn instances & battlegrounds threads
+    for (size_t i = 0; i < num_threads; ++i)
+        _loop_maps_workerThreads.push_back(std::thread(&MapUpdater::LoopWorkerThread, this, &_enable_updates_loop));
+
+    //continents threads are spawned later when request are received
 }
 
-int MapUpdater::deactivate(void)
+void MapUpdater::deactivate()
 {
-    this->wait();
+    _cancelationToken = true;
 
-    return this->m_executor.deactivate();
+    _loop_queue.Cancel();
+    _once_queue.Cancel();
+
+    waitUpdateOnces();
+    waitUpdateLoops();
+
+    for (auto& thread : _once_maps_workerThreads)
+        thread.join();
+
+    _once_maps_workerThreads.clear();
+
+    for (auto& thread : _loop_maps_workerThreads)
+        thread.join();
+
+    _loop_maps_workerThreads.clear();
 }
 
-int MapUpdater::wait()
+void MapUpdater::waitUpdateOnces()
 {
-    ACE_GUARD_RETURN(ACE_Thread_Mutex, guard, this->m_mutex, -1);
+    std::unique_lock<std::mutex> lock(_lock);
 
-    while(this->pedning_requests > 0)
-        this->m_condition.wait();
+    while (pending_once_maps > 0)
+        _onces_finished_condition.wait(lock);
 
-    return 0;
+    lock.unlock();
 }
 
-int MapUpdater::schedule_update(Map& map, ACE_UINT32 diff)
+void MapUpdater::enableUpdateLoop(bool enable)
 {
-    ACE_GUARD_RETURN(ACE_Thread_Mutex, guard, this->m_mutex, -1);
+    _enable_updates_loop = enable;
+}
 
-    ++this->pedning_requests;
+void MapUpdater::waitUpdateLoops()
+{
+    std::unique_lock<std::mutex> lock(_lock);
 
-    if (this->m_executor.execute(new MapUpdateRequest(map, *this, diff)) == -1)
+    while (pending_loop_maps > 0)
+        _loops_finished_condition.wait(lock);
+
+    lock.unlock();
+}
+
+void MapUpdater::spawnMissingOnceUpdateThreads()
+{
+    for (uint32 i = _once_maps_workerThreads.size(); i < pending_once_maps; i++)
+        _once_maps_workerThreads.push_back(std::thread(&MapUpdater::OnceWorkerThread, this));
+}
+
+void MapUpdater::schedule_update(Map& map, uint32 diff)
+{
+    std::lock_guard<std::mutex> lock(_lock);
+
+    MapUpdateRequest* request = new MapUpdateRequest(map, *this, diff);
+    // MapInstanced re schedule the instances it contains by itself, so we want to call it only once
+    // Also currently test maps needs to be updated once per world update
+    if((map.Instanceable() && map.GetMapType() != MAP_TYPE_MAP_INSTANCED) || map.GetMapType() == MAP_TYPE_TEST_MAP) 
+    { 
+        pending_loop_maps++;
+        _loop_queue.Push(request);
+    } 
+    else 
     {
-        ACE_DEBUG((LM_ERROR, ACE_TEXT("(%t) \n"), ACE_TEXT("Failed to schedule Map Update")));
-
-        --this->pedning_requests;
-        return -1;
+        pending_once_maps++;
+        _once_queue.Push(request);
     }
 
-    return 0;
+    spawnMissingOnceUpdateThreads();
 }
 
 bool MapUpdater::activated()
 {
-    return m_executor.activated();
+    return _loop_maps_workerThreads.size() > 0;
 }
 
-void MapUpdater::update_finished()
+void MapUpdater::LoopWorkerThread(std::atomic<bool>* enable_instance_updates_loop)
 {
-    ACE_GUARD(ACE_Thread_Mutex, guard, this->m_mutex);
-
-    if (this->pedning_requests == 0)
+    while (1)
     {
-        ACE_ERROR((LM_ERROR, ACE_TEXT("(%t)\n"), ACE_TEXT("MapUpdater::update_finished BUG, report to devs")));
-        return;
+        MapUpdateRequest* request = nullptr;
+
+        _loop_queue.WaitAndPop(request);
+
+        if (_cancelationToken) 
+        {
+            if(request)
+                loopMapFinished();
+            return;
+        }
+
+        ASSERT(request);
+        request->call();
+
+        //repush at end of queue, or delete if loop has been disabled by MapManager
+        if(!(*enable_instance_updates_loop))
+        {
+            delete request;
+            loopMapFinished();
+        } else {
+            _loop_queue.Push(request);
+        }
     }
-
-    --this->pedning_requests;
-
-    this->m_condition.broadcast();
 }
 
+void MapUpdater::OnceWorkerThread()
+{
+    while (1)
+    {
+        MapUpdateRequest* request = nullptr;
+
+        _once_queue.WaitAndPop(request);
+
+        if (_cancelationToken) 
+        {
+            if(request)
+                onceMapFinished();
+            return;
+        }
+
+        ASSERT(request);
+        request->call();
+
+        delete request;
+        onceMapFinished();
+    }
+}
+
+void MapUpdater::onceMapFinished()
+{
+    std::lock_guard<std::mutex> lock(_lock);
+    ASSERT(pending_once_maps > 0);
+    --pending_once_maps;
+    if(pending_once_maps == 0)
+        _onces_finished_condition.notify_all();
+}
+
+void MapUpdater::loopMapFinished()
+{
+    std::lock_guard<std::mutex> lock(_lock);
+    ASSERT(pending_loop_maps > 0);
+    --pending_loop_maps;
+    if(pending_loop_maps == 0)
+        _loops_finished_condition.notify_all();
+}

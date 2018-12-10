@@ -1,29 +1,10 @@
-/*
- * Copyright (C) 2010-2012 Project SkyFire <http://www.projectskyfire.org/>
- * Copyright (C) 2010-2012 Oregon <http://www.oregoncore.com/>
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 
 #ifndef __BATTLEGROUNDNA_H
 #define __BATTLEGROUNDNA_H
 
-class BattleGround;
+#include "BattleGround.h"
 
-enum BattleGroundNAObjectTypes
+enum BattlegroundNAObjectTypes
 {
     BG_NA_OBJECT_DOOR_1         = 0,
     BG_NA_OBJECT_DOOR_2         = 1,
@@ -34,7 +15,7 @@ enum BattleGroundNAObjectTypes
     BG_NA_OBJECT_MAX            = 6
 };
 
-enum BattleGroundNAObjects
+enum BattlegroundNAObjects
 {
     BG_NA_OBJECT_TYPE_DOOR_1    = 183978,
     BG_NA_OBJECT_TYPE_DOOR_2    = 183980,
@@ -44,43 +25,31 @@ enum BattleGroundNAObjects
     BG_NA_OBJECT_TYPE_BUFF_2    = 184664
 };
 
-enum BattleGroundNATimers
-{
-    BG_NA_DOOR_DESPAWN_TIMER = 5000
-};
-
-class BattleGroundNAScore : public BattleGroundScore
+class BattlegroundNAScore : public BattlegroundScore
 {
     public:
-        BattleGroundNAScore() {};
-        virtual ~BattleGroundNAScore() {};
+        BattlegroundNAScore() {};
+        virtual ~BattlegroundNAScore() {};
         //TODO fix me
 };
 
-class BattleGroundNA : public BattleGround
+class BattlegroundNA : public Battleground
 {
-    friend class BattleGroundMgr;
+    friend class BattlegroundMgr;
 
     public:
-        BattleGroundNA();
-        ~BattleGroundNA();
+        BattlegroundNA();
+        ~BattlegroundNA();
         void Update(time_t diff);
 
         /* inherited from BattlegroundClass */
         virtual void AddPlayer(Player *plr);
-        virtual void StartingEventCloseDoors();
-        virtual void StartingEventOpenDoors();
 
-        void RemovePlayer(Player *plr, uint64 guid);
+        void RemovePlayer(Player *plr, ObjectGuid guid);
         void HandleAreaTrigger(Player *Source, uint32 Trigger);
-        bool SetupBattleGround();
-        virtual void ResetBGSubclass();
+        bool SetupBattleground();
         virtual void FillInitialWorldStates(WorldPacket &d);
-        void HandleKillPlayer(Player* player, Player* killer);
-        bool HandlePlayerUnderMap(Player * plr);
-
-        uint32 m_TimeElapsedSinceBeggining;
-        bool m_doorDespawned;
+        void HandleKillPlayer(Player* player, Player *killer);
 };
 #endif
 

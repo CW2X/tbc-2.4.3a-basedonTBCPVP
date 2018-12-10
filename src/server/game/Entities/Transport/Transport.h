@@ -1,85 +1,127 @@
-/*
- * Copyright (C) 2010-2012 Project SkyFire <http://www.projectskyfire.org/>
- * Copyright (C) 2010-2012 Oregon <http://www.oregoncore.com/>
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- */
-
 #ifndef TRANSPORTS_H
 #define TRANSPORTS_H
 
 #include "GameObject.h"
+#include "TransportMgr.h"
+#include "VehicleDefines.h"
 
-#include <map>
-#include <set>
-#include <string>
+struct CreatureData;
 
-class Transport : public GameObject
+class TC_GAME_API Transport : public GameObject, public TransportBase
 {
-    public:
-        explicit Transport();
+public:
+    Transport() : GameObject() {}
+    //Convert passenger position to world position
+    void CalculatePassengerPosition(float& x, float& y, float& z, float* o = nullptr) const override { TransportBase::CalculatePassengerPosition(x, y, z, o, GetPositionX(), GetPositionY(), GetPositionZ(), GetOrientation()); }
+    //Convert world position to passenger position
+    void CalculatePassengerOffset(float& x, float& y, float& z, float* o = nullptr) const override { TransportBase::CalculatePassengerOffset(x, y, z, o, GetPositionX(), GetPositionY(), GetPositionZ(), GetOrientation()); }
 
-        bool Create(uint32 guidlow, uint32 mapid, float x, float y, float z, float ang, uint32 animprogress, uint32 dynflags);
-        bool GenerateWaypoints(uint32 pathid, std::set<uint32> &mapids);
-        void Update(uint32 p_time);
-        bool AddPassenger(Player* passenger);
-        bool RemovePassenger(Player* passenger);
+    typedef std::set<WorldObject*> PassengerSet;
+    virtual void AddPassenger(WorldObject* passenger, bool calcPassengerPosition = false) = 0;
+    virtual void RemovePassenger(WorldObject* passenger) = 0;
+    PassengerSet const& GetPassengers() const { return _passengers; }
 
-        typedef std::set<Player*> PlayerSet;
-        PlayerSet const& GetPassengers() const { return m_passengers; }
+    uint32 GetPathProgress() const;
+    void SetPathProgress(uint32 val) { m_goValue.Transport.PathProgress = val; }
 
-    private:
-        struct WayPoint
-        {
-            WayPoint() : mapid(0), x(0), y(0), z(0), teleport(false), id(0) {}
-            WayPoint(uint32 _mapid, float _x, float _y, float _z, bool _teleport, uint32 _id = 0,
-                uint32 _arrivalEventID = 0, uint32 _departureEventID = 0)
-                : mapid(_mapid), x(_x), y(_y), z(_z), teleport(_teleport), id(_id),
-                arrivalEventID(_arrivalEventID), departureEventID(_departureEventID)
-            {
-            }
-            uint32 mapid;
-            float x;
-            float y;
-            float z;
-            bool teleport;
-            uint32 id;
-            uint32 arrivalEventID;
-            uint32 departureEventID;
-        };
-
-        typedef std::map<uint32, WayPoint> WayPointMap;
-
-        WayPointMap::iterator m_curr;
-        WayPointMap::iterator m_next;
-        uint32 m_pathTime;
-        uint32 m_timer;
-
-        PlayerSet m_passengers;
-
-    public:
-        WayPointMap m_WayPoints;
-        uint32 m_nextNodeTime;
-        uint32 m_period;
-
-    private:
-        void TeleportTransport(uint32 newMapid, float x, float y, float z);
-        void UpdateForMap(Map const* map);
-        void DoEventIfAny(WayPointMap::value_type const& node, bool departure);
-        WayPointMap::iterator GetNextWayPoint();
+protected:
+    PassengerSet _passengers;
 };
-#endif
 
+class TC_GAME_API MotionTransport : public Transport
+{
+    friend GameObject* ObjectMgr::CreateGameObject(uint32);
+    friend MotionTransport* TransportMgr::CreateTransport(uint32, uint32, Map*);
+    MotionTransport();
+public:
+    ~MotionTransport() override;
+
+    bool CreateMoTrans(ObjectGuid::LowType guidlow, uint32 entry, uint32 mapid, float x, float y, float z, float ang, uint32 animprogress);
+    void CleanupsBeforeDelete(bool finalCleanup = true) override;
+    void BuildUpdate(UpdateDataMapType& data_map, UpdatePlayerSet&) override;
+
+    void Update(uint32 diff) override;
+    void DelayedUpdate(uint32 diff);
+    void UpdatePosition(float x, float y, float z, float o);
+
+    void AddPassenger(WorldObject* passenger, bool calcPassengerPosition = false) override;
+    void RemovePassenger(WorldObject* passenger) override;
+    Creature* CreateNPCPassenger(ObjectGuid::LowType guid, CreatureData const* data);
+    GameObject* CreateGOPassenger(ObjectGuid::LowType guid, GameObjectData const* data);
+
+    void LoadStaticPassengers();
+    PassengerSet const& GetStaticPassengers() const { return _staticPassengers; }
+    void UnloadStaticPassengers();
+    void UnloadNonStaticPassengers();
+    void SetPassengersLoaded(bool loaded) { _passengersLoaded = loaded; }
+    bool PassengersLoaded() const { return _passengersLoaded; }
+
+    uint32 GetPeriod() const { return GetUInt32Value(GAMEOBJECT_LEVEL); }
+    void SetPeriod(uint32 period) { SetUInt32Value(GAMEOBJECT_LEVEL, period); }
+    KeyFrameVec const& GetKeyFrames() const { return _transportInfo->keyFrames; }
+    void EnableMovement(bool enabled);
+    void SetDelayedAddModelToMap() { _delayedAddModel = true; }
+
+    void JustStopped();
+
+    TransportTemplate const* GetTransportTemplate() const { return _transportInfo; }
+
+private:
+    void MoveToNextWaypoint();
+    float CalculateSegmentPos(float perc);
+    bool TeleportTransport(uint32 newMapid, float x, float y, float z, float o);
+    void DelayedTeleportTransport();
+    void UpdatePassengerPositions(PassengerSet& passengers);
+    void DoEventIfAny(KeyFrame const& node, bool departure);
+
+    //! Helpers to know if stop frame was reached
+    bool IsMoving() const { return _isMoving; }
+    void SetMoving(bool val) { _isMoving = val; }
+
+    TransportTemplate const* _transportInfo;
+    KeyFrameVec::const_iterator _currentFrame;
+    KeyFrameVec::const_iterator _nextFrame;
+    TimeTrackerSmall _positionChangeTimer;
+    bool _isMoving;
+    bool _pendingStop;
+
+    //! These are needed to properly control events triggering only once for each frame
+    bool _triggeredArrivalEvent;
+    bool _triggeredDepartureEvent;
+
+    PassengerSet _staticPassengers;
+    std::mutex Lock;
+    bool _passengersLoaded;
+    bool _delayedAddModel;
+    bool _delayedTeleport;
+
+    std::atomic<bool> _updating;
+};
+
+//TODO: Static transport position are completely broken right now
+class TC_GAME_API StaticTransport : public Transport
+{
+public:
+    StaticTransport();
+    ~StaticTransport() override;
+    
+    bool Create(ObjectGuid::LowType guidlow, uint32 name_id, Map* map, uint32 phaseMask, Position const& pos, G3D::Quat const& rotation, uint32 animprogress, GOState go_state, uint32 artKit = 0, bool dynamic = false, uint32 spawnid = 0) override;
+    void CleanupsBeforeDelete(bool finalCleanup = true) override;
+    void BuildUpdate(UpdateDataMapType& data_map, UpdatePlayerSet&) override;
+
+    void Update(uint32 diff) override;
+    void RelocateToProgress(uint32 progress);
+    void UpdatePosition(float x, float y, float z, float o);
+    void UpdatePassengerPositions();
+
+    void AddPassenger(WorldObject* passenger, bool calcPassengerPosition = false) override;
+    void RemovePassenger(WorldObject* passenger) override;
+
+    uint32 GetPauseTime() const { return GetUInt32Value(GAMEOBJECT_LEVEL); }
+    void SetPauseTime(uint32 val) { SetUInt32Value(GAMEOBJECT_LEVEL, val); }
+    uint32 GetPeriod() const { return m_goValue.Transport.AnimationInfo ? m_goValue.Transport.AnimationInfo->TotalTime : GetPauseTime() + 2; }
+private:
+    bool _needDoInitialRelocation;
+};
+
+#endif

@@ -1,7 +1,7 @@
 /*
  *  explode.c -- explode function of pkware data compression library.
  *
- *  Copyright (c) 2003-2008 Maik Broemme <mbroemme@plusserver.de>
+ *  Copyright (c) 2003-2011 Maik Broemme <mbroemme@libmpq.org>
  *
  *  This source was adepted from the C++ version of pkware.cpp included
  *  in stormlib. The C++ version belongs to the following authors:
@@ -122,7 +122,7 @@ static const uint16_t pkzip_code_asc[] = {
 	0x0300, 0x0D40, 0x1D00, 0x0D00, 0x1500, 0x0540, 0x0500, 0x1900,
 	0x0900, 0x0940, 0x1100, 0x0100, 0x1E00, 0x0E00, 0x0140, 0x1600,
 	0x0600, 0x1A00, 0x0E40, 0x0640, 0x0A40, 0x0A00, 0x1200, 0x0200,
-	0x1C00, 0x0C00, 0x1400, 0x0400, 0x1800, 0x0800, 0x1000, 0x0000
+	0x1C00, 0x0C00, 0x1400, 0x0400, 0x1800, 0x0800, 0x1000, 0x0000  
 };
 
 /* local unused variables. */
@@ -134,6 +134,7 @@ char pkware_copyright[] = "PKWARE Data Compression Library for Win32\r\n"
 
 /* skips given number of bits. */
 static int32_t skip_bit(pkzip_cmp_s *mpq_pkzip, uint32_t bits) {
+
 	/* check if number of bits required is less than number of bits in the buffer. */
 	if (bits <= mpq_pkzip->extra_bits) {
 		mpq_pkzip->extra_bits  -= bits;
@@ -162,11 +163,13 @@ static int32_t skip_bit(pkzip_cmp_s *mpq_pkzip, uint32_t bits) {
 
 /* this function generate the decode tables used for decryption. */
 static void generate_tables_decode(int32_t count, uint8_t *bits, const uint8_t *code, uint8_t *buf2) {
+
 	/* some common variables. */
 	int32_t i;
 
 	/* EBX - count */
 	for (i = count-1; i >= 0; i--) {
+
 		/* some common variables. */
 		uint32_t idx1 = code[i];
 		uint32_t idx2 = 1 << bits[i];
@@ -181,6 +184,7 @@ static void generate_tables_decode(int32_t count, uint8_t *bits, const uint8_t *
 
 /* this function generate the tables for ascii decompression. */
 static void generate_tables_ascii(pkzip_cmp_s *mpq_pkzip) {
+
 	/* some common variables. */
 	const uint16_t *code_asc = &pkzip_code_asc[0xFF];
 	uint32_t acc;
@@ -204,6 +208,7 @@ static void generate_tables_ascii(pkzip_cmp_s *mpq_pkzip) {
 			if ((acc = (*code_asc & 0xFF)) != 0) {
 				mpq_pkzip->offs_2c34[acc] = 0xFF;
 				if (*code_asc & 0x3F) {
+
 					/* decrease bit by four. */
 					bits_tmp  -= 4;
 					*bits_asc  = bits_tmp;
@@ -214,6 +219,7 @@ static void generate_tables_ascii(pkzip_cmp_s *mpq_pkzip) {
 						acc                       += add;
 					} while (acc < 0x100);
 				} else {
+
 					/* decrease bit by six. */
 					bits_tmp  -= 6;
 					*bits_asc  = bits_tmp;
@@ -225,6 +231,7 @@ static void generate_tables_ascii(pkzip_cmp_s *mpq_pkzip) {
 					} while (acc < 0x80);
 				}
 			} else {
+
 				/* decrease bit by eight. (one byte) */
 				bits_tmp  -= 8;
 				*bits_asc  = bits_tmp;
@@ -247,6 +254,7 @@ static void generate_tables_ascii(pkzip_cmp_s *mpq_pkzip) {
  *           0x306         : out of buffer?
  */
 static uint32_t decode_literal(pkzip_cmp_s *mpq_pkzip) {
+
 	/* number of bits to skip. */
 	uint32_t bits;
 
@@ -255,6 +263,7 @@ static uint32_t decode_literal(pkzip_cmp_s *mpq_pkzip) {
 
 	/* check if bit the current buffer is set, if not return the next byte. */
 	if (mpq_pkzip->bit_buf & 1) {
+
 		/* skip current bit in the buffer. */
 		if (skip_bit(mpq_pkzip, 1)) {
 			return 0x306;
@@ -270,11 +279,13 @@ static uint32_t decode_literal(pkzip_cmp_s *mpq_pkzip) {
 
 		/* check bits. */
 		if ((bits = mpq_pkzip->clen_bits[value]) != 0) {
+
 			/* some common variables. */
 			uint32_t val2 = mpq_pkzip->bit_buf & ((1 << bits) - 1);
 
 			/* check if we should skip one bit. */
 			if (skip_bit(mpq_pkzip, bits)) {
+
 				/* check position if we should skip the bit. */
 				if ((value + val2) != 0x10E) {
 					return 0x306;
@@ -296,6 +307,7 @@ static uint32_t decode_literal(pkzip_cmp_s *mpq_pkzip) {
 
 	/* check the binary compression type, read 8 bits and return them as one byte. */
 	if (mpq_pkzip->cmp_type == LIBMPQ_PKZIP_CMP_BINARY) {
+
 		/* fill values. */
 		value = mpq_pkzip->bit_buf & 0xFF;
 
@@ -310,12 +322,14 @@ static uint32_t decode_literal(pkzip_cmp_s *mpq_pkzip) {
 
 	/* check if ascii compression is used. */
 	if (mpq_pkzip->bit_buf & 0xFF) {
+
 		/* fill values. */
 		value = mpq_pkzip->offs_2c34[mpq_pkzip->bit_buf & 0xFF];
 
 		/* check value. */
 		if (value == 0xFF) {
 			if (mpq_pkzip->bit_buf & 0x3F) {
+
 				/* check if four bits are in bit buffer for skipping. */
 				if (skip_bit(mpq_pkzip, 4)) {
 					return 0x306;
@@ -324,6 +338,7 @@ static uint32_t decode_literal(pkzip_cmp_s *mpq_pkzip) {
 				/* fill values. */
 				value = mpq_pkzip->offs_2d34[mpq_pkzip->bit_buf & 0xFF];
 			} else {
+
 				/* check if six bits are in bit buffer for skipping. */
 				if (skip_bit(mpq_pkzip, 6)) {
 					return 0x306;
@@ -334,6 +349,7 @@ static uint32_t decode_literal(pkzip_cmp_s *mpq_pkzip) {
 			}
 		}
 	} else {
+
 		/* check if eight bits are in bit buffer for skipping. */
 		if (skip_bit(mpq_pkzip, 8)) {
 			return 0x306;
@@ -349,6 +365,7 @@ static uint32_t decode_literal(pkzip_cmp_s *mpq_pkzip) {
 
 /* this function retrieves the number of bytes to move back. */
 static uint32_t decode_distance(pkzip_cmp_s *mpq_pkzip, uint32_t length) {
+
 	/* some common variables. */
 	uint32_t pos  = mpq_pkzip->pos1[(mpq_pkzip->bit_buf & 0xFF)];
 
@@ -391,6 +408,7 @@ static uint32_t decode_distance(pkzip_cmp_s *mpq_pkzip, uint32_t length) {
  *  void		*param	- custom pointer, parameter of implode/explode.
  */
 static uint32_t data_read_input(char *buf, uint32_t *size, void *param) {
+
 	/* some common variables. */
 	pkzip_data_s *info   = (pkzip_data_s *)param;
 	uint32_t max_avail = (info->in_bytes - info->in_pos);
@@ -418,6 +436,7 @@ static uint32_t data_read_input(char *buf, uint32_t *size, void *param) {
  *  void		*param	- custom pointer, parameter of implode/explode.
  */
 static void data_write_output(char *buf, uint32_t *size, void *param) {
+
 	/* some common variables. */
 	pkzip_data_s *info   = (pkzip_data_s *)param;
 	uint32_t max_write = (info->max_out - info->out_pos);
@@ -435,6 +454,7 @@ static void data_write_output(char *buf, uint32_t *size, void *param) {
 
 /* this function extract the data from input stream. */
 static uint32_t expand(pkzip_cmp_s *mpq_pkzip) {
+
 	/* number of bytes to copy. */
 	uint32_t copy_bytes;
 
@@ -449,8 +469,10 @@ static uint32_t expand(pkzip_cmp_s *mpq_pkzip) {
 
 	/* check if end of data or error, so terminate decompress. */
 	while ((result = one_byte = decode_literal(mpq_pkzip)) < 0x305) {
+
 		/* check if one byte is greater than 0x100, which means 'repeat n - 0xFE bytes'. */
 		if (one_byte >= 0x100) {
+
 			/* ECX */
 			uint8_t *source;
 
@@ -477,12 +499,14 @@ static uint32_t expand(pkzip_cmp_s *mpq_pkzip) {
 				*target++ = *source++;
 			}
 		} else {
+
 			/* byte is 0x100 great, so add one byte. */
 			mpq_pkzip->out_buf[mpq_pkzip->out_pos++] = (uint8_t)one_byte;
 		}
 
 		/* check if number of extracted bytes has reached 1/2 of output buffer, so flush output buffer. */
 		if (mpq_pkzip->out_pos >= 0x2000) {
+
 			/* copy decompressed data into user buffer. */
 			copy_bytes = 0x1000;
 			mpq_pkzip->write_buf((char *)&mpq_pkzip->out_buf[0x1000], &copy_bytes, mpq_pkzip->param);
@@ -503,6 +527,7 @@ static uint32_t expand(pkzip_cmp_s *mpq_pkzip) {
 
 /* this function explode the data stream. */
 uint32_t libmpq__do_decompress_pkzip(uint8_t *work_buf, void *param) {
+
 	/* some common variables. */
 	pkzip_cmp_s *mpq_pkzip = (pkzip_cmp_s *)work_buf;
 
@@ -546,6 +571,7 @@ uint32_t libmpq__do_decompress_pkzip(uint8_t *work_buf, void *param) {
 
 	/* check if we are using binary compression. */
 	if (mpq_pkzip->cmp_type != LIBMPQ_PKZIP_CMP_BINARY) {
+
 		/* check if we are using ascii compression. */
 		if (mpq_pkzip->cmp_type != LIBMPQ_PKZIP_CMP_ASCII) {
 			return LIBMPQ_PKZIP_CMP_INV_MODE;

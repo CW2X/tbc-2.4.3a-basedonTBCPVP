@@ -1,94 +1,127 @@
-/*
- * Copyright (C) 2010-2012 Project SkyFire <http://www.projectskyfire.org/>
- * Copyright (C) 2010-2012 Oregon <http://www.oregoncore.com/>
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 
 #include "HomeMovementGenerator.h"
 #include "Creature.h"
 #include "CreatureAI.h"
-#include "Traveller.h"
-#include "MapManager.h"
-#include "ObjectAccessor.h"
-#include "DestinationHolderImp.h"
 #include "WorldPacket.h"
+#include "MoveSplineInit.h"
+#include "MoveSpline.h"
+#include "G3DPosition.hpp"
 
-void
-HomeMovementGenerator<Creature>::Initialize(Creature & owner)
+//Important diff with TC: this generator handle UNIT_STATE_EVADE itself
+
+template<class T>
+HomeMovementGenerator<T>::HomeMovementGenerator() : 
+    MovementGeneratorMedium<T, HomeMovementGenerator<T>>(MOTION_MODE_DEFAULT, MOTION_PRIORITY_NORMAL, UNIT_STATE_ROAMING)
 {
-    owner.RemoveUnitMovementFlag(MOVEFLAG_WALK_MODE);
-    _setTargetLocation(owner);
 }
 
-void
-HomeMovementGenerator<Creature>::Reset(Creature &)
+template HomeMovementGenerator<Creature>::HomeMovementGenerator();
+
+template<class T>
+MovementGeneratorType HomeMovementGenerator<T>::GetMovementGeneratorType() const
 {
+    return HOME_MOTION_TYPE;
 }
 
-void
-HomeMovementGenerator<Creature>::_setTargetLocation(Creature & owner)
+template MovementGeneratorType HomeMovementGenerator<Creature>::GetMovementGeneratorType() const;
+
+template<>
+void HomeMovementGenerator<Creature>::SetTargetLocation(Creature* owner)
 {
-    if (!&owner)
-        return;
-
-    if (owner.hasUnitState(UNIT_STAT_ROOT | UNIT_STAT_STUNNED | UNIT_STAT_DISTRACTED))
-        return;
-
-    float x, y, z;
-    owner.GetHomePosition(x, y, z, ori);
-
-    CreatureTraveller traveller(owner);
-
-    i_destinationHolder.SetDestination(traveller, x, y, z, false);
-    PathInfo path(&owner, x, y, z, true);
-    PointPath pointPath = path.getFullPath();
-
-    float speed = traveller.Speed() * 0.001f; // in ms
-    uint32 traveltime = uint32(pointPath.GetTotalLength() / speed);
-    modifyTravelTime(traveltime);
-    owner.SendMonsterMoveByPath(pointPath, 1, pointPath.size(), traveltime);
-    owner.clearUnitState(UNIT_STAT_ALL_STATE);
-}
-
-bool
-HomeMovementGenerator<Creature>::Update(Creature &owner, const uint32& time_diff)
-{
-    CreatureTraveller traveller(owner);
-    i_destinationHolder.UpdateTraveller(traveller, time_diff);
-
-    if (time_diff > i_travel_time)
+    // if we are ROOT/STUNNED/DISTRACTED even after aura clear, finalize on next update - otherwise we would get stuck in evade
+    if (owner->HasUnitState(UNIT_STATE_ROOT | UNIT_STATE_STUNNED | UNIT_STATE_DISTRACTED))
     {
-        owner.AddUnitMovementFlag(MOVEFLAG_WALK_MODE);
-
-        // restore orientation of not moving creature at returning to home
-        if (owner.GetDefaultMovementType() == IDLE_MOTION_TYPE)
-        {
-            owner.SetOrientation(ori);
-            WorldPacket packet;
-            owner.BuildHeartBeatMsg(&packet);
-            owner.SendMessageToSet(&packet, false);
-        }
-
-        owner.AI()->JustReachedHome();
-        return false;
+        AddFlag(MOVEMENTGENERATOR_FLAG_INTERRUPTED);
+        return;
     }
 
-    i_travel_time -= time_diff;
+    owner->ClearUnitState(UNIT_STATE_ALL_ERASABLE & ~UNIT_STATE_EVADE);
+    owner->AddUnitState(UNIT_STATE_EVADE | UNIT_STATE_ROAMING_MOVE); //sun: added evade handling
 
+    Position destination = owner->GetHomePosition();
+    Movement::MoveSplineInit init(owner);
+    // TODO: maybe this never worked, who knows, top is always this generator, so this code calls GetResetPosition on itself
+    //float x, y, z, o;
+    //// at apply we can select more nice return points base at current movegen
+    //if (owner->GetMotionMaster()->empty() || !owner->GetMotionMaster()->top()->GetResetPosition(owner, x, y, z))
+    //{
+    //    owner->GetHomePosition(x, y, z, o);
+    //    init.SetFacing(o);
+    //}
+
+    //sun: keep z if its really close... that way we can keep creatures at their exact DB position if it didn't changed. Else there are some imprecisions that could lead to feets in the ground, etc.
+    float const oldZ = destination.m_positionZ;
+    owner->UpdateAllowedPositionZ(destination.m_positionX, destination.m_positionY, destination.m_positionZ);
+    if (oldZ - destination.m_positionZ < 2.0f)
+        destination.m_positionZ = oldZ;
+    init.MoveTo(PositionToVector3(destination));
+    init.SetFacing(destination.GetOrientation());
+    init.SetWalk(false);
+    init.Launch();
+}
+
+template<>
+bool HomeMovementGenerator<Creature>::DoInitialize(Creature* owner)
+{
+    RemoveFlag(MOVEMENTGENERATOR_FLAG_INITIALIZATION_PENDING | MOVEMENTGENERATOR_FLAG_DEACTIVATED);
+    AddFlag(MOVEMENTGENERATOR_FLAG_INITIALIZED);
+
+    SetTargetLocation(owner);
     return true;
 }
 
+template<>
+void HomeMovementGenerator<Creature>::DoReset(Creature* owner)
+{ 
+    RemoveFlag(MOVEMENTGENERATOR_FLAG_DEACTIVATED);
+    DoInitialize(owner);
+}
+
+template<>
+bool HomeMovementGenerator<Creature>::DoUpdate(Creature* owner, const uint32 /*time_diff*/)
+{
+    if (HasFlag(MOVEMENTGENERATOR_FLAG_INTERRUPTED) || owner->movespline->Finalized())
+    {
+        AddFlag(MOVEMENTGENERATOR_FLAG_INFORM_ENABLED);
+        return false;
+    }
+    return true;
+}
+
+template<class T>
+void HomeMovementGenerator<T>::DoDeactivate(T*) { }
+
+template<>
+void HomeMovementGenerator<Creature>::DoDeactivate(Creature* owner)
+{
+    AddFlag(MOVEMENTGENERATOR_FLAG_DEACTIVATED);
+    owner->ClearUnitState(UNIT_STATE_ROAMING_MOVE | UNIT_STATE_EVADE);  //sun: added evade handling
+}
+
+template<class T>
+void HomeMovementGenerator<T>::DoFinalize(T*, bool, bool) { }
+
+template<>
+void HomeMovementGenerator<Creature>::DoFinalize(Creature* owner, bool active, bool movementInform)
+{
+    AddFlag(MOVEMENTGENERATOR_FLAG_FINALIZED);
+    if (active)
+        owner->ClearUnitState(UNIT_STATE_ROAMING_MOVE | UNIT_STATE_EVADE);  //sun: added evade handling
+    
+    if (movementInform && HasFlag(MOVEMENTGENERATOR_FLAG_INFORM_ENABLED))
+    {
+        owner->SetWalk(true);
+        owner->InitCreatureAddon(true);
+        owner->SetSpawnHealth();
+        owner->AI()->JustReachedHome();
+    }
+}
+
+template<class T>
+void HomeMovementGenerator<T>::SetTargetLocation(T*) { }
+
+template<class T>
+bool HomeMovementGenerator<T>::DoUpdate(T*, uint32)
+{
+    return false;
+}

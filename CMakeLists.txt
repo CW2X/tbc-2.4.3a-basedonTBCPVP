@@ -1,22 +1,20 @@
-# Copyright (C) 2010-2012 Project SkyFire <http://www.projectskyfire.org/>
-# Copyright (C) 2010-2012 Oregon <http://www.oregoncore.com/>
-# Copyright (C) 2008-2012 Trinity <http://www.trinitycore.org/>
-# Copyright (C) 2005-2012 MaNGOS <http://www.getmangos.com/>
-#
-# This file is free software; as a special exception the author gives
-# unlimited permission to copy and/or distribute it, with or without
-# modifications, as long as this notice is preserved.
-#
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
-# implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-# Set projectname (must be done AFTER setting configurationtypes)
-project(TBCPvP)
+cmake_minimum_required(VERSION 3.9)
+
+# add this options before PROJECT keyword
+set(CMAKE_DISABLE_SOURCE_CHANGES ON)
+set(CMAKE_DISABLE_IN_SOURCE_BUILD ON) 
+
+project(KonnoProductions)
 
 # CMake policies (can not be handled elsewhere)
-cmake_minimum_required(VERSION 2.6)
-cmake_policy(SET CMP0005 OLD)
+if(POLICY CMP0043)
+  cmake_policy(SET CMP0043 NEW) # Disable 'Ignore COMPILE_DEFINITIONS_<Config> properties'
+endif()
+
+if(POLICY CMP0054)
+  cmake_policy(SET CMP0054 NEW) # Only interpret if() arguments as variables or keywords when unquoted - prevents intepreting if (SOME_STRING_VARIABLE MATCHES "MSVC") as if (SOME_STRING_VARIABLE MATCHES "1")
+endif()
 
 # Set RPATH-handing (CMake parameters)
 set(CMAKE_SKIP_BUILD_RPATH 0)
@@ -25,39 +23,47 @@ set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH 1)
 
 # set macro-directory
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/macros")
-
+list(APPEND CMAKE_MODULE_PATH
+  "${CMAKE_SOURCE_DIR}/cmake/macros"
+  "${CMAKE_SOURCE_DIR}/dep/cotire/CMake")
+  
 # build in Release-mode by default if not explicitly set
-if ( NOT CMAKE_BUILD_TYPE )
-  set(CMAKE_BUILD_TYPE "Release")
+if( NOT CMAKE_BUILD_TYPE )
+  set(CMAKE_BUILD_TYPE "RelWithDebInfo")
 endif()
 
-include(CheckCXXSourceRuns)
 include(CheckIncludeFiles)
+include(ConfigureScripts)
 
 # set default buildoptions and print them
 include(cmake/options.cmake)
 
-# turn off PCH totally if enabled (hidden setting, mainly for devs)
-if ( NOPCH )
-  set(USE_COREPCH 0)
-  set(USE_SCRIPTPCH 0)
-endif()
-
+include(ConfigureBaseTargets)
 include(CheckPlatform)
+include(GroupSources)
+include(AutoCollect)
+include(PlatformRelatedSettings)
 
-# basic packagesearching and setup (further support will be needed, this is a preliminary release!)
-find_package(PCHSupport)
-find_package(ACE REQUIRED)
-find_package(OpenSSL REQUIRED)
-if ( NOT USE_MYSQL_SOURCES )
-  find_package(MySQL REQUIRED)
+include(FindThreads)
+find_package(MySQL)
+include(FindPCHSupport)
+
+find_package(Git) 
+
+if(DO_DEBUG)
+    add_definitions(-DTRINITY_DEBUG)
+endif(DO_DEBUG)
+
+if(USE_GPERFTOOLS)
+    add_definitions(-DUSE_GPERFTOOLS)
+endif(USE_GPERFTOOLS)
+
+if(PLAYERBOT)
+    add_definitions(-DPLAYERBOT)
 endif()
 
-if ( UNIX )
-  find_package(Readline)
-  find_package(ZLIB)
-  find_package(BZip2)
+if(TESTS)
+    add_definitions(-DTESTS)
 endif()
 
 # Find revision ID and hash of the sourcetree
@@ -71,3 +77,7 @@ add_subdirectory(dep)
 
 # add core sources
 add_subdirectory(src)
+
+if(DO_DEBUG)
+	message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
+endif(DO_DEBUG)

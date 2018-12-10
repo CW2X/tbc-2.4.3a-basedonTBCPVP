@@ -1,22 +1,3 @@
-/*
- * Copyright (C) 2010-2012 Project SkyFire <http://www.projectskyfire.org/>
- * Copyright (C) 2010-2012 Oregon <http://www.oregoncore.com/>
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 
 #include "Common.h"
 #include "WorldPacket.h"
@@ -29,196 +10,68 @@
 #include "MapManager.h"
 #include "GossipDef.h"
 #include "SocialMgr.h"
+#include "LogsDatabaseAccessor.h"
+#include "CharacterCache.h"
+#include "GuildMgr.h"
 
 void WorldSession::HandleGuildQueryOpcode(WorldPacket& recvPacket)
 {
     uint32 guildId;
-    Guild *guild;
 
-    //sLog->outDebug("WORLD: Received CMSG_GUILD_QUERY");
+    //TC_LOG_DEBUG("network.opcode","WORLD: Received CMSG_GUILD_QUERY");
 
     recvPacket >> guildId;
 
-    guild = sObjectMgr->GetGuildById(guildId);
-    if (!guild)
-    {
-        SendGuildCommandResult(GUILD_CREATE_S, "", ERR_GUILD_PLAYER_NOT_IN_GUILD);
+    if (!guildId)
         return;
-    }
 
-    guild->Query(this);
+    if (Guild* guild = sGuildMgr->GetGuildById(guildId))
+        guild->HandleQuery(this);
 }
 
 void WorldSession::HandleGuildCreateOpcode(WorldPacket& recvPacket)
 {
-    //sLog->outDebug("WORLD: Received CMSG_GUILD_CREATE");
+    std::string name;
+    recvPacket >> name;
 
-    std::string gname;
-    recvPacket >> gname;
-
-    if (GetPlayer()->GetGuildId())
-        return;
-
-    Guild *guild = new Guild;
-    if (!guild->Create(GetPlayer(), gname))
-    {
-        delete guild;
-        return;
-    }
-
-    sObjectMgr->AddGuild(guild);
+    TC_LOG_ERROR("entities.player.cheat", "CMSG_GUILD_CREATE: Possible hacking-attempt: %s tried to create a guild [Name: %s] using cheats", GetPlayerInfo().c_str(), name.c_str());
 }
 
 void WorldSession::HandleGuildInviteOpcode(WorldPacket& recvPacket)
 {
-    //sLog->outDebug("WORLD: Received CMSG_GUILD_INVITE");
+    std::string invitedName;
+    recvPacket >> invitedName;
 
-    std::string Invitedname, plname;
-    Player * player = NULL;
-    recvPacket >> Invitedname;
-
-    if (normalizePlayerName(Invitedname))
-        player = sObjectAccessor->FindPlayerByName(Invitedname.c_str());
-
-    if (!player)
-    {
-        SendGuildCommandResult(GUILD_INVITE_S, Invitedname, ERR_GUILD_PLAYER_NOT_FOUND_S);
-        return;
-    }
-
-    Guild *guild = sObjectMgr->GetGuildById(GetPlayer()->GetGuildId());
-    if (!guild)
-    {
-        SendGuildCommandResult(GUILD_CREATE_S, "", ERR_GUILD_PLAYER_NOT_IN_GUILD);
-        return;
-    }
-
-    // OK result but not send invite
-    if (player->GetSocial()->HasIgnore(GetPlayer()->GetGUIDLow()))
-        return;
-
-    // not let enemies sign guild charter
-    if (!sWorld->getConfig(CONFIG_ALLOW_TWO_SIDE_INTERACTION_GUILD) && player->GetTeam() != GetPlayer()->GetTeam())
-    {
-        SendGuildCommandResult(GUILD_INVITE_S, Invitedname, ERR_GUILD_NOT_ALLIED);
-        return;
-    }
-
-    if (player->GetGuildId())
-    {
-        plname = player->GetName();
-        SendGuildCommandResult(GUILD_INVITE_S, plname, ERR_ALREADY_IN_GUILD_S);
-        return;
-    }
-
-    if (player->GetGuildIdInvited())
-    {
-        plname = player->GetName();
-        SendGuildCommandResult(GUILD_INVITE_S, plname, ERR_ALREADY_INVITED_TO_GUILD_S);
-        return;
-    }
-
-    if (!guild->HasRankRight(GetPlayer()->GetRank(), GR_RIGHT_INVITE))
-    {
-        SendGuildCommandResult(GUILD_INVITE_S, "", ERR_GUILD_PERMISSIONS);
-        return;
-    }
-
-    sLog->outDebug("Player %s Invited %s to Join his Guild", GetPlayer()->GetName(), Invitedname.c_str());
-
-    player->SetGuildIdInvited(GetPlayer()->GetGuildId());
-    // Put record into guildlog
-    guild->LogGuildEvent(GUILD_EVENT_LOG_INVITE_PLAYER, GetPlayer()->GetGUIDLow(), player->GetGUIDLow(), 0);
-
-    WorldPacket data(SMSG_GUILD_INVITE, (8+10));            // guess size
-    data << GetPlayer()->GetName();
-    data << guild->GetName();
-    player->GetSession()->SendPacket(&data);
-
-    //sLog->outDebug("WORLD: Sent (SMSG_GUILD_INVITE)");
+    TC_LOG_DEBUG("guild", "CMSG_GUILD_INVITE [%s]: Invited: %s", GetPlayerInfo().c_str(), invitedName.c_str());
+    if (normalizePlayerName(invitedName))
+        if (Guild* guild = GetPlayer()->GetGuild())
+            guild->HandleInviteMember(this, invitedName);
 }
 
 void WorldSession::HandleGuildRemoveOpcode(WorldPacket& recvPacket)
 {
-    //sLog->outDebug("WORLD: Received CMSG_GUILD_REMOVE");
+    std::string playerName;
+    recvPacket >> playerName;
 
-    std::string plName;
-    recvPacket >> plName;
+    TC_LOG_DEBUG("guild", "CMSG_GUILD_REMOVE [%s]: Target: %s", GetPlayerInfo().c_str(), playerName.c_str());
 
-    if (!normalizePlayerName(plName))
-        return;
-
-    Guild* guild = sObjectMgr->GetGuildById(GetPlayer()->GetGuildId());
-    if (!guild)
-    {
-        SendGuildCommandResult(GUILD_CREATE_S, "", ERR_GUILD_PLAYER_NOT_IN_GUILD);
-        return;
-    }
-
-    if (!guild->HasRankRight(GetPlayer()->GetRank(), GR_RIGHT_REMOVE))
-    {
-        SendGuildCommandResult(GUILD_INVITE_S, "", ERR_GUILD_PERMISSIONS);
-        return;
-    }
-
-    uint64 plGuid;
-    MemberSlot* slot = guild->GetMemberSlot(plName, plGuid);
-    if (!slot)
-    {
-        SendGuildCommandResult(GUILD_INVITE_S, plName, ERR_GUILD_PLAYER_NOT_IN_GUILD_S);
-        return;
-    }
-
-    if (slot->RankId == GR_GUILDMASTER)
-    {
-        SendGuildCommandResult(GUILD_QUIT_S, "", ERR_GUILD_LEADER_LEAVE);
-        return;
-    }
-
-    guild->DelMember(plGuid);
-    // Put record into guildlog
-    guild->LogGuildEvent(GUILD_EVENT_LOG_UNINVITE_PLAYER, GetPlayer()->GetGUIDLow(), GUID_LOPART(plGuid), 0);
-
-    WorldPacket data(SMSG_GUILD_EVENT, (2+20));             // guess size
-    data << (uint8)GE_REMOVED;
-    data << (uint8)2;                                       // strings count
-    data << plName;
-    data << GetPlayer()->GetName();
-    guild->BroadcastPacket(&data);
+    if (normalizePlayerName(playerName))
+        if (Guild* guild = GetPlayer()->GetGuild())
+            guild->HandleRemoveMember(this, playerName);
 }
 
 void WorldSession::HandleGuildAcceptOpcode(WorldPacket& /*recvPacket*/)
 {
-    Guild *guild;
-    Player* player = GetPlayer();
+    TC_LOG_DEBUG("guild", "CMSG_GUILD_ACCEPT [%s]", GetPlayer()->GetName().c_str());
 
-    //sLog->outDebug("WORLD: Received CMSG_GUILD_ACCEPT");
-
-    guild = sObjectMgr->GetGuildById(player->GetGuildIdInvited());
-    if (!guild || player->GetGuildId())
-        return;
-
-    // not let enemies sign guild charter
-    if (!sWorld->getConfig(CONFIG_ALLOW_TWO_SIDE_INTERACTION_GUILD) && player->GetTeam() != sObjectMgr->GetPlayerTeamByGUID(guild->GetLeader()))
-        return;
-
-    if (!guild->AddMember(GetPlayer()->GetGUID(), guild->GetLowestRank()))
-        return;
-    // Put record into guildlog
-    guild->LogGuildEvent(GUILD_EVENT_LOG_JOIN_GUILD, GetPlayer()->GetGUIDLow(), 0, 0);
-
-    WorldPacket data(SMSG_GUILD_EVENT, (2+10));             // guess size
-    data << (uint8)GE_JOINED;
-    data << (uint8)1;
-    data << player->GetName();
-    guild->BroadcastPacket(&data);
-
-    //sLog->outDebug("WORLD: Sent (SMSG_GUILD_EVENT)");
+    if (!GetPlayer()->GetGuildId())
+        if (Guild* guild = sGuildMgr->GetGuildById(GetPlayer()->GetGuildIdInvited()))
+            guild->HandleAcceptMember(this);
 }
 
 void WorldSession::HandleGuildDeclineOpcode(WorldPacket& /*recvPacket*/)
 {
-    //sLog->outDebug("WORLD: Received CMSG_GUILD_DECLINE");
+    TC_LOG_DEBUG("guild", "CMSG_GUILD_DECLINE [%s]", GetPlayerInfo().c_str());
 
     GetPlayer()->SetGuildIdInvited(0);
     GetPlayer()->SetInGuild(0);
@@ -226,1430 +79,456 @@ void WorldSession::HandleGuildDeclineOpcode(WorldPacket& /*recvPacket*/)
 
 void WorldSession::HandleGuildInfoOpcode(WorldPacket& /*recvPacket*/)
 {
-    Guild *guild;
-    //sLog->outDebug("WORLD: Received CMSG_GUILD_INFO");
+    TC_LOG_DEBUG("guild", "CMSG_GUILD_INFO [%s]", GetPlayerInfo().c_str());
 
-    guild = sObjectMgr->GetGuildById(GetPlayer()->GetGuildId());
-    if (!guild)
-    {
-        SendGuildCommandResult(GUILD_CREATE_S, "", ERR_GUILD_PLAYER_NOT_IN_GUILD);
-        return;
-    }
-
-    WorldPacket data(SMSG_GUILD_INFO, (5*4 + guild->GetName().size() + 1));
-    data << guild->GetName();
-    data << guild->GetCreatedDay();
-    data << guild->GetCreatedMonth();
-    data << guild->GetCreatedYear();
-    data << guild->GetMemberSize();                       // char amount
-    data << guild->GetAccountsNumber();                   // acct amount
-
-    SendPacket(&data);
+    if (Guild* guild = GetPlayer()->GetGuild())
+        guild->SendInfo(this);
 }
 
 void WorldSession::HandleGuildRosterOpcode(WorldPacket& /*recvPacket*/)
 {
-    //sLog->outDebug("WORLD: Received CMSG_GUILD_ROSTER");
+    TC_LOG_DEBUG("guild", "CMSG_GUILD_ROSTER [%s]", GetPlayerInfo().c_str());
 
-    Guild* guild = sObjectMgr->GetGuildById(GetPlayer()->GetGuildId());
-    if (!guild)
-        return;
-
-    guild->Roster(this);
+    if (Guild* guild = GetPlayer()->GetGuild())
+        guild->HandleRoster(this);
+    else
+        Guild::SendCommandResult(this, GUILD_COMMAND_ROSTER, ERR_GUILD_PLAYER_NOT_IN_GUILD);
 }
 
 void WorldSession::HandleGuildPromoteOpcode(WorldPacket& recvPacket)
 {
-    //sLog->outDebug("WORLD: Received CMSG_GUILD_PROMOTE");
+    std::string playerName;
+    recvPacket >> playerName;
 
-    std::string plName;
-    recvPacket >> plName;
+    TC_LOG_DEBUG("guild", "CMSG_GUILD_PROMOTE [%s]: Target: %s", GetPlayerInfo().c_str(), playerName.c_str());
 
-    if (!normalizePlayerName(plName))
-        return;
-
-    Guild* guild = sObjectMgr->GetGuildById(GetPlayer()->GetGuildId());
-    if (!guild)
-    {
-        SendGuildCommandResult(GUILD_CREATE_S, "", ERR_GUILD_PLAYER_NOT_IN_GUILD);
-        return;
-    }
-    if (!guild->HasRankRight(GetPlayer()->GetRank(), GR_RIGHT_PROMOTE))
-    {
-        SendGuildCommandResult(GUILD_INVITE_S, "", ERR_GUILD_PERMISSIONS);
-        return;
-    }
-
-    uint64 plGuid;
-    MemberSlot* slot = guild->GetMemberSlot(plName, plGuid);
-
-    if (!slot)
-    {
-        SendGuildCommandResult(GUILD_INVITE_S, plName, ERR_GUILD_PLAYER_NOT_IN_GUILD_S);
-        return;
-    }
-
-    if (plGuid == GetPlayer()->GetGUID())
-    {
-        SendGuildCommandResult(GUILD_INVITE_S, "", ERR_GUILD_NAME_INVALID);
-        return;
-    }
-
-    if (slot->RankId < 2 || (slot->RankId-1) < GetPlayer()->GetRank())
-        return;
-
-    uint32 newRankId = slot->RankId < guild->GetNrRanks() ? slot->RankId-1 : guild->GetNrRanks()-1;
-
-    guild->ChangeRank(plGuid, newRankId);
-    // Put record into guildlog
-    guild->LogGuildEvent(GUILD_EVENT_LOG_PROMOTE_PLAYER, GetPlayer()->GetGUIDLow(), GUID_LOPART(plGuid), newRankId);
-
-    WorldPacket data(SMSG_GUILD_EVENT, (2+30));             // guess size
-    data << (uint8)GE_PROMOTION;
-    data << (uint8)3;
-    data << GetPlayer()->GetName();
-    data << plName;
-    data << guild->GetRankName(newRankId);
-    guild->BroadcastPacket(&data);
+    if (normalizePlayerName(playerName))
+        if (Guild* guild = GetPlayer()->GetGuild())
+            guild->HandleUpdateMemberRank(this, playerName, false);
 }
 
 void WorldSession::HandleGuildDemoteOpcode(WorldPacket& recvPacket)
 {
-    //sLog->outDebug("WORLD: Received CMSG_GUILD_DEMOTE");
+    std::string playerName;
+    recvPacket >> playerName;
 
-    std::string plName;
-    recvPacket >> plName;
+    TC_LOG_DEBUG("guild", "CMSG_GUILD_DEMOTE [%s]: Target: %s", GetPlayerInfo().c_str(), playerName.c_str());
 
-    if (!normalizePlayerName(plName))
-        return;
-
-    Guild* guild = sObjectMgr->GetGuildById(GetPlayer()->GetGuildId());
-
-    if (!guild)
-    {
-        SendGuildCommandResult(GUILD_CREATE_S, "", ERR_GUILD_PLAYER_NOT_IN_GUILD);
-        return;
-    }
-
-    if (!guild->HasRankRight(GetPlayer()->GetRank(), GR_RIGHT_DEMOTE))
-    {
-        SendGuildCommandResult(GUILD_INVITE_S, "", ERR_GUILD_PERMISSIONS);
-        return;
-    }
-
-    uint64 plGuid;
-    MemberSlot* slot = guild->GetMemberSlot(plName, plGuid);
-
-    if (!slot)
-    {
-        SendGuildCommandResult(GUILD_INVITE_S, plName, ERR_GUILD_PLAYER_NOT_IN_GUILD_S);
-        return;
-    }
-
-    if (plGuid == GetPlayer()->GetGUID())
-    {
-        SendGuildCommandResult(GUILD_INVITE_S, "", ERR_GUILD_NAME_INVALID);
-        return;
-    }
-
-    if ((slot->RankId+1) >= guild->GetNrRanks() || slot->RankId <= GetPlayer()->GetRank())
-        return;
-
-    guild->ChangeRank(plGuid, (slot->RankId+1));
-    // Put record into guildlog
-    guild->LogGuildEvent(GUILD_EVENT_LOG_DEMOTE_PLAYER, GetPlayer()->GetGUIDLow(), GUID_LOPART(plGuid), (slot->RankId));
-
-    WorldPacket data(SMSG_GUILD_EVENT, (2+30));             // guess size
-    data << (uint8)GE_DEMOTION;
-    data << (uint8)3;
-    data << GetPlayer()->GetName();
-    data << plName;
-    data << guild->GetRankName(slot->RankId);
-    guild->BroadcastPacket(&data);
+    if (normalizePlayerName(playerName))
+        if (Guild* guild = GetPlayer()->GetGuild())
+            guild->HandleUpdateMemberRank(this, playerName, true);
 }
 
 void WorldSession::HandleGuildLeaveOpcode(WorldPacket& /*recvPacket*/)
 {
-    std::string plName;
-    Guild *guild;
+    TC_LOG_DEBUG("guild", "CMSG_GUILD_LEAVE [%s]", GetPlayerInfo().c_str());
 
-    //sLog->outDebug("WORLD: Received CMSG_GUILD_LEAVE");
-
-    guild = sObjectMgr->GetGuildById(_player->GetGuildId());
-    if (!guild)
-    {
-        SendGuildCommandResult(GUILD_CREATE_S, "", ERR_GUILD_PLAYER_NOT_IN_GUILD);
-        return;
-    }
-    if (_player->GetGUID() == guild->GetLeader() && guild->GetMemberSize() > 1)
-    {
-        SendGuildCommandResult(GUILD_QUIT_S, "", ERR_GUILD_LEADER_LEAVE);
-        return;
-    }
-
-    if (_player->GetGUID() == guild->GetLeader())
-    {
-        guild->Disband();
-        return;
-    }
-
-    plName = _player->GetName();
-
-    guild->DelMember(_player->GetGUID());
-    // Put record into guildlog
-    guild->LogGuildEvent(GUILD_EVENT_LOG_LEAVE_GUILD, _player->GetGUIDLow(), 0, 0);
-
-    WorldPacket data(SMSG_GUILD_EVENT, (2+10));             // guess size
-    data << (uint8)GE_LEFT;
-    data << (uint8)1;
-    data << plName;
-    guild->BroadcastPacket(&data);
-
-    //sLog->outDebug("WORLD: Sent (SMSG_GUILD_EVENT)");
-
-    SendGuildCommandResult(GUILD_QUIT_S, guild->GetName(), ERR_PLAYER_NO_MORE_IN_GUILD);
+    if (Guild* guild = GetPlayer()->GetGuild())
+        guild->HandleLeaveMember(this);
 }
 
 void WorldSession::HandleGuildDisbandOpcode(WorldPacket& /*recvPacket*/)
 {
-    std::string name;
-    Guild *guild;
+    TC_LOG_DEBUG("guild", "CMSG_GUILD_DISBAND [%s]", GetPlayerInfo().c_str());
 
-    //sLog->outDebug("WORLD: Received CMSG_GUILD_DISBAND");
-
-    guild = sObjectMgr->GetGuildById(GetPlayer()->GetGuildId());
-    if (!guild)
-    {
-        SendGuildCommandResult(GUILD_CREATE_S, "", ERR_GUILD_PLAYER_NOT_IN_GUILD);
-        return;
-    }
-    if (GetPlayer()->GetGUID() != guild->GetLeader())
-    {
-        SendGuildCommandResult(GUILD_INVITE_S, "", ERR_GUILD_PERMISSIONS);
-        return;
-    }
-
-    guild->Disband();
-
-    //sLog->outDebug("WORLD: Guild Sucefully Disbanded");
+    if (Guild* guild = GetPlayer()->GetGuild())
+        guild->HandleDisband(this);
 }
 
 void WorldSession::HandleGuildLeaderOpcode(WorldPacket& recvPacket)
 {
     std::string name;
-    Player *oldLeader = GetPlayer();
-    Guild *guild;
-
-    //sLog->outDebug("WORLD: Received CMSG_GUILD_LEADER");
-
     recvPacket >> name;
 
-    if (!normalizePlayerName(name))
-        return;
+    TC_LOG_DEBUG("guild", "CMSG_GUILD_LEADER [%s]: Target: %s", GetPlayerInfo().c_str(), name.c_str());
 
-    guild = sObjectMgr->GetGuildById(oldLeader->GetGuildId());
-
-    if (!guild)
-    {
-        SendGuildCommandResult(GUILD_CREATE_S, "", ERR_GUILD_PLAYER_NOT_IN_GUILD);
-        return;
-    }
-
-    if (oldLeader->GetGUID() != guild->GetLeader())
-    {
-        SendGuildCommandResult(GUILD_INVITE_S, "", ERR_GUILD_PERMISSIONS);
-        return;
-    }
-
-    uint64 newLeaderGUID;
-    MemberSlot* slot = guild->GetMemberSlot(name, newLeaderGUID);
-
-    if (!slot)
-    {
-        SendGuildCommandResult(GUILD_INVITE_S, name, ERR_GUILD_PLAYER_NOT_IN_GUILD_S);
-        return;
-    }
-
-    guild->SetLeader(newLeaderGUID);
-    guild->ChangeRank(oldLeader->GetGUID(), GR_OFFICER);
-
-    WorldPacket data(SMSG_GUILD_EVENT, (2+20));             // guess size
-    data << (uint8)GE_LEADER_CHANGED;
-    data << (uint8)2;
-    data << oldLeader->GetName();
-    data << name.c_str();
-    guild->BroadcastPacket(&data);
-
-    //sLog->outDebug("WORLD: Sent (SMSG_GUILD_EVENT)");
+    if (normalizePlayerName(name))
+        if (Guild* guild = GetPlayer()->GetGuild())
+            guild->HandleSetLeader(this, name);
 }
 
 void WorldSession::HandleGuildMOTDOpcode(WorldPacket& recvPacket)
 {
-    Guild *guild;
-    std::string MOTD;
+    std::string motd;
+    recvPacket >> motd;
 
-    //sLog->outDebug("WORLD: Received CMSG_GUILD_MOTD");
+    TC_LOG_DEBUG("guild", "CMSG_GUILD_MOTD [%s]: MOTD: %s", GetPlayerInfo().c_str(), motd.c_str());
 
-    guild = sObjectMgr->GetGuildById(GetPlayer()->GetGuildId());
-    if (!guild)
-    {
-        SendGuildCommandResult(GUILD_CREATE_S, "", ERR_GUILD_PLAYER_NOT_IN_GUILD);
-        return;
-    }
-    if (!guild->HasRankRight(GetPlayer()->GetRank(), GR_RIGHT_SETMOTD))
-    {
-        SendGuildCommandResult(GUILD_INVITE_S, "", ERR_GUILD_PERMISSIONS);
-        return;
-    }
-
-    if (!recvPacket.empty())
-        recvPacket >> MOTD;
-    else
-        MOTD = "";
-
-    guild->SetMOTD(MOTD);
-
-    WorldPacket data(SMSG_GUILD_EVENT, (2+MOTD.size()+1));
-    data << (uint8)GE_MOTD;
-    data << (uint8)1;
-    data << MOTD;
-    guild->BroadcastPacket(&data);
-
-    //sLog->outDebug("WORLD: Sent (SMSG_GUILD_EVENT)");
+    if (Guild* guild = GetPlayer()->GetGuild())
+        guild->HandleSetMOTD(this, motd);
 }
 
 void WorldSession::HandleGuildSetPublicNoteOpcode(WorldPacket& recvPacket)
 {
-    //sLog->outDebug("WORLD: Received CMSG_GUILD_SET_PUBLIC_NOTE");
+    std::string playerName;
+    std::string note;
+    recvPacket >> playerName >> note;
 
-    std::string name, PNOTE;
-    recvPacket >> name;
+    TC_LOG_DEBUG("guild", "CMSG_GUILD_SET_PUBLIC_NOTE [%s]: Target: %s, Note: %s",
+        GetPlayerInfo().c_str(), playerName.c_str(), note.c_str());
 
-    if (!normalizePlayerName(name))
-        return;
-
-    Guild* guild = sObjectMgr->GetGuildById(GetPlayer()->GetGuildId());
-    if (!guild)
-    {
-        SendGuildCommandResult(GUILD_CREATE_S, "", ERR_GUILD_PLAYER_NOT_IN_GUILD);
-        return;
-    }
-
-    if (!guild->HasRankRight(GetPlayer()->GetRank(), GR_RIGHT_EPNOTE))
-    {
-        SendGuildCommandResult(GUILD_INVITE_S, "", ERR_GUILD_PERMISSIONS);
-        return;
-    }
-
-    uint64 plGuid;
-    MemberSlot* slot = guild->GetMemberSlot(name, plGuid);
-
-    if (!slot)
-    {
-        SendGuildCommandResult(GUILD_INVITE_S, name, ERR_GUILD_PLAYER_NOT_IN_GUILD_S);
-        return;
-    }
-
-    recvPacket >> PNOTE;
-
-    guild->SetPNOTE(plGuid, PNOTE);
-
-    guild->Roster(this);
+    if (normalizePlayerName(playerName))
+        if (Guild* guild = GetPlayer()->GetGuild())
+            guild->HandleSetMemberNote(this, playerName, note, false);
 }
 
 void WorldSession::HandleGuildSetOfficerNoteOpcode(WorldPacket& recvPacket)
 {
-    //sLog->outDebug("WORLD: Received CMSG_GUILD_SET_OFFICER_NOTE");
+    std::string playerName;
+    std::string note;
+    recvPacket >> playerName >> note;
 
-    std::string plName, OFFNOTE;
-    recvPacket >> plName;
+    TC_LOG_DEBUG("guild", "CMSG_GUILD_SET_OFFICER_NOTE [%s]: Target: %s, Note: %s",
+        GetPlayerInfo().c_str(), playerName.c_str(), note.c_str());
 
-    if (!normalizePlayerName(plName))
-        return;
-
-    Guild* guild = sObjectMgr->GetGuildById(GetPlayer()->GetGuildId());
-    if (!guild)
-    {
-        SendGuildCommandResult(GUILD_CREATE_S, "", ERR_GUILD_PLAYER_NOT_IN_GUILD);
-        return;
-    }
-    if (!guild->HasRankRight(GetPlayer()->GetRank(), GR_RIGHT_EOFFNOTE))
-    {
-        SendGuildCommandResult(GUILD_INVITE_S, "", ERR_GUILD_PERMISSIONS);
-        return;
-    }
-
-    uint64 plGuid;
-    MemberSlot* slot = guild->GetMemberSlot(plName, plGuid);
-
-    if (!slot)
-    {
-        SendGuildCommandResult(GUILD_INVITE_S, plName, ERR_GUILD_PLAYER_NOT_IN_GUILD_S);
-        return;
-    }
-
-    recvPacket >> OFFNOTE;
-
-    guild->SetOFFNOTE(plGuid, OFFNOTE);
-
-    guild->Roster(this);
+    if (normalizePlayerName(playerName))
+        if (Guild* guild = GetPlayer()->GetGuild())
+            guild->HandleSetMemberNote(this, playerName, note, true);
 }
 
 void WorldSession::HandleGuildRankOpcode(WorldPacket& recvPacket)
 {
-    Guild *guild;
-    std::string rankname;
     uint32 rankId;
-    uint32 rights, MoneyPerDay;
-    uint32 BankRights;
-    uint32 BankSlotPerDay;
+    recvPacket >> rankId;
 
-    //sLog->outDebug("WORLD: Received CMSG_GUILD_RANK");
+    uint32 rights;
+    recvPacket >> rights;
 
-    guild = sObjectMgr->GetGuildById(GetPlayer()->GetGuildId());
+    std::string rankName;
+    recvPacket >> rankName;
+
+    uint32 money;
+    recvPacket >> money;
+
+    TC_LOG_DEBUG("guild", "CMSG_GUILD_RANK [%s]: Rank: %s (%u)", GetPlayerInfo().c_str(), rankName.c_str(), rankId);
+
+    Guild* guild = GetPlayer()->GetGuild();
     if (!guild)
     {
-        SendGuildCommandResult(GUILD_CREATE_S, "", ERR_GUILD_PLAYER_NOT_IN_GUILD);
+        recvPacket.rpos(recvPacket.wpos());
         return;
     }
 
-    else if (GetPlayer()->GetGUID() != guild->GetLeader())
+    GuildBankRightsAndSlotsVec rightsAndSlots(GUILD_BANK_MAX_TABS);
+
+    for (uint8 tabId = 0; tabId < GUILD_BANK_MAX_TABS; ++tabId)
     {
-        SendGuildCommandResult(GUILD_INVITE_S, "", ERR_GUILD_PERMISSIONS);
-        return;
+        uint32 bankRights;
+        uint32 slots;
+
+        recvPacket >> bankRights;
+        recvPacket >> slots;
+
+        rightsAndSlots[tabId] = GuildBankRightsAndSlots(tabId, bankRights, slots);
     }
 
-    recvPacket >> rankId;
-    recvPacket >> rights;
-    recvPacket >> rankname;
-    recvPacket >> MoneyPerDay;
-
-    for (int i = 0; i < GUILD_BANK_MAX_TABS; ++i)
-    {
-        recvPacket >> BankRights;
-        recvPacket >> BankSlotPerDay;
-        guild->SetBankRightsAndSlots(rankId, uint8(i), uint16(BankRights & 0xFF), uint16(BankSlotPerDay), true);
-    }
-    sLog->outDebug("WORLD: Changed RankName to %s , Rights to 0x%.4X", rankname.c_str(), rights);
-
-    guild->SetBankMoneyPerDay(rankId, MoneyPerDay);
-    guild->SetRankName(rankId, rankname);
-
-    if (rankId == GR_GUILDMASTER)                           // prevent loss leader rights
-        rights |= GR_RIGHT_ALL;
-
-    guild->SetRankRights(rankId, rights);
-
-    guild->Query(this);
-    guild->Roster();                                        // broadcast for tab rights update
+    guild->HandleSetRankInfo(this, rankId, rankName, rights, money, rightsAndSlots);
 }
 
 void WorldSession::HandleGuildAddRankOpcode(WorldPacket& recvPacket)
 {
-    Guild *guild;
-    std::string rankname;
+    std::string rankName;
+    recvPacket >> rankName;
 
-    //sLog->outDebug("WORLD: Received CMSG_GUILD_ADD_RANK");
+    TC_LOG_DEBUG("guild", "CMSG_GUILD_ADD_RANK [%s]: Rank: %s", GetPlayerInfo().c_str(), rankName.c_str());
 
-    guild = sObjectMgr->GetGuildById(GetPlayer()->GetGuildId());
-    if (!guild)
-    {
-        SendGuildCommandResult(GUILD_CREATE_S, "", ERR_GUILD_PLAYER_NOT_IN_GUILD);
-        return;
-    }
-
-    if (GetPlayer()->GetGUID() != guild->GetLeader())
-    {
-        SendGuildCommandResult(GUILD_INVITE_S, "", ERR_GUILD_PERMISSIONS);
-        return;
-    }
-
-    if (guild->GetNrRanks() >= GUILD_MAX_RANKS)              // client not let create more 10 than ranks
-        return;
-
-    recvPacket >> rankname;
-
-    guild->CreateRank(rankname, GR_RIGHT_GCHATLISTEN | GR_RIGHT_GCHATSPEAK);
-
-    guild->Query(this);
-    guild->Roster();                                        // broadcast for tab rights update
+    if (Guild* guild = GetPlayer()->GetGuild())
+        guild->HandleAddNewRank(this, rankName);
 }
 
 void WorldSession::HandleGuildDelRankOpcode(WorldPacket& /*recvPacket*/)
 {
-    Guild *guild;
-    std::string rankname;
+    TC_LOG_DEBUG("guild", "CMSG_GUILD_DEL_RANK [%s]", GetPlayerInfo().c_str());
 
-    //sLog->outDebug("WORLD: Received CMSG_GUILD_DEL_RANK");
-
-    guild = sObjectMgr->GetGuildById(GetPlayer()->GetGuildId());
-    if (!guild)
-    {
-        SendGuildCommandResult(GUILD_CREATE_S, "", ERR_GUILD_PLAYER_NOT_IN_GUILD);
-        return;
-    }
-
-    else if (GetPlayer()->GetGUID() != guild->GetLeader())
-    {
-        SendGuildCommandResult(GUILD_INVITE_S, "", ERR_GUILD_PERMISSIONS);
-        return;
-    }
-
-    guild->DelRank();
-
-    guild->Query(this);
-    guild->Roster();                                        // broadcast for tab rights update
+    if (Guild* guild = GetPlayer()->GetGuild())
+        guild->HandleRemoveLowestRank(this);
 }
 
-void WorldSession::SendGuildCommandResult(uint32 typecmd, const std::string& str, uint32 cmdresult)
+void WorldSession::HandleGuildChangeInfoTextOpcode(WorldPacket& recvPacket)
 {
-    WorldPacket data(SMSG_GUILD_COMMAND_RESULT, (8+str.size()+1));
-    data << typecmd;
-    data << str;
-    data << cmdresult;
-    SendPacket(&data);
+    std::string info;
+    recvPacket >> info;
 
-    //sLog->outDebug("WORLD: Sent (SMSG_GUILD_COMMAND_RESULT)");
+    TC_LOG_DEBUG("guild", "CMSG_GUILD_INFO_TEXT [%s]: %s", GetPlayerInfo().c_str(), info.c_str());
+
+    if (Guild* guild = GetPlayer()->GetGuild())
+        guild->HandleSetInfo(this, info);
 }
 
-void WorldSession::HandleGuildChangeInfoOpcode(WorldPacket& recvPacket)
+void WorldSession::HandleSaveGuildEmblemOpcode(WorldPacket& recvPacket)
 {
-    //sLog->outDebug("WORLD: Received CMSG_GUILD_INFO_TEXT");
-
-    std::string GINFO;
-    recvPacket >> GINFO;
-
-    Guild *guild = sObjectMgr->GetGuildById(GetPlayer()->GetGuildId());
-    if (!guild)
-    {
-        SendGuildCommandResult(GUILD_CREATE_S, "", ERR_GUILD_PLAYER_NOT_IN_GUILD);
-        return;
-    }
-
-    if (!guild->HasRankRight(GetPlayer()->GetRank(), GR_RIGHT_MODIFY_GUILD_INFO))
-    {
-        SendGuildCommandResult(GUILD_CREATE_S, "", ERR_GUILD_PERMISSIONS);
-        return;
-    }
-
-    guild->SetGINFO(GINFO);
-}
-
-void WorldSession::HandleGuildSaveEmblemOpcode(WorldPacket& recvPacket)
-{
-    //sLog->outDebug("WORLD: Received MSG_SAVE_GUILD_EMBLEM");
-
-    uint64 vendorGuid;
-
-    uint32 EmblemStyle;
-    uint32 EmblemColor;
-    uint32 BorderStyle;
-    uint32 BorderColor;
-    uint32 BackgroundColor;
-
+    ObjectGuid vendorGuid;
     recvPacket >> vendorGuid;
 
-    Creature* creature = GetPlayer()->GetNPCIfCanInteractWith(vendorGuid, UNIT_NPC_FLAG_TABARDDESIGNER);
-    if (!creature)
+    EmblemInfo emblemInfo;
+    emblemInfo.ReadPacket(recvPacket);
+
+    TC_LOG_DEBUG("guild", "MSG_SAVE_GUILD_EMBLEM [%s]: Guid: [%s] Style: %d, Color: %d, BorderStyle: %d, BorderColor: %d, BackgroundColor: %d"
+        , GetPlayerInfo().c_str(), vendorGuid.ToString().c_str(), emblemInfo.GetStyle()
+        , emblemInfo.GetColor(), emblemInfo.GetBorderStyle()
+        , emblemInfo.GetBorderColor(), emblemInfo.GetBackgroundColor());
+
+    if (GetPlayer()->GetNPCIfCanInteractWith(vendorGuid, UNIT_NPC_FLAG_TABARDDESIGNER))
     {
-        //"That's not an emblem vendor!"
-        SendSaveGuildEmblem(ERR_GUILDEMBLEM_INVALIDVENDOR);
-        sLog->outDebug("WORLD: HandleGuildSaveEmblemOpcode - Unit (GUID: %u) not found or you can't interact with him.", GUID_LOPART(vendorGuid));
-        return;
+        // Remove fake death
+        if (GetPlayer()->HasUnitState(UNIT_STATE_DIED))
+            GetPlayer()->RemoveAurasByType(SPELL_AURA_FEIGN_DEATH);
+
+        if (Guild* guild = GetPlayer()->GetGuild())
+            guild->HandleSetEmblem(this, emblemInfo);
+        else
+            Guild::SendSaveEmblemResult(this, ERR_GUILDEMBLEM_NOGUILD); // "You are not part of a guild!";
     }
-
-    // remove fake death
-    if (GetPlayer()->hasUnitState(UNIT_STAT_DIED))
-        GetPlayer()->RemoveSpellsCausingAura(SPELL_AURA_FEIGN_DEATH);
-
-    recvPacket >> EmblemStyle;
-    recvPacket >> EmblemColor;
-    recvPacket >> BorderStyle;
-    recvPacket >> BorderColor;
-    recvPacket >> BackgroundColor;
-
-    Guild *guild = sObjectMgr->GetGuildById(GetPlayer()->GetGuildId());
-    if (!guild)
-    {
-        //"You are not part of a guild!";
-        SendSaveGuildEmblem(ERR_GUILDEMBLEM_NOGUILD);
-        return;
-    }
-
-    if (guild->GetLeader() != GetPlayer()->GetGUID())
-    {
-        //"Only guild leaders can create emblems."
-        SendSaveGuildEmblem(ERR_GUILDEMBLEM_NOTGUILDMASTER);
-        return;
-    }
-
-    if (GetPlayer()->GetMoney() < 10*GOLD)
-    {
-        //"You can't afford to do that."
-        SendSaveGuildEmblem(ERR_GUILDEMBLEM_NOTENOUGHMONEY);
-        return;
-    }
-
-    GetPlayer()->ModifyMoney(-10*GOLD);
-    guild->SetEmblem(EmblemStyle, EmblemColor, BorderStyle, BorderColor, BackgroundColor);
-
-    //"Guild Emblem saved."
-    SendSaveGuildEmblem(ERR_GUILDEMBLEM_SUCCESS);
-
-    guild->Query(this);
+    else
+        Guild::SendSaveEmblemResult(this, ERR_GUILDEMBLEM_INVALIDVENDOR); // "That's not an emblem vendor!"
 }
 
-void WorldSession::HandleGuildEventLogOpcode(WorldPacket& /* recvPacket */)
+void WorldSession::HandleGuildEventLogQueryOpcode(WorldPacket& /* recvPacket */)
 {
-                                                            // empty
-    sLog->outDebug("WORLD: Received (MSG_GUILD_EVENT_LOG_QUERY)");
-    //recvPacket.hexlike();
+    TC_LOG_DEBUG("guild", "MSG_GUILD_EVENT_LOG_QUERY [%s]", GetPlayerInfo().c_str());
 
-    uint32 GuildId = GetPlayer()->GetGuildId();
-    if (GuildId == 0)
-        return;
-
-    Guild *pGuild = sObjectMgr->GetGuildById(GuildId);
-    if (!pGuild)
-        return;
-
-    pGuild->DisplayGuildEventlog(this);
+    if (Guild* guild = GetPlayer()->GetGuild())
+        guild->SendEventLog(this);
 }
 
 /******  GUILD BANK  *******/
 
-void WorldSession::HandleGuildBankGetMoneyAmount(WorldPacket & /* recv_data */)
+void WorldSession::HandleGuildBankMoneyWithdrawn( WorldPacket & /* recvData */ )
 {
-    sLog->outDebug("WORLD: Received (MSG_GUILD_BANK_MONEY_WITHDRAWN)");
-    //recv_data.hexlike();
+    TC_LOG_DEBUG("guild", "MSG_GUILD_BANK_MONEY_WITHDRAWN [%s]", GetPlayerInfo().c_str());
 
-    uint32 GuildId = GetPlayer()->GetGuildId();
-    if (GuildId == 0)
-        return;
-
-    Guild *pGuild = sObjectMgr->GetGuildById(GuildId);
-    if (!pGuild)
-        return;
-
-    pGuild->SendMoneyInfo(this, GetPlayer()->GetGUIDLow());
+    if (Guild* guild = GetPlayer()->GetGuild())
+        guild->SendMoneyInfo(this);
 }
 
-void WorldSession::HandleGuildBankGetRights(WorldPacket& /* recv_data */)
+void WorldSession::HandleGuildPermissions( WorldPacket& /* recvData */ )
 {
-    sLog->outDebug("WORLD: Received (MSG_GUILD_PERMISSIONS)");
+    TC_LOG_DEBUG("guild", "MSG_GUILD_PERMISSIONS [%s]", GetPlayerInfo().c_str());
 
-    uint32 GuildId = GetPlayer()->GetGuildId();
-    if (GuildId == 0)
-        return;
-
-    Guild *pGuild = sObjectMgr->GetGuildById(GuildId);
-    if (!pGuild)
-        return;
-
-    uint32 rankId = GetPlayer()->GetRank();
-
-    WorldPacket data(MSG_GUILD_PERMISSIONS, 4*15+1);
-    data << uint32(rankId);                                 // guild rank id
-    data << uint32(pGuild->GetRankRights(rankId));          // rank rights
-                                                            // money per day left
-    data << uint32(pGuild->GetMemberMoneyWithdrawRem(GetPlayer()->GetGUIDLow()));
-    data << uint8(pGuild->GetPurchasedTabs());              // tabs count
-    for (int i = 0; i < GUILD_BANK_MAX_TABS; ++i)
-    {
-        data << uint32(pGuild->GetBankRights(rankId, uint8(i)));
-        data << uint32(pGuild->GetMemberSlotWithdrawRem(GetPlayer()->GetGUIDLow(), uint8(i)));
-    }
-    SendPacket(&data);
-    sLog->outDebug("WORLD: Sent (MSG_GUILD_PERMISSIONS)");
+    if (Guild* guild = GetPlayer()->GetGuild())
+        guild->SendPermissions(this);
 }
 
 /* Called when clicking on Guild bank gameobject */
-void WorldSession::HandleGuildBankQuery(WorldPacket & recv_data)
+void WorldSession::HandleGuildBankerActivate( WorldPacket & recvData )
 {
-    sLog->outDebug("WORLD: Received (CMSG_GUILD_BANKER_ACTIVATE)");
+    ObjectGuid guid;
+    bool sendAllSlots;
+    recvData >> guid >> sendAllSlots;
 
-    uint64 GoGuid;
-    uint8  unk;
-    recv_data >> GoGuid >> unk;
+    TC_LOG_DEBUG("guild", "CMSG_GUILD_BANKER_ACTIVATE [%s]: [%s] AllSlots: %u"
+        , GetPlayerInfo().c_str(), guid.ToString().c_str(), sendAllSlots);
 
-    if (!GetPlayer()->GetGameObjectIfCanInteractWith(GoGuid, GAMEOBJECT_TYPE_GUILD_BANK))
-        return;
-
-    if (uint32 GuildId = GetPlayer()->GetGuildId())
+    Guild* const guild = GetPlayer()->GetGuild();
+    if (!guild)
     {
-        if (Guild *pGuild = sObjectMgr->GetGuildById(GuildId))
-        {
-            pGuild->DisplayGuildBankTabsInfo(this);
-            return;
-        }
+        Guild::SendCommandResult(this, GUILD_COMMAND_VIEW_TAB, ERR_GUILD_PLAYER_NOT_IN_GUILD);
+        return;
     }
 
-    SendGuildCommandResult(GUILD_BANK_S, "", ERR_GUILD_PLAYER_NOT_IN_GUILD);
+    guild->SendBankTabsInfo(this, sendAllSlots);
 }
 
 /* Called when opening guild bank tab only (first one) */
-void WorldSession::HandleGuildBankTabColon(WorldPacket & recv_data)
+void WorldSession::HandleGuildBankQueryTab( WorldPacket & recvData )
 {
-    sLog->outDebug("WORLD: Received (CMSG_GUILD_BANK_QUERY_TAB)");
+    ObjectGuid guid;
+    uint8 tabId;
+    bool full;
 
-    uint64 GoGuid;
-    uint8 TabId, unk1;
-    recv_data >> GoGuid >> TabId >> unk1;
+    recvData >> guid >> tabId >> full;
 
-    if (!GetPlayer()->GetGameObjectIfCanInteractWith(GoGuid, GAMEOBJECT_TYPE_GUILD_BANK))
-        return;
+    TC_LOG_DEBUG("guild", "CMSG_GUILD_BANK_QUERY_TAB [%s]: %s, TabId: %u, ShowTabs: %u"
+        , GetPlayerInfo().c_str(), guid.ToString().c_str(), tabId, full);
 
-    uint32 GuildId = GetPlayer()->GetGuildId();
-    if (GuildId == 0)
-        return;
-
-    Guild *pGuild = sObjectMgr->GetGuildById(GuildId);
-    if (!pGuild)
-        return;
-
-    // Let's update the amount of gold the player can withdraw before displaying the content
-    // This is usefull if money withdraw right has changed
-    pGuild->SendMoneyInfo(this, GetPlayer()->GetGUIDLow());
-
-    pGuild->DisplayGuildBankContent(this, TabId);
+    if (GetPlayer()->GetGameObjectIfCanInteractWith(guid, GAMEOBJECT_TYPE_GUILD_BANK))
+        if (Guild* guild = GetPlayer()->GetGuild())
+            guild->SendBankTabData(this, tabId);
 }
 
-void WorldSession::HandleGuildBankDeposit(WorldPacket & recv_data)
+void WorldSession::HandleGuildBankDepositMoney( WorldPacket & recvData )
 {
-    sLog->outDebug("WORLD: Received (CMSG_GUILD_BANK_DEPOSIT_MONEY)");
-
-    uint64 GoGuid;
+    ObjectGuid guid;
     uint32 money;
-    recv_data >> GoGuid >> money;
+    recvData >> guid >> money;
 
-    if (!money)
-        return;
+    TC_LOG_DEBUG("guild", "CMSG_GUILD_BANK_DEPOSIT_MONEY [%s]: [%s], money: %u",
+        GetPlayerInfo().c_str(), guid.ToString().c_str(), money);
 
-    if (!GetPlayer()->GetGameObjectIfCanInteractWith(GoGuid, GAMEOBJECT_TYPE_GUILD_BANK))
-        return;
-
-    uint32 GuildId = GetPlayer()->GetGuildId();
-    if (GuildId == 0)
-        return;
-
-    Guild *pGuild = sObjectMgr->GetGuildById(GuildId);
-    if (!pGuild)
-        return;
-
-    if (GetPlayer()->GetMoney() < money)
-        return;
-
-    CharacterDatabase.BeginTransaction();
-
-    pGuild->SetBankMoney(pGuild->GetGuildBankMoney()+money);
-    GetPlayer()->ModifyMoney(-int(money));
-    GetPlayer()->SaveDataFieldToDB();                       //contains money
-
-    CharacterDatabase.CommitTransaction();
-
-    // logging money
-    if (_player->GetSession()->GetSecurity() > SEC_PLAYER && sWorld->getConfig(CONFIG_GM_LOG_TRADE))
-    {
-        sLog->outCommand(_player->GetSession()->GetAccountId(), "GM %s (Account: %u) deposit money (Amount: %u) to guild bank (Guild ID %u)",
-            _player->GetName(), _player->GetSession()->GetAccountId(), money, GuildId);
-    }
-
-    // log
-    pGuild->LogBankEvent(GUILD_BANK_LOG_DEPOSIT_MONEY, uint8(0), GetPlayer()->GetGUIDLow(), money);
-
-    pGuild->DisplayGuildBankTabsInfo(this);
-    pGuild->DisplayGuildBankContent(this, 0);
-    pGuild->DisplayGuildBankMoneyUpdate();
+    if (GetPlayer()->GetGameObjectIfCanInteractWith(guid, GAMEOBJECT_TYPE_GUILD_BANK))
+        if (money && GetPlayer()->HasEnoughMoney(money))
+            if (Guild* guild = GetPlayer()->GetGuild())
+                guild->HandleMemberDepositMoney(this, money);
 }
 
-void WorldSession::HandleGuildBankWithdraw(WorldPacket & recv_data)
+void WorldSession::HandleGuildBankWithdrawMoney( WorldPacket & recvData )
 {
-    sLog->outDebug("WORLD: Received (CMSG_GUILD_BANK_WITHDRAW_MONEY)");
-
-    uint64 GoGuid;
+    ObjectGuid guid;
     uint32 money;
-    recv_data >> GoGuid >> money;
+    recvData >> guid >> money;
 
-    if (!money)
-        return;
+    TC_LOG_DEBUG("guild", "CMSG_GUILD_BANK_WITHDRAW_MONEY [%s]: [%s], money: %u",
+        GetPlayerInfo().c_str(), guid.ToString().c_str(), money);
+
+    if (money && GetPlayer()->GetGameObjectIfCanInteractWith(guid, GAMEOBJECT_TYPE_GUILD_BANK))
+        if (Guild* guild = GetPlayer()->GetGuild())
+            guild->HandleMemberWithdrawMoney(this, money);
+}
+
+void WorldSession::HandleGuildBankSwapItems( WorldPacket & recvData )
+{
+    TC_LOG_DEBUG("guild", "CMSG_GUILD_BANK_SWAP_ITEMS [%s]", GetPlayerInfo().c_str());
+
+    ObjectGuid GoGuid;
+    recvData >> GoGuid;
 
     if (!GetPlayer()->GetGameObjectIfCanInteractWith(GoGuid, GAMEOBJECT_TYPE_GUILD_BANK))
-        return;
-
-    uint32 GuildId = GetPlayer()->GetGuildId();
-    if (GuildId == 0)
-        return;
-
-    Guild *pGuild = sObjectMgr->GetGuildById(GuildId);
-    if (!pGuild)
-        return;
-
-    if (pGuild->GetGuildBankMoney()<money)                  // not enough money in bank
-        return;
-
-    if (!pGuild->HasRankRight(GetPlayer()->GetRank(), GR_RIGHT_WITHDRAW_GOLD))
-        return;
-
-    CharacterDatabase.BeginTransaction();
-
-    if (!pGuild->MemberMoneyWithdraw(money, GetPlayer()->GetGUIDLow()))
     {
-        CharacterDatabase.RollbackTransaction();
+        recvData.rfinish();                   // Prevent additional spam at rejected packet
         return;
     }
 
-    GetPlayer()->ModifyMoney(money);
-    GetPlayer()->SaveGoldToDB();
-
-    CharacterDatabase.CommitTransaction();
-
-    // Log
-    pGuild->LogBankEvent(GUILD_BANK_LOG_WITHDRAW_MONEY, uint8(0), GetPlayer()->GetGUIDLow(), money);
-
-    pGuild->SendMoneyInfo(this, GetPlayer()->GetGUIDLow());
-    pGuild->DisplayGuildBankTabsInfo(this);
-    pGuild->DisplayGuildBankContent(this, 0);
-    pGuild->DisplayGuildBankMoneyUpdate();
-}
-
-void WorldSession::HandleGuildBankDepositItem(WorldPacket & recv_data)
-{
-    sLog->outDebug("WORLD: Received (CMSG_GUILD_BANK_SWAP_ITEMS)");
-    //recv_data.hexlike();
-
-    uint64 GoGuid;
-    uint8 BankToBank;
-
-    uint8 BankTab, BankTabSlot, AutoStore, AutoStoreCount, PlayerSlot, PlayerBag, SplitedAmount = 0;
-    uint8 BankTabDst, BankTabSlotDst, unk2, ToChar = 1;
-    uint32 ItemEntry, unk1;
-    recv_data >> GoGuid >> BankToBank;
-    if (BankToBank)
+    Guild* guild = GetPlayer()->GetGuild();
+    if (!guild)
     {
-        recv_data >> BankTabDst;
-        recv_data >> BankTabSlotDst;
-        recv_data >> unk1;                                  // always 0
-        recv_data >> BankTab;
-        recv_data >> BankTabSlot;
-        recv_data >> ItemEntry;
-        recv_data >> unk2;                                  // always 0
-        recv_data >> SplitedAmount;
+        recvData.rfinish();                   // Prevent additional spam at rejected packet
+        return;
+    }
 
-        if (BankTabSlotDst >= GUILD_BANK_MAX_SLOTS)
-            return;
-        if (BankTabDst == BankTab && BankTabSlotDst == BankTabSlot)
-            return;
+    uint8 bankToBank;
+    recvData >> bankToBank;
+
+    uint8 tabId;
+    uint8 slotId;
+    uint32 itemEntry;
+#ifdef LICH_KING
+    uint32 splitedAmount = 0;
+#else
+    uint8 splitedAmount = 0;
+#endif
+
+    if (bankToBank)
+    {
+        uint8 destTabId;
+        recvData >> destTabId;
+
+        uint8 destSlotId;
+        recvData >> destSlotId;
+        recvData.read_skip<uint32>();                      // Always 0
+
+        recvData >> tabId;
+        recvData >> slotId;
+        recvData >> itemEntry;
+        recvData.read_skip<uint8>();                       // Always 0
+
+        recvData >> splitedAmount;
+
+        guild->SwapItems(GetPlayer(), tabId, slotId, destTabId, destSlotId, splitedAmount);
     }
     else
     {
-        recv_data >> BankTab;
-        recv_data >> BankTabSlot;
-        recv_data >> ItemEntry;
-        recv_data >> AutoStore;
-        if (AutoStore)
-            recv_data >> AutoStoreCount;
-        recv_data >> PlayerBag;
-        recv_data >> PlayerSlot;
-        if (!AutoStore)
+        uint8 playerBag = NULL_BAG;
+        uint8 playerSlotId = NULL_SLOT;
+        uint8 toChar = 1;
+
+        recvData >> tabId;
+        recvData >> slotId;
+        recvData >> itemEntry;
+
+        uint8 autoStore;
+        recvData >> autoStore;
+        if (autoStore)
         {
-            recv_data >> ToChar;
-            recv_data >> SplitedAmount;
+#ifdef LICH_KING
+            recvData.read_skip<uint32>();                  // autoStoreCount
+            recvData.read_skip<uint8>();                   // ToChar (?), always and expected to be 1 (autostore only triggered in Bank -> Char)
+            recvData.read_skip<uint32>();                  // Always 0
+#else
+            recvData.read_skip<uint8>();                  // autoStoreCount
+            recvData >> playerBag;
+            recvData >> playerSlotId;
+#endif
         }
-
-        if (BankTabSlot >= GUILD_BANK_MAX_SLOTS && BankTabSlot != 0xFF)
-            return;
-    }
-
-    if (!GetPlayer()->GetGameObjectIfCanInteractWith(GoGuid, GAMEOBJECT_TYPE_GUILD_BANK))
-        return;
-
-    uint32 GuildId = GetPlayer()->GetGuildId();
-    if (GuildId == 0)
-        return;
-
-    Guild *pGuild = sObjectMgr->GetGuildById(GuildId);
-    if (!pGuild)
-        return;
-
-    Player *pl = GetPlayer();
-
-    // player->bank or bank->bank check if tab is correct to prevent crash
-    if (!ToChar && !pGuild->GetBankTab(BankTab))
-        return;
-
-    // Bank <-> Bank
-    if (BankToBank)
-    {
-        // empty operation
-        if (BankTab == BankTabDst && BankTabSlot == BankTabSlotDst)
-            return;
-
-        Item *pItemSrc = pGuild->GetItem(BankTab, BankTabSlot);
-        if (!pItemSrc)                                      // may prevent crash
-            return;
-
-        if (SplitedAmount > pItemSrc->GetCount())
-            return;                                         // cheating?
-        else if (SplitedAmount == pItemSrc->GetCount())
-            SplitedAmount = 0;                              // no split
-
-        Item *pItemDst = pGuild->GetItem(BankTabDst, BankTabSlotDst);
-
-        if (BankTab != BankTabDst)
+        else
         {
-            // check dest pos rights (if different tabs)
-            if (!pGuild->IsMemberHaveRights(pl->GetGUIDLow(), BankTabDst, GUILD_BANK_RIGHT_DEPOSIT_ITEM))
-                return;
-
-            // check source pos rights (if different tabs)
-            uint32 remRight = pGuild->GetMemberSlotWithdrawRem(pl->GetGUIDLow(), BankTab);
-            if (remRight <= 0)
-                return;
+            recvData >> playerBag;
+            recvData >> playerSlotId;
+            recvData >> toChar;
+            recvData >> splitedAmount;
         }
 
-        if (SplitedAmount)
-        {                                                   // Bank -> Bank item split (in empty or non empty slot
-            GuildItemPosCountVec dest;
-            uint8 msg = pGuild->CanStoreItem(BankTabDst, BankTabSlotDst, dest, SplitedAmount, pItemSrc, false);
-            if (msg != EQUIP_ERR_OK)
-            {
-                pl->SendEquipError(msg, pItemSrc, NULL);
-                return;
-            }
-
-            Item *pNewItem = pItemSrc->CloneItem(SplitedAmount);
-            if (!pNewItem)
-            {
-                pl->SendEquipError(EQUIP_ERR_ITEM_NOT_FOUND, pItemSrc, NULL);
-                return;
-            }
-
-            CharacterDatabase.BeginTransaction();
-            pGuild->LogBankEvent(GUILD_BANK_LOG_MOVE_ITEM, BankTab, pl->GetGUIDLow(), pItemSrc->GetEntry(), SplitedAmount, BankTabDst);
-
-            pl->ItemRemovedQuestCheck(pItemSrc->GetEntry(), SplitedAmount);
-            pItemSrc->SetCount(pItemSrc->GetCount() - SplitedAmount);
-            pItemSrc->FSetState(ITEM_CHANGED);
-            pItemSrc->SaveToDB();                           // not in inventory and can be save standalone
-            pGuild->StoreItem(BankTabDst, dest, pNewItem);
-            CharacterDatabase.CommitTransaction();
-        }
-        else                                                // non split
-        {
-            GuildItemPosCountVec gDest;
-            uint8 msg = pGuild->CanStoreItem(BankTabDst, BankTabSlotDst, gDest, pItemSrc->GetCount(), pItemSrc, false);
-            if (msg == EQUIP_ERR_OK)                       // merge to
-            {
-                CharacterDatabase.BeginTransaction();
-                pGuild->LogBankEvent(GUILD_BANK_LOG_MOVE_ITEM, BankTab,    pl->GetGUIDLow(), pItemSrc->GetEntry(), pItemSrc->GetCount(), BankTabDst);
-
-                pGuild->RemoveItem(BankTab, BankTabSlot);
-                pGuild->StoreItem(BankTabDst, gDest, pItemSrc);
-                CharacterDatabase.CommitTransaction();
-            }
-            else                                            // swap
-            {
-                gDest.clear();
-                uint8 msg = pGuild->CanStoreItem(BankTabDst, BankTabSlotDst, gDest, pItemSrc->GetCount(), pItemSrc, true);
-                if (msg != EQUIP_ERR_OK)
-                {
-                    pl->SendEquipError(msg, pItemSrc, NULL);
-                    return;
-                }
-
-                GuildItemPosCountVec gSrc;
-                msg = pGuild->CanStoreItem(BankTab, BankTabSlot, gSrc, pItemDst->GetCount(), pItemDst, true);
-                if (msg != EQUIP_ERR_OK)
-                {
-                    pl->SendEquipError(msg, pItemDst, NULL);
-                    return;
-                }
-
-                if (BankTab != BankTabDst)
-                {
-                    // check source pos rights (item swapped to src)
-                    if (!pGuild->IsMemberHaveRights(pl->GetGUIDLow(), BankTab, GUILD_BANK_RIGHT_DEPOSIT_ITEM))
-                        return;
-
-                    // check dest pos rights (item swapped to src)
-                    uint32 remRightDst = pGuild->GetMemberSlotWithdrawRem(pl->GetGUIDLow(), BankTabDst);
-                    if (remRightDst <= 0)
-                        return;
-                }
-
-                CharacterDatabase.BeginTransaction();
-                pGuild->LogBankEvent(GUILD_BANK_LOG_MOVE_ITEM, BankTab,    pl->GetGUIDLow(), pItemSrc->GetEntry(), pItemSrc->GetCount(), BankTabDst);
-                pGuild->LogBankEvent(GUILD_BANK_LOG_MOVE_ITEM, BankTabDst, pl->GetGUIDLow(), pItemDst->GetEntry(), pItemDst->GetCount(), BankTab);
-
-                pGuild->RemoveItem(BankTab, BankTabSlot);
-                pGuild->RemoveItem(BankTabDst, BankTabSlotDst);
-                pGuild->StoreItem(BankTab, gSrc, pItemDst);
-                pGuild->StoreItem(BankTabDst, gDest, pItemSrc);
-                CharacterDatabase.CommitTransaction();
-            }
-        }
-        pGuild->DisplayGuildBankContentUpdate(BankTab, BankTabSlot, BankTab == BankTabDst ? BankTabSlotDst : -1);
-        if (BankTab != BankTabDst)
-            pGuild->DisplayGuildBankContentUpdate(BankTabDst, BankTabSlotDst);
-        return;
-    }
-
-    // Player <-> Bank
-
-    // char->bank autostore click return BankTabSlot = 255 = NULL_SLOT
-    // do similar for bank->char
-    if (AutoStore && ToChar)
-    {
-        PlayerBag = NULL_BAG;
-        PlayerSlot = NULL_SLOT;
-    }
-
-    // allow work with inventory only
-    if (!Player::IsInventoryPos(PlayerBag, PlayerSlot) && !(PlayerBag == NULL_BAG && PlayerSlot == NULL_SLOT))
-    {
-        _player->SendEquipError(EQUIP_ERR_NONE, NULL, NULL);
-        return;
-    }
-
-    Item *pItemBank = pGuild->GetItem(BankTab, BankTabSlot);
-    Item *pItemChar = GetPlayer()->GetItemByPos(PlayerBag, PlayerSlot);
-    if (!pItemChar && !pItemBank)                           // Nothing to do
-        return;
-
-    if (!pItemChar && !ToChar)                              // Problem to get item from player
-        return;
-
-    if (!pItemBank && ToChar)                               // Problem to get bank item
-        return;
-
-    // BankToChar swap or char to bank remaining
-
-    if (ToChar)                                             // Bank -> Char cases
-    {
-        if (SplitedAmount > pItemBank->GetCount())
-            return;                                         // cheating?
-        else if (SplitedAmount == pItemBank->GetCount())
-            SplitedAmount = 0;                              // no split
-
-        if (SplitedAmount)
-        {                                                   // Bank -> Char split to slot (patly move)
-            Item *pNewItem = pItemBank->CloneItem(SplitedAmount);
-            if (!pNewItem)
-            {
-                pl->SendEquipError(EQUIP_ERR_ITEM_NOT_FOUND, pItemBank, NULL);
-                return;
-            }
-
-            ItemPosCountVec dest;
-            uint8 msg = pl->CanStoreItem(PlayerBag, PlayerSlot, dest, pNewItem, false);
-            if (msg != EQUIP_ERR_OK)
-            {
-                pl->SendEquipError(msg, pNewItem, NULL);
-                delete pNewItem;
-                return;
-            }
-
-            // check source pos rights (item moved to inventory)
-            uint32 remRight = pGuild->GetMemberSlotWithdrawRem(pl->GetGUIDLow(), BankTab);
-            if (remRight <= 0)
-            {
-                delete pNewItem;
-                return;
-            }
-
-            CharacterDatabase.BeginTransaction();
-            pGuild->LogBankEvent(GUILD_BANK_LOG_WITHDRAW_ITEM, BankTab, pl->GetGUIDLow(), pItemBank->GetEntry(), SplitedAmount);
-
-            pItemBank->SetCount(pItemBank->GetCount()-SplitedAmount);
-            pItemBank->FSetState(ITEM_CHANGED);
-            pItemBank->SaveToDB();                          // not in inventory and can be save standalone
-            pl->MoveItemToInventory(dest, pNewItem, true);
-            pl->SaveInventoryAndGoldToDB();
-
-            pGuild->MemberItemWithdraw(BankTab, pl->GetGUIDLow());
-            CharacterDatabase.CommitTransaction();
-        }
-        else                                                // Bank -> Char swap with slot (move)
-        {
-            ItemPosCountVec dest;
-            uint8 msg = pl->CanStoreItem(PlayerBag, PlayerSlot, dest, pItemBank, false);
-            if (msg == EQUIP_ERR_OK)                       // merge case
-            {
-                // check source pos rights (item moved to inventory)
-                uint32 remRight = pGuild->GetMemberSlotWithdrawRem(pl->GetGUIDLow(), BankTab);
-                if (remRight <= 0)
-                    return;
-
-                CharacterDatabase.BeginTransaction();
-                pGuild->LogBankEvent(GUILD_BANK_LOG_WITHDRAW_ITEM, BankTab, pl->GetGUIDLow(), pItemBank->GetEntry(), pItemBank->GetCount());
-
-                pGuild->RemoveItem(BankTab, BankTabSlot);
-                pl->MoveItemToInventory(dest, pItemBank, true);
-                pl->SaveInventoryAndGoldToDB();
-
-                pGuild->MemberItemWithdraw(BankTab, pl->GetGUIDLow());
-                CharacterDatabase.CommitTransaction();
-            }
-            else                                            // Bank <-> Char swap items
-            {
-                // check source pos rights (item swapped to bank)
-                if (!pGuild->IsMemberHaveRights(pl->GetGUIDLow(), BankTab, GUILD_BANK_RIGHT_DEPOSIT_ITEM))
-                    return;
-
-                if (pItemChar)
-                {
-                    if (!pItemChar->CanBeTraded())
-                    {
-                        _player->SendEquipError(EQUIP_ERR_ITEMS_CANT_BE_SWAPPED, pItemChar, NULL);
-                        return;
-                    }
-                }
-
-                ItemPosCountVec iDest;
-                msg = pl->CanStoreItem(PlayerBag, PlayerSlot, iDest, pItemBank, true);
-                if (msg != EQUIP_ERR_OK)
-                {
-                    pl->SendEquipError(msg, pItemBank, NULL);
-                    return;
-                }
-
-                GuildItemPosCountVec gDest;
-                if (pItemChar)
-                {
-                    msg = pGuild->CanStoreItem(BankTab, BankTabSlot, gDest, pItemChar->GetCount(), pItemChar, true);
-                    if (msg != EQUIP_ERR_OK)
-                    {
-                        pl->SendEquipError(msg, pItemChar, NULL);
-                        return;
-                    }
-                }
-
-                // check source pos rights (item moved to inventory)
-                uint32 remRight = pGuild->GetMemberSlotWithdrawRem(pl->GetGUIDLow(), BankTab);
-                if (remRight <= 0)
-                    return;
-
-                if (pItemChar)
-                {
-                    // logging item move to bank
-                    if (_player->GetSession()->GetSecurity() > SEC_PLAYER && sWorld->getConfig(CONFIG_GM_LOG_TRADE))
-                    {
-                        sLog->outCommand(_player->GetSession()->GetAccountId(), "GM %s (Account: %u) deposit item: %s (Entry: %d Count: %u) to guild bank (Guild ID: %u)",
-                            _player->GetName(), _player->GetSession()->GetAccountId(),
-                            pItemChar->GetProto()->Name1, pItemChar->GetEntry(), pItemChar->GetCount(),
-                            GuildId);
-                    }
-                }
-
-                CharacterDatabase.BeginTransaction();
-                pGuild->LogBankEvent(GUILD_BANK_LOG_WITHDRAW_ITEM, BankTab, pl->GetGUIDLow(), pItemBank->GetEntry(), pItemBank->GetCount());
-                if (pItemChar)
-                    pGuild->LogBankEvent(GUILD_BANK_LOG_DEPOSIT_ITEM, BankTab, pl->GetGUIDLow(), pItemChar->GetEntry(), pItemChar->GetCount());
-
-                pGuild->RemoveItem(BankTab, BankTabSlot);
-                if (pItemChar)
-                {
-                    pl->MoveItemFromInventory(PlayerBag, PlayerSlot, true);
-                    pItemChar->DeleteFromInventoryDB();
-                }
-
-                if (pItemChar)
-                    pGuild->StoreItem(BankTab, gDest, pItemChar);
-                pl->MoveItemToInventory(iDest, pItemBank, true);
-                pl->SaveInventoryAndGoldToDB();
-
-                pGuild->MemberItemWithdraw(BankTab, pl->GetGUIDLow());
-                CharacterDatabase.CommitTransaction();
-            }
-        }
-        pGuild->DisplayGuildBankContentUpdate(BankTab, BankTabSlot);
-        return;
-    }                                                       // End "To char" part
-
-    // Char -> Bank cases
-
-    if (!pItemChar->CanBeTraded())
-    {
-        _player->SendEquipError(EQUIP_ERR_ITEMS_CANT_BE_SWAPPED, pItemChar, NULL);
-        return;
-    }
-
-    // check source pos rights (item moved to bank)
-    if (!pGuild->IsMemberHaveRights(pl->GetGUIDLow(), BankTab, GUILD_BANK_RIGHT_DEPOSIT_ITEM))
-        return;
-
-    if (SplitedAmount > pItemChar->GetCount())
-        return;                                             // cheating?
-    else if (SplitedAmount == pItemChar->GetCount())
-        SplitedAmount = 0;                                  // no split
-
-    if (SplitedAmount)
-    {                                                       // Char -> Bank split to empty or non-empty slot (partly move)
-        GuildItemPosCountVec dest;
-        uint8 msg = pGuild->CanStoreItem(BankTab, BankTabSlot, dest, SplitedAmount, pItemChar, false);
-        if (msg != EQUIP_ERR_OK)
-        {
-            pl->SendEquipError(msg, pItemChar, NULL);
-            return;
-        }
-
-        Item *pNewItem = pItemChar->CloneItem(SplitedAmount);
-        if (!pNewItem)
-        {
-            pl->SendEquipError(EQUIP_ERR_ITEM_NOT_FOUND, pItemChar, NULL);
-            return;
-        }
-
-        // logging item move to bank (before items merge
-        if (_player->GetSession()->GetSecurity() > SEC_PLAYER && sWorld->getConfig(CONFIG_GM_LOG_TRADE))
-        {
-            sLog->outCommand(_player->GetSession()->GetAccountId(), "GM %s (Account: %u) deposit item: %s (Entry: %d Count: %u) to guild bank (Guild ID: %u)",
-                _player->GetName(), _player->GetSession()->GetAccountId(),
-                pItemChar->GetProto()->Name1, pItemChar->GetEntry(), SplitedAmount, GuildId);
-        }
-
-        CharacterDatabase.BeginTransaction();
-        pGuild->LogBankEvent(GUILD_BANK_LOG_DEPOSIT_ITEM, BankTab, pl->GetGUIDLow(), pItemChar->GetEntry(), SplitedAmount);
-
-        pl->ItemRemovedQuestCheck(pItemChar->GetEntry(), SplitedAmount);
-        pItemChar->SetCount(pItemChar->GetCount()-SplitedAmount);
-        pItemChar->SetState(ITEM_CHANGED, pl);
-        pl->SaveInventoryAndGoldToDB();
-        pGuild->StoreItem(BankTab, dest, pNewItem);
-        CharacterDatabase.CommitTransaction();
-
-        pGuild->DisplayGuildBankContentUpdate(BankTab, dest);
-    }
-    else                                                    // Char -> Bank swap with empty or non-empty (move)
-    {
-        GuildItemPosCountVec dest;
-        uint8 msg = pGuild->CanStoreItem(BankTab, BankTabSlot, dest, pItemChar->GetCount(), pItemChar, false);
-        if (msg == EQUIP_ERR_OK)                           // merge
-        {
-            // logging item move to bank
-            if (_player->GetSession()->GetSecurity() > SEC_PLAYER && sWorld->getConfig(CONFIG_GM_LOG_TRADE))
-            {
-                sLog->outCommand(_player->GetSession()->GetAccountId(), "GM %s (Account: %u) deposit item: %s (Entry: %d Count: %u) to guild bank (Guild ID: %u)",
-                    _player->GetName(), _player->GetSession()->GetAccountId(),
-                    pItemChar->GetProto()->Name1, pItemChar->GetEntry(), pItemChar->GetCount(),
-                    GuildId);
-            }
-
-            CharacterDatabase.BeginTransaction();
-            pGuild->LogBankEvent(GUILD_BANK_LOG_DEPOSIT_ITEM, BankTab, pl->GetGUIDLow(), pItemChar->GetEntry(), pItemChar->GetCount());
-
-            pl->MoveItemFromInventory(PlayerBag, PlayerSlot, true);
-            pItemChar->DeleteFromInventoryDB();
-
-            pGuild->StoreItem(BankTab, dest, pItemChar);
-            pl->SaveInventoryAndGoldToDB();
-            CharacterDatabase.CommitTransaction();
-
-            pGuild->DisplayGuildBankContentUpdate(BankTab, dest);
-        }
-        else                                                // Char <-> Bank swap items (posible NULL bank item)
-        {
-            ItemPosCountVec iDest;
-            if (pItemBank)
-            {
-                msg = pl->CanStoreItem(PlayerBag, PlayerSlot, iDest, pItemBank, true);
-                if (msg != EQUIP_ERR_OK)
-                {
-                    pl->SendEquipError(msg, pItemBank, NULL);
-                    return;
-                }
-            }
-
-            GuildItemPosCountVec gDest;
-            msg = pGuild->CanStoreItem(BankTab, BankTabSlot, gDest, pItemChar->GetCount(), pItemChar, true);
-            if (msg != EQUIP_ERR_OK)
-            {
-                pl->SendEquipError(msg, pItemChar, NULL);
-                return;
-            }
-
-            if (pItemBank)
-            {
-                // check bank pos rights (item swapped with inventory)
-                uint32 remRight = pGuild->GetMemberSlotWithdrawRem(pl->GetGUIDLow(), BankTab);
-                if (remRight <= 0)
-                    return;
-            }
-
-            // logging item move to bank
-            if (_player->GetSession()->GetSecurity() > SEC_PLAYER && sWorld->getConfig(CONFIG_GM_LOG_TRADE))
-            {
-                sLog->outCommand(_player->GetSession()->GetAccountId(), "GM %s (Account: %u) deposit item: %s (Entry: %d Count: %u) to guild bank (Guild ID: %u)",
-                    _player->GetName(), _player->GetSession()->GetAccountId(),
-                    pItemChar->GetProto()->Name1, pItemChar->GetEntry(), pItemChar->GetCount(),
-                    GuildId);
-            }
-
-            CharacterDatabase.BeginTransaction();
-            if (pItemBank)
-                pGuild->LogBankEvent(GUILD_BANK_LOG_WITHDRAW_ITEM, BankTab, pl->GetGUIDLow(), pItemBank->GetEntry(), pItemBank->GetCount());
-            pGuild->LogBankEvent(GUILD_BANK_LOG_DEPOSIT_ITEM, BankTab, pl->GetGUIDLow(), pItemChar->GetEntry(), pItemChar->GetCount());
-
-            pl->MoveItemFromInventory(PlayerBag, PlayerSlot, true);
-            pItemChar->DeleteFromInventoryDB();
-            if (pItemBank)
-                pGuild->RemoveItem(BankTab, BankTabSlot);
-
-            pGuild->StoreItem(BankTab, gDest, pItemChar);
-            if (pItemBank)
-                pl->MoveItemToInventory(iDest, pItemBank, true);
-            pl->SaveInventoryAndGoldToDB();
-            if (pItemBank)
-                pGuild->MemberItemWithdraw(BankTab, pl->GetGUIDLow());
-            CharacterDatabase.CommitTransaction();
-
-            pGuild->DisplayGuildBankContentUpdate(BankTab, gDest);
-        }
+        // Player <-> Bank
+        // Allow to work with inventory only
+        if (!Player::IsInventoryPos(playerBag, playerSlotId) && !(playerBag == NULL_BAG && playerSlotId == NULL_SLOT))
+            GetPlayer()->SendEquipError(EQUIP_ERR_NONE, nullptr);
+        else
+            guild->SwapItemsWithInventory(GetPlayer(), toChar != 0, tabId, slotId, playerBag, playerSlotId, splitedAmount);
     }
 }
 
-void WorldSession::HandleGuildBankBuyTab(WorldPacket & recv_data)
+void WorldSession::HandleGuildBankBuyTab( WorldPacket & recvData )
 {
-    sLog->outDebug("WORLD: Received (CMSG_GUILD_BANK_BUY_TAB)");
+    ObjectGuid guid;
+    uint8 tabId;
 
-    uint64 GoGuid;
-    uint8 TabId;
+    recvData >> guid >> tabId;
 
-    recv_data >> GoGuid;
-    recv_data >> TabId;
+    TC_LOG_DEBUG("guild", "CMSG_GUILD_BANK_BUY_TAB [%s]: [%s[, TabId: %u", GetPlayerInfo().c_str(), guid.ToString().c_str(), tabId);
 
-    if (!GetPlayer()->GetGameObjectIfCanInteractWith(GoGuid, GAMEOBJECT_TYPE_GUILD_BANK))
-        return;
 
-    uint32 GuildId = GetPlayer()->GetGuildId();
-    if (GuildId == 0)
-        return;
-
-    Guild *pGuild = sObjectMgr->GetGuildById(GuildId);
-    if (!pGuild)
-        return;
-
-    uint32 TabCost = sObjectMgr->GetGuildBankTabPrice(TabId) * GOLD;
-    if (!TabCost)
-        return;
-
-    if (pGuild->GetPurchasedTabs() >= GUILD_BANK_MAX_TABS)
-        return;
-
-    if (TabId != pGuild->GetPurchasedTabs())                // purchased_tabs = 0 when buying Tab 0, that is why this check can be made
-    {
-        sLog->outError("trying to buy a tab non contigous to owned ones");
-        return;
-    }
-
-    if (GetPlayer()->GetMoney() < TabCost)                  // Should not happen, this is checked by client
-        return;
-
-    // Go on with creating tab
-    pGuild->CreateNewBankTab();
-    GetPlayer()->ModifyMoney(-int(TabCost));
-    pGuild->SetBankMoneyPerDay(GetPlayer()->GetRank(), WITHDRAW_MONEY_UNLIMITED);
-    pGuild->SetBankRightsAndSlots(GetPlayer()->GetRank(), TabId, GUILD_BANK_RIGHT_FULL, WITHDRAW_SLOT_UNLIMITED, true);
-    pGuild->Roster();                                       // broadcast for tab rights update
-    pGuild->DisplayGuildBankTabsInfo(this);
+    if (GetPlayer()->GetGameObjectIfCanInteractWith(guid, GAMEOBJECT_TYPE_GUILD_BANK))
+        if (Guild* guild = GetPlayer()->GetGuild())
+            guild->HandleBuyBankTab(this, tabId);
 }
 
-void WorldSession::HandleGuildBankModifyTab(WorldPacket & recv_data)
+void WorldSession::HandleGuildBankUpdateTab( WorldPacket & recvData )
 {
-    sLog->outDebug("WORLD: Received (CMSG_GUILD_BANK_UPDATE_TAB)");
+    ObjectGuid guid;
+    uint8 tabId;
+    std::string name, icon;
 
-    uint64 GoGuid;
-    uint8 TabId;
-    std::string Name;
-    std::string IconIndex;
+    recvData >> guid >> tabId >> name >> icon;
 
-    recv_data >> GoGuid;
-    recv_data >> TabId;
-    recv_data >> Name;
-    recv_data >> IconIndex;
+    TC_LOG_DEBUG("guild", "CMSG_GUILD_BANK_UPDATE_TAB [%s]: [%s], TabId: %u, Name: %s, Icon: %s"
+        , GetPlayerInfo().c_str(), guid.ToString().c_str(), tabId, name.c_str(), icon.c_str());
 
-    if (Name.empty())
-        return;
-
-    if (IconIndex.empty())
-        return;
-
-    if (!GetPlayer()->GetGameObjectIfCanInteractWith(GoGuid, GAMEOBJECT_TYPE_GUILD_BANK))
-        return;
-
-    uint32 GuildId = GetPlayer()->GetGuildId();
-    if (GuildId == 0)
-        return;
-
-    Guild *pGuild = sObjectMgr->GetGuildById(GuildId);
-    if (!pGuild)
-        return;
-
-    pGuild->SetGuildBankTabInfo(TabId, Name, IconIndex);
-    pGuild->DisplayGuildBankTabsInfo(this);
-    pGuild->DisplayGuildBankContent(this, TabId);
+    if (!name.empty() && !icon.empty())
+        if (GetPlayer()->GetGameObjectIfCanInteractWith(guid, GAMEOBJECT_TYPE_GUILD_BANK))
+            if (Guild* guild = GetPlayer()->GetGuild())
+                guild->HandleSetBankTabInfo(this, tabId, name, icon);
 }
 
-void WorldSession::HandleGuildBankLog(WorldPacket & recv_data)
+void WorldSession::HandleGuildBankLogQuery( WorldPacket & recvData )
 {
-    sLog->outDebug("WORLD: Received (MSG_GUILD_BANK_LOG_QUERY)");
+    uint8 tabId;
+    recvData >> tabId;
 
-    uint32 GuildId = GetPlayer()->GetGuildId();
-    if (GuildId == 0)
-        return;
+    TC_LOG_DEBUG("guild", "MSG_GUILD_BANK_LOG_QUERY [%s]: TabId: %u", GetPlayerInfo().c_str(), tabId);
 
-    Guild *pGuild = sObjectMgr->GetGuildById(GuildId);
-    if (!pGuild)
-        return;
-
-    uint8 TabId;
-    recv_data >> TabId;
-
-    pGuild->DisplayGuildBankLogs(this, TabId);
+    if (Guild* guild = GetPlayer()->GetGuild())
+        guild->SendBankLog(this, tabId);
 }
 
-void WorldSession::HandleGuildBankTabText(WorldPacket &recv_data)
+void WorldSession::HandleQueryGuildBankTabText(WorldPacket &recvData)
 {
-    sLog->outDebug("WORLD: Received MSG_QUERY_GUILD_BANK_TEXT");
+    uint8 tabId;
+    recvData >> tabId;
 
-    uint32 GuildId = GetPlayer()->GetGuildId();
-    if (GuildId == 0)
-        return;
+    TC_LOG_DEBUG("guild", "MSG_QUERY_GUILD_BANK_TEXT [%s]: TabId: %u", GetPlayerInfo().c_str(), tabId);
 
-    Guild *pGuild = sObjectMgr->GetGuildById(GuildId);
-    if (!pGuild)
-        return;
-
-    uint8 TabId;
-    recv_data >> TabId;
-
-    pGuild->SendGuildBankTabText(this, TabId);
+    if (Guild* guild = GetPlayer()->GetGuild())
+        guild->SendBankTabText(this, tabId);
 }
 
-void WorldSession::HandleGuildBankSetTabText(WorldPacket &recv_data)
+void WorldSession::HandleGuildBankSetTabText(WorldPacket &recvData)
 {
-    sLog->outDebug("WORLD: Received CMSG_SET_GUILD_BANK_TEXT");
+    uint8 tabId;
+    std::string text;
+    recvData >> tabId >> text;
 
-    uint32 GuildId = GetPlayer()->GetGuildId();
-    if (GuildId == 0)
-        return;
+    TC_LOG_DEBUG("guild", "CMSG_SET_GUILD_BANK_TEXT [%s]: TabId: %u, Text: %s", GetPlayerInfo().c_str(), tabId, text.c_str());
 
-    Guild *pGuild = sObjectMgr->GetGuildById(GuildId);
-    if (!pGuild)
-        return;
-
-    uint8 TabId;
-    std::string Text;
-    recv_data >> TabId;
-    recv_data >> Text;
-
-    pGuild->SetGuildBankTabText(TabId, Text);
-}
-
-void WorldSession::SendSaveGuildEmblem(uint32 msg)
-{
-    WorldPacket data(MSG_SAVE_GUILD_EMBLEM, 4);
-    data << uint32(msg);                                    // not part of guild
-    SendPacket(&data);
+    if (Guild* guild = GetPlayer()->GetGuild())
+        guild->SetBankTabText(tabId, text);
 }
 

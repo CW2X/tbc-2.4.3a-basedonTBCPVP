@@ -1,30 +1,10 @@
-/*
- * Copyright (C) 2010-2012 Project SkyFire <http://www.projectskyfire.org/>
- * Copyright (C) 2010-2012 Oregon <http://www.oregoncore.com/>
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 
 #include <stdlib.h>
 #include <functional>
 #include "ItemEnchantmentMgr.h"
-#include "DatabaseEnv.h"
+#include "Database/DatabaseEnv.h"
 #include "Log.h"
 #include "ObjectMgr.h"
-
 #include <list>
 #include <vector>
 #include "Util.h"
@@ -42,7 +22,7 @@ struct EnchStoreItem
 };
 
 typedef std::vector<EnchStoreItem> EnchStoreList;
-typedef UNORDERED_MAP<uint32, EnchStoreList> EnchantmentStore;
+typedef std::unordered_map<uint32, EnchStoreList> EnchantmentStore;
 
 static EnchantmentStore RandomItemEnch;
 
@@ -55,7 +35,7 @@ void LoadRandomEnchantmentsTable()
     float chance;
     uint32 count = 0;
 
-    QueryResult_AutoPtr result = WorldDatabase.Query("SELECT entry, ench, chance FROM item_enchantment_template");
+    QueryResult result = WorldDatabase.PQuery("SELECT entry, ench, chance FROM item_enchantment_template WHERE ((%u >= patch_min) && (%u <= patch_max))", sWorld->GetWowPatch(), sWorld->GetWowPatch());
 
     if (result)
     {
@@ -68,18 +48,16 @@ void LoadRandomEnchantmentsTable()
             chance = fields[2].GetFloat();
 
             if (chance > 0.000001f && chance <= 100.0f)
-                RandomItemEnch[entry].push_back(EnchStoreItem(ench, chance));
+                RandomItemEnch[entry].push_back( EnchStoreItem(ench, chance) );
 
             ++count;
         } while (result->NextRow());
 
-        sLog->outString();
-        sLog->outString(">> Loaded %u Item Enchantment definitions", count);
+        TC_LOG_INFO("server.loading", ">> Loaded %u Item Enchantment definitions", count );
     }
     else
     {
-        sLog->outString();
-        sLog->outErrorDb(">> Loaded 0 Item Enchantment definitions. DB table item_enchantment_template is empty.");
+        TC_LOG_ERROR( "server.loading",">> Loaded 0 Item Enchantment definitions. DB table `item_enchantment_template` is empty.");
     }
 }
 
@@ -87,33 +65,33 @@ uint32 GetItemEnchantMod(uint32 entry)
 {
     if (!entry) return 0;
 
-    EnchantmentStore::iterator tab = RandomItemEnch.find(entry);
+    auto tab = RandomItemEnch.find(entry);
 
     if (tab == RandomItemEnch.end())
     {
-        sLog->outErrorDb("Item RandomProperty / RandomSuffix id #%u used in item_template but it doesn't have records in item_enchantment_template table.", entry);
+        TC_LOG_ERROR("FIXME","Item RandomProperty / RandomSuffix id #%u used in `item_template` but it doesn't have records in `item_enchantment_template` table.",entry);
         return 0;
     }
 
     double dRoll = rand_chance();
     float fCount = 0;
 
-    for (EnchStoreList::iterator ench_iter = tab->second.begin(); ench_iter != tab->second.end(); ++ench_iter)
+    for(auto & ench_iter : tab->second)
     {
-        fCount += ench_iter->chance;
+        fCount += ench_iter.chance;
 
-        if (fCount > dRoll) return ench_iter->ench;
+        if (fCount > dRoll) return ench_iter.ench;
     }
 
     //we could get here only if sum of all enchantment chances is lower than 100%
-    dRoll =  (irand(0, (int)floor(fCount * 100) + 1)) / 100;
+    dRoll = (irand(0, (int)floor(fCount * 100) + 1)) / 100.0f;
     fCount = 0;
 
-    for (EnchStoreList::iterator ench_iter = tab->second.begin(); ench_iter != tab->second.end(); ++ench_iter)
+    for(auto & ench_iter : tab->second)
     {
-        fCount += ench_iter->chance;
+        fCount += ench_iter.chance;
 
-        if (fCount > dRoll) return ench_iter->ench;
+        if (fCount > dRoll) return ench_iter.ench;
     }
 
     return 0;
@@ -121,19 +99,19 @@ uint32 GetItemEnchantMod(uint32 entry)
 
 uint32 GenerateEnchSuffixFactor(uint32 item_id)
 {
-    ItemPrototype const *itemProto = sObjectMgr->GetItemPrototype(item_id);
+    ItemTemplate const *itemProto = sObjectMgr->GetItemTemplate(item_id);
 
-    if (!itemProto)
+    if(!itemProto)
         return 0;
-    if (!itemProto->RandomSuffix)
+    if(!itemProto->RandomSuffix)
         return 0;
 
     RandomPropertiesPointsEntry const *randomProperty = sRandomPropertiesPointsStore.LookupEntry(itemProto->ItemLevel);
-    if (!randomProperty)
+    if(!randomProperty)
         return 0;
 
     uint32 suffixFactor;
-    switch (itemProto->InventoryType)
+    switch(itemProto->InventoryType)
     {
         // Items of that type don`t have points
         case INVTYPE_NON_EQUIP:

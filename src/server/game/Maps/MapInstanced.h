@@ -1,22 +1,3 @@
-/*
- * Copyright (C) 2010-2012 Project SkyFire <http://www.projectskyfire.org/>
- * Copyright (C) 2010-2012 Oregon <http://www.oregoncore.com/>
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 
 #ifndef TRINITY_MAP_INSTANCED_H
 #define TRINITY_MAP_INSTANCED_H
@@ -24,54 +5,60 @@
 #include "Map.h"
 #include "InstanceSaveMgr.h"
 
-class MapInstanced : public Map
+class TestMap;
+
+/* 
+MapInstanced handles all instances for one particular instanceable map. It has fake cells and shouldn't ever have any players on it.
+Actual instances are InstanceMap's.
+*/
+class TC_GAME_API MapInstanced : public Map
 {
     friend class MapManager;
     public:
-        typedef UNORDERED_MAP< uint32, Map* > InstancedMaps;
+        typedef std::unordered_map< uint32, Map* > InstancedMaps;
 
         MapInstanced(uint32 id, time_t expiry);
-        ~MapInstanced() {}
+        ~MapInstanced() override = default;
 
         // functions overwrite Map versions
-        void Update(const uint32&);
-        void DelayedUpdate(const uint32 diff);
-        //void RelocationNotify();
-        void UnloadAll();
-        bool CanEnter(Player* player);
+        void Update(const uint32&) override;
+        void DelayedUpdate(const uint32 diff) override;
+        //bool RemoveBones(ObjectGuid guid, float x, float y) override;
+        void UnloadAll() override;
+        EnterState CannotEnter(Player* /*player*/) override;
 
-        Map* CreateInstance(const uint32 mapId, Player * player);
-        Map* FindMap(uint32 InstanceId) const { return _FindMap(InstanceId); }
+		Map* CreateInstanceForPlayer(const uint32 mapId, Player* player, uint32 loginInstanceId = 0);
+        Map* FindInstanceMap(uint32 InstanceId);
+        //return true of instance was destroyed
+        bool DestroyInstance(uint32 InstanceId);
         bool DestroyInstance(InstancedMaps::iterator &itr);
 
-        void AddGridMapReference(const GridPair &p)
+        void AddGridMapReference(GridCoord const& p)
         {
             ++GridMapReference[p.x_coord][p.y_coord];
-            SetUnloadReferenceLock(GridPair(63-p.x_coord, 63-p.y_coord), true);
+            SetUnloadReferenceLock(GridCoord((MAX_NUMBER_OF_GRIDS - 1) - p.x_coord, (MAX_NUMBER_OF_GRIDS - 1) - p.y_coord), true);
         }
 
-        void RemoveGridMapReference(const GridPair &p)
+        void RemoveGridMapReference(GridCoord const& p)
         {
             --GridMapReference[p.x_coord][p.y_coord];
             if (!GridMapReference[p.x_coord][p.y_coord])
-                SetUnloadReferenceLock(GridPair(63-p.x_coord, 63-p.y_coord), false);
+                SetUnloadReferenceLock(GridCoord((MAX_NUMBER_OF_GRIDS - 1) - p.x_coord, (MAX_NUMBER_OF_GRIDS - 1) - p.y_coord), false);
         }
 
         InstancedMaps &GetInstancedMaps() { return m_InstancedMaps; }
-        virtual void InitVisibilityDistance();
+        void InitVisibilityDistance() override;
 
+        void MapCrashed(Map* map);
     private:
+       
+        std::list<Map*> crashedMaps; //those map have crashed, remove them as soon as possible. Contains either BattlegroundMap or InstanceMap
 
-        InstanceMap* CreateInstance(uint32 InstanceId, InstanceSave *save, uint8 difficulty);
-        BattleGroundMap* CreateBattleGround(uint32 InstanceId, BattleGround* bg);
+        TestMap* CreateTestInsteance(std::weak_ptr<TestThread>& testThread, uint32 InstanceId, Difficulty difficulty, bool enableMapObjects = false);
+        InstanceMap* CreateInstance(uint32 InstanceId, InstanceSave *save, Difficulty difficulty);
+        BattlegroundMap* CreateBattleground(uint32 InstanceId, Battleground* bg);
 
         InstancedMaps m_InstancedMaps;
-
-        Map* _FindMap(uint32 InstanceId) const
-        {
-            InstancedMaps::const_iterator i = m_InstancedMaps.find(InstanceId);
-            return(i == m_InstancedMaps.end() ? NULL : i->second);
-        }
 
         uint16 GridMapReference[MAX_NUMBER_OF_GRIDS][MAX_NUMBER_OF_GRIDS];
 };
