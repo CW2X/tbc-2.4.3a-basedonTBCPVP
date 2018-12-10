@@ -2,7 +2,8 @@
 
 | Build Status | Code Quality |
 | ------------- |:-------------:|
-Not in use | Not in use
+[![Build Status](https://travis-ci.org/konno-productions/tbc-2.4.3a.svg?branch=master)](https://travis-ci.org/konno-productions/tbc-2.4.3a) | Not in use
+
 ## Requirements
 
 
