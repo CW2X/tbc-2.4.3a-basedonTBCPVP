@@ -22,7 +22,7 @@
 #include "Battleground.h"
 #include "Util.h"
 #include "OutdoorPvPMgr.h"
-#include "BattleGroundAV.h"
+#include "BattlegroundAV.h"
 #include "CreatureAISelector.h"
 #include "TransportMgr.h"
 #include "Transport.h"

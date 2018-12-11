@@ -2,7 +2,7 @@
 #include "Object.h"
 #include "Player.h"
 #include "Battleground.h"
-#include "BattleGroundAB.h"
+#include "BattlegroundAB.h"
 #include "Creature.h"
 #include "Chat.h"
 #include "ObjectMgr.h"

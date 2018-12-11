@@ -16,10 +16,10 @@
 #include "Mail.h"
 #include "Transport.h"
 #include "GameTime.h"
-#include "BattleGroundAV.h"
-#include "BattleGroundWS.h"
-#include "BattleGroundEY.h"
-#include "BattleGroundAB.h"
+#include "BattlegroundAV.h"
+#include "BattlegroundWS.h"
+#include "BattlegroundEY.h"
+#include "BattlegroundAB.h"
 #include "ReputationMgr.h"
 
 namespace Trinity

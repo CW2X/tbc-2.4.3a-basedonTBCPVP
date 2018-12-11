@@ -12,7 +12,7 @@
 #include "ObjectAccessor.h"
 #include "Group.h"
 #include "Battleground.h"
-#include "BattleGroundAV.h"
+#include "BattlegroundAV.h"
 #include "Chat.h"
 #include "ScriptMgr.h"
 #include "Creature.h"
