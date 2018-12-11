@@ -1,7 +1,7 @@
 
 #include "Common.h"
 #include "Player.h"
-#include "BattleGroundMgr.h"
+#include "BattlegroundMgr.h"
 #include "BattleGroundQueue.h"
 #include "BattleGroundAV.h"
 #include "BattleGroundAB.h"
@@ -20,7 +20,7 @@
 #include "Chat.h"
 #include "ArenaTeam.h"
 #include "ArenaTeamMgr.h"
-#include "BattleGround.h"
+#include "Battleground.h"
 
 bool BattlegroundTemplate::IsArena() const
 {

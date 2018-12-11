@@ -11,7 +11,7 @@
 #include "QuestDef.h"
 #include "ObjectAccessor.h"
 #include "Group.h"
-#include "BattleGround.h"
+#include "Battleground.h"
 #include "BattleGroundAV.h"
 #include "Chat.h"
 #include "ScriptMgr.h"

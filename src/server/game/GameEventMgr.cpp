@@ -7,7 +7,7 @@
 #include "MapManager.h"
 #include "GossipDef.h"
 #include "Player.h"
-#include "BattleGroundMgr.h"
+#include "BattlegroundMgr.h"
 #include "GridNotifiers.h"
 #include "Map.h"
 #include "Transport.h"

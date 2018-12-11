@@ -5,7 +5,7 @@
 #include "ChannelMgr.h"
 #include "LogsDatabaseAccessor.h"
 #include "GridMap.h"
-#include "BattleGround.h"
+#include "Battleground.h"
 #include "AccountMgr.h"
 #include "CellImpl.h"
 #include "MovementDefines.h"

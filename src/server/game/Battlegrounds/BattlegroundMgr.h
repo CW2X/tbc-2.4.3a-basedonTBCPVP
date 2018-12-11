@@ -3,7 +3,7 @@
 #define __BATTLEGROUNDMGR_H
 
 #include "SharedDefines.h"
-#include "BattleGround.h"
+#include "Battleground.h"
 #include "BattleGroundQueue.h"
 
 

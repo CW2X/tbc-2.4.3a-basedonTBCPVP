@@ -1,6 +1,6 @@
 
 #include "Player.h"
-#include "BattleGround.h"
+#include "Battleground.h"
 #include "BattleGroundAV.h"
 #include "Creature.h"
 #include "Chat.h"

@@ -1,7 +1,7 @@
 
 #include "Object.h"
 #include "Player.h"
-#include "BattleGround.h"
+#include "Battleground.h"
 #include "BattleGroundEY.h"
 #include "Creature.h"
 #include "Chat.h"

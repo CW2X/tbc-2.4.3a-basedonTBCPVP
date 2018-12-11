@@ -1,6 +1,6 @@
 
 #include "Player.h"
-#include "BattleGround.h"
+#include "Battleground.h"
 #include "BattleGroundAA.h"
 
 BattlegroundAA::BattlegroundAA()
