@@ -1,3 +1,12 @@
+# Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+#
+# This file is free software; as a special exception the author gives
+# unlimited permission to copy and/or distribute it, with or without
+# modifications, as long as this notice is preserved.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
+# implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 ########### authserver ###############
 
@@ -14,13 +23,14 @@ if( WIN32 )
   endif()
 endif()
 
-set(PRIVATE_PCH_HEADER PrecompiledHeaders/authPCH.h)
+if (USE_COREPCH)
+  set(PRIVATE_PCH_HEADER PrecompiledHeaders/authPCH.h)
+endif()
 
 GroupSources(${CMAKE_CURRENT_SOURCE_DIR})
 
 add_executable(authserver
   ${PRIVATE_SOURCES}
-  ${CMAKE_CURRENT_SOURCE_DIR}/authserver.conf.dist
 )
 
 if( NOT WIN32 )
@@ -33,9 +43,7 @@ target_link_libraries(authserver
   PRIVATE
     trinity-core-interface
   PUBLIC
-    shared
-	boost
-)
+    shared)
 
 CollectIncludeDirectories(
   ${CMAKE_CURRENT_SOURCE_DIR}
@@ -55,7 +63,7 @@ set_target_properties(authserver
         "server")
 
 if( WIN32 )
-  if ( MSVC )
+  if ( "${CMAKE_MAKE_PROGRAM}" MATCHES "MSBuild" )
     add_custom_command(TARGET authserver
       POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/authserver.conf.dist ${CMAKE_BINARY_DIR}/bin/$(ConfigurationName)/
@@ -77,4 +85,6 @@ elseif( WIN32 )
 endif()
 
 # Generate precompiled header
-add_cxx_pch(authserver ${PRIVATE_PCH_HEADER})
+if (USE_COREPCH)
+  add_cxx_pch(authserver ${PRIVATE_PCH_HEADER})
+endif()

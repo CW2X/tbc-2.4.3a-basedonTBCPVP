@@ -1,3 +1,12 @@
+# Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+#
+# This file is free software; as a special exception the author gives
+# unlimited permission to copy and/or distribute it, with or without
+# modifications, as long as this notice is preserved.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
+# implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 CollectSourceFiles(
   ${CMAKE_CURRENT_SOURCE_DIR}
@@ -6,7 +15,7 @@ CollectSourceFiles(
   ${CMAKE_CURRENT_SOURCE_DIR}/Debugging
   ${CMAKE_CURRENT_SOURCE_DIR}/Platform
   ${CMAKE_CURRENT_SOURCE_DIR}/PrecompiledHeaders)
- 
+
 # Manually set sources for Debugging directory as we don't want to include WheatyExceptionReport in common project
 # It needs to be included both in authserver and worldserver for the static global variable to be properly initialized
 # and to handle crash logs on windows
@@ -14,7 +23,9 @@ list(APPEND PRIVATE_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/Debugging/Errors.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/Debugging/Errors.h)
 
-set(PRIVATE_PCH_HEADER PrecompiledHeaders/commonPCH.h)
+if (USE_COREPCH)
+  set(PRIVATE_PCH_HEADER PrecompiledHeaders/commonPCH.h)
+endif (USE_COREPCH)
 
 GroupSources(${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -46,7 +57,7 @@ target_include_directories(common
     ${PUBLIC_INCLUDES}
   PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR})
- 
+
 target_link_libraries(common
   PRIVATE
     process
@@ -59,9 +70,9 @@ target_link_libraries(common
     sfmt
     utf8cpp
     openssl
+    valgrind
     threads
-	sfmt
-)
+    jemalloc)
 
 add_dependencies(common revision_data.h)
 
@@ -83,4 +94,6 @@ if( BUILD_SHARED_LIBS )
 endif()
 
 # Generate precompiled header
-add_cxx_pch(common ${PRIVATE_PCH_HEADER})
+if (USE_COREPCH)
+  add_cxx_pch(common ${PRIVATE_PCH_HEADER})
+endif ()

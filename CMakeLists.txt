@@ -1,4 +1,5 @@
 
+# We require CMake >= 3.9
 cmake_minimum_required(VERSION 3.9)
 
 # add this options before PROJECT keyword
@@ -32,6 +33,7 @@ if( NOT CMAKE_BUILD_TYPE )
   set(CMAKE_BUILD_TYPE "RelWithDebInfo")
 endif()
 
+include(CheckCXXSourceRuns)
 include(CheckIncludeFiles)
 include(ConfigureScripts)
 
@@ -40,30 +42,17 @@ include(cmake/options.cmake)
 
 include(ConfigureBaseTargets)
 include(CheckPlatform)
+
 include(GroupSources)
 include(AutoCollect)
+
 include(PlatformRelatedSettings)
 
-include(FindThreads)
+find_package(PCHSupport)
 find_package(MySQL)
-include(FindPCHSupport)
 
-find_package(Git) 
-
-if(DO_DEBUG)
-    add_definitions(-DTRINITY_DEBUG)
-endif(DO_DEBUG)
-
-if(USE_GPERFTOOLS)
-    add_definitions(-DUSE_GPERFTOOLS)
-endif(USE_GPERFTOOLS)
-
-if(PLAYERBOT)
-    add_definitions(-DPLAYERBOT)
-endif()
-
-if(TESTS)
-    add_definitions(-DTESTS)
+if(NOT WITHOUT_GIT)
+  find_package(Git)
 endif()
 
 # Find revision ID and hash of the sourcetree
@@ -77,7 +66,3 @@ add_subdirectory(dep)
 
 # add core sources
 add_subdirectory(src)
-
-if(DO_DEBUG)
-	message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
-endif(DO_DEBUG)

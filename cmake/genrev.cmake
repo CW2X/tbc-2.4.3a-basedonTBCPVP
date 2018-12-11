@@ -11,8 +11,6 @@
 # User has manually chosen to ignore the git-tests, so throw them a warning.
 # This is done EACH compile so they can be alerted about the consequences.
 
-# Sunstrider note : Just put an "init" tag on any commit, except the last one. 
-
 if(NOT BUILDDIR)
   # Workaround for funny MSVC behaviour - this segment is only used when using cmake gui
   set(BUILDDIR ${CMAKE_BINARY_DIR})
@@ -26,7 +24,7 @@ else()
   if(GIT_EXECUTABLE)
     # Create a revision-string that we can use
     execute_process(
-      COMMAND "${GIT_EXECUTABLE}" describe --long --match init --dirty=+ --abbrev=12
+      COMMAND "${GIT_EXECUTABLE}" describe --long --match init --dirty=+ --abbrev=12 --always
       WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
       OUTPUT_VARIABLE rev_info
       OUTPUT_STRIP_TRAILING_WHITESPACE
@@ -64,26 +62,18 @@ else()
     set(rev_branch "Archived")
   else()
     # Extract information required to build a proper versionstring
-   # changed from original TrinityCore file, let's also add the commit count with it
-   execute_process(
-      COMMAND "${GIT_EXECUTABLE}" rev-list HEAD --count
-      WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-      OUTPUT_VARIABLE rev_number
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-      ERROR_QUIET
-    )
-   string(REGEX REPLACE init-|[0-9]+-g "" rev_hash ${rev_info})
-   set(rev_hash "${rev_number} (${rev_hash})")
+    string(REGEX REPLACE init-|[0-9]+-g "" rev_hash ${rev_info})
   endif()
 endif()
 
 # Create the actual revision_data.h file from the above params
 if(NOT "${rev_hash_cached}" MATCHES "${rev_hash}" OR NOT "${rev_branch_cached}" MATCHES "${rev_branch}" OR NOT EXISTS "${BUILDDIR}/revision_data.h")
   configure_file(
-    "${CMAKE_SOURCE_DIR}/revision.h.in.cmake"
+    "${CMAKE_SOURCE_DIR}/revision_data.h.in.cmake"
     "${BUILDDIR}/revision_data.h"
     @ONLY
   )
   set(rev_hash_cached "${rev_hash}" CACHE INTERNAL "Cached commit-hash")
   set(rev_branch_cached "${rev_branch}" CACHE INTERNAL "Cached branch name")
 endif()
+

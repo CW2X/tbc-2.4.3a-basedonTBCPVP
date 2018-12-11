@@ -1,3 +1,13 @@
+# Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+#
+# This file is free software; as a special exception the author gives
+# unlimited permission to copy and/or distribute it, with or without
+# modifications, as long as this notice is preserved.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
+# implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
 CollectSourceFiles(
   ${CMAKE_CURRENT_SOURCE_DIR}
   PRIVATE_SOURCES
@@ -11,14 +21,14 @@ if( WIN32 )
   endif()
 endif()
 
-#set(PRIVATE_PCH_HEADER PrecompiledHeaders/worldPCH.h)
-
+if (USE_COREPCH)
+  set(PRIVATE_PCH_HEADER PrecompiledHeaders/worldPCH.h)
+endif()
 
 GroupSources(${CMAKE_CURRENT_SOURCE_DIR})
 
 add_executable(worldserver
   ${PRIVATE_SOURCES}
-  ${CMAKE_CURRENT_SOURCE_DIR}/worldserver.conf.dist
 )
 
 if( NOT WIN32 )
@@ -33,14 +43,6 @@ endif()
 
 set_target_properties(worldserver PROPERTIES LINK_FLAGS "${worldserver_LINK_FLAGS}")
 
-if (UNIX)
-    #todo: is gomp still used ?
-    set(UNIX_LIBS gomp)
-endif()
-
-#todo3: This fixes some linking problem, but is it still necessary ?
-set_target_properties(game scripts PROPERTIES LINK_INTERFACE_MULTIPLICITY 5)
-
 target_link_libraries(worldserver
   PRIVATE
     trinity-core-interface
@@ -48,9 +50,7 @@ target_link_libraries(worldserver
     scripts
     game
     gsoap
-    readline
-    ${UNIX_LIBS}
-)
+    readline)
 
 CollectIncludeDirectories(
   ${CMAKE_CURRENT_SOURCE_DIR}
@@ -64,8 +64,6 @@ target_include_directories(worldserver
   PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR})
 
-link_directories(${LIBSDIR})
-
 set_target_properties(worldserver
     PROPERTIES
       FOLDER
@@ -77,10 +75,15 @@ if (WORLDSERVER_DYNAMIC_SCRIPT_MODULES_DEPENDENCIES)
 endif()
 
 if( WIN32 )
-  if ( MSVC )
+  if ( "${CMAKE_MAKE_PROGRAM}" MATCHES "MSBuild" )
     add_custom_command(TARGET worldserver
       POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/worldserver.conf.dist ${CMAKE_BINARY_DIR}/bin/$(ConfigurationName)/
+    )
+  elseif ( MINGW )
+    add_custom_command(TARGET worldserver
+      POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/worldserver.conf.dist ${CMAKE_BINARY_DIR}/bin/
     )
   endif()
 endif()
@@ -94,4 +97,6 @@ elseif( WIN32 )
 endif()
 
 # Generate precompiled header
-#add_cxx_pch(worldserver ${PRIVATE_PCH_HEADER})
+if( USE_COREPCH )
+  add_cxx_pch(worldserver ${PRIVATE_PCH_HEADER})
+endif()

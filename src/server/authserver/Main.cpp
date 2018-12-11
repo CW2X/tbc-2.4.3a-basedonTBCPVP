@@ -38,8 +38,8 @@ namespace fs = boost::filesystem;
 #if TRINITY_PLATFORM == TRINITY_PLATFORM_WINDOWS
 #include "ServiceWin32.h"
 char serviceName[] = "authserver";
-char serviceLongName[] = "TrinityCore auth service";
-char serviceDescription[] = "TrinityCore World of Warcraft emulator auth service";
+char serviceLongName[] = "Konno Production Authentication Service";
+char serviceDescription[] = "Konno Production World of Warcraft Emulator";
 /*
 * -1 - not in service mode
 *  0 - stopped
@@ -48,8 +48,8 @@ char serviceDescription[] = "TrinityCore World of Warcraft emulator auth service
 */
 int m_ServiceStatus = -1;
 
-void ServiceStatusWatcher(std::weak_ptr<boost::asio::deadline_timer> serviceStatusWatchTimerRef, 
-    std::weak_ptr<Trinity::Asio::IoContext> ioContextRef, boost::system::error_code const& error);
+
+void ServiceStatusWatcher(std::weak_ptr<boost::asio::deadline_timer> serviceStatusWatchTimerRef, std::weak_ptr<Trinity::Asio::IoContext> ioContextRef, boost::system::error_code const& error);
 #endif
 
 bool StartDB();
@@ -70,16 +70,13 @@ int main(int argc, char** argv)
     if (vm.count("help") || vm.count("version"))
         return 0;
 
-
 #if TRINITY_PLATFORM == TRINITY_PLATFORM_WINDOWS
-    /* sunstrider: whatever, we'll never use this
     if (configService.compare("install") == 0)
         return WinServiceInstall() == true ? 0 : 1;
     else if (configService.compare("uninstall") == 0)
         return WinServiceUninstall() == true ? 0 : 1;
     else if (configService.compare("run") == 0)
         return WinServiceRun() ? 0 : 1;
-        */
 #endif
 
     std::string configError;
@@ -291,39 +288,38 @@ void ServiceStatusWatcher(std::weak_ptr<boost::asio::deadline_timer> serviceStat
 
 variables_map GetConsoleArguments(int argc, char** argv, fs::path& configFile, std::string& configService)
 {
-    options_description all("Allowed options");
-    all.add_options()
-        ("help,h", "print usage message")
-        ("version,v", "print version build info")
-        ("config,c", value<fs::path>(&configFile)->default_value(fs::absolute(_TRINITY_REALM_CONFIG)),
-            "use <arg> as configuration file")
-        ;
+	options_description all("Allowed options");
+	all.add_options()
+		("help,h", "print usage message")
+		("version,v", "print version build info")
+		("config,c", value<fs::path>(&configFile)->default_value(fs::absolute(_TRINITY_REALM_CONFIG)),
+			"use <arg> as configuration file")
+		;
 #if TRINITY_PLATFORM == TRINITY_PLATFORM_WINDOWS
-    /* sun: crash with cpp17, but we don't need it
-    options_description win("Windows platform specific options");
-    win.add_options()
-        ("service,s", value<std::string>(&configService)->default_value(""), "Windows service options: [install | uninstall]")
-        ;
+	options_description win("Windows platform specific options");
+	win.add_options()
+		("service,s", value<std::string>(&configService)->default_value(""), "Windows service options: [install | uninstall]")
+		;
 
-    all.add(win);
-    */
+	all.add(win);
 #else
-    (void)configService;
+	(void)configService;
 #endif
-    variables_map variablesMap;
-    try
-    {
-        store(command_line_parser(argc, argv).options(all).allow_unregistered().run(), variablesMap);
-        notify(variablesMap);
-    }
-    catch (std::exception& e) {
-        std::cerr << e.what() << "\n";
-    }
+	variables_map variablesMap;
+	try
+	{
+		store(command_line_parser(argc, argv).options(all).allow_unregistered().run(), variablesMap);
+		notify(variablesMap);
+	}
+	catch (std::exception& e)
+	{
+		std::cerr << e.what() << "\n";
+	}
 
-    if (variablesMap.count("help"))
-        std::cout << all << "\n";
-    else if (variablesMap.count("version"))
-        std::cout << GitRevision::GetFullVersion() << "\n";
+	if (variablesMap.count("help"))
+		std::cout << all << "\n";
+	else if (variablesMap.count("version"))
+		std::cout << GitRevision::GetFullVersion() << "\n";
 
-    return variablesMap;
+	return variablesMap;
 }

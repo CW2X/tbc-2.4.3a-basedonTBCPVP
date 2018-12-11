@@ -1,21 +1,22 @@
-IF(NOT PLAYERBOT)
-    SET(EXCLUDE_PLAYERBOT ${CMAKE_CURRENT_SOURCE_DIR}/playerbot)
-ENDIF(NOT PLAYERBOT)
- 
-IF(NOT TESTS)
-	SET(EXCLUDE_TESTS ${CMAKE_CURRENT_SOURCE_DIR}/Testing)
-ENDIF(NOT TESTS)
+# Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+#
+# This file is free software; as a special exception the author gives
+# unlimited permission to copy and/or distribute it, with or without
+# modifications, as long as this notice is preserved.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
+# implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 CollectSourceFiles(
   ${CMAKE_CURRENT_SOURCE_DIR}
   PRIVATE_SOURCES
   # Exclude
-  ${CMAKE_CURRENT_SOURCE_DIR}/PrecompiledHeaders
-  ${EXCLUDE_PLAYERBOT}
-  ${EXCLUDE_TESTS}
-)
+  ${CMAKE_CURRENT_SOURCE_DIR}/PrecompiledHeaders)
 
-set(PRIVATE_PCH_HEADER PrecompiledHeaders/gamePCH.h)
+if (USE_COREPCH)
+  set(PRIVATE_PCH_HEADER PrecompiledHeaders/gamePCH.h)
+endif ()
 
 GroupSources(${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -25,45 +26,32 @@ CollectIncludeDirectories(
   ${CMAKE_CURRENT_SOURCE_DIR}
   PUBLIC_INCLUDES
   # Exclude
-  #sunstrider: TC has this but this currently breaks intellisense, which apparently needs to include the folder containing the pch. # ${CMAKE_CURRENT_SOURCE_DIR}/PrecompiledHeaders
-  ${EXCLUDE_PLAYERBOT}
-  ${EXCLUDE_TESTS}
-)
-   
-  
+  ${CMAKE_CURRENT_SOURCE_DIR}/PrecompiledHeaders)
+
+# Provide an interface target for the game project to allow
+# dependent projects to build meanwhile.
 add_library(game-interface INTERFACE)
 
 target_include_directories(game-interface
   INTERFACE
     ${PUBLIC_INCLUDES})
 
-   
 target_link_libraries(game-interface
   INTERFACE
     shared
-    Detour
-)
+    Detour)
 
 add_library(game
-  ${PRIVATE_PCH_SOURCE}
-  ${PRIVATE_SOURCES}
-)
+  ${PRIVATE_SOURCES})
 
 target_include_directories(game
   PRIVATE
-    ${CMAKE_CURRENT_BINARY_DIR}
-)
-    
-
-if(USE_GPERFTOOLS)
-    set(gperftools_lib gperftools)
-endif(USE_GPERFTOOLS)
+    ${CMAKE_CURRENT_BINARY_DIR})
 
 target_link_libraries(game
   PRIVATE
-    ${gperftools_lib}
+    trinity-core-interface
     efsw
-	trinity-core-interface
   PUBLIC
     game-interface)
 
@@ -85,32 +73,6 @@ if( BUILD_SHARED_LIBS )
 endif()
 
 # Generate precompiled header
-add_cxx_pch(game ${PRIVATE_PCH_HEADER})
-
-if(PLAYERBOT)
-    if ( UNIX )
-        add_definitions(
-            -D_PLAYERBOT_CONFIG="${CONF_DIR}/aiplayerbot.conf"
-                )
-     endif()
-
-    if( WIN32 )
-      if ( MSVC )
-        add_custom_command(TARGET game
-          POST_BUILD
-          COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/playerbot/aiplayerbot.conf.dist.in ${CMAKE_BINARY_DIR}/bin/$(ConfigurationName)/
-        ) 
-      elseif ( MINGW )
-         add_custom_command(TARGET game
-          POST_BUILD
-          COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/playerbot/aiplayerbot.conf.dist.in ${CMAKE_BINARY_DIR}/bin/
-        )
-      endif()
-    endif()
-
-    if( UNIX )
-      install(FILES playerbot/aiplayerbot.conf.dist.in DESTINATION ${CONF_DIR})
-    elseif( WIN32 )
-      install(FILES playerbot/aiplayerbot.conf.dist.in DESTINATION "${CMAKE_INSTALL_PREFIX}")
-    endif()
-endif(PLAYERBOT)
+if (USE_COREPCH)
+  add_cxx_pch(game ${PRIVATE_PCH_HEADER})
+endif ()

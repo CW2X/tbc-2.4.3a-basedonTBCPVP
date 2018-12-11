@@ -1,14 +1,21 @@
+# Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+#
+# This file is free software; as a special exception the author gives
+# unlimited permission to copy and/or distribute it, with or without
+# modifications, as long as this notice is preserved.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
+# implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
 message("")
 
 # Make the script module list available in the current scope
 GetScriptModuleList(SCRIPT_MODULE_LIST)
-if(NOT TESTS)
-	list(REMOVE_ITEM SCRIPT_MODULE_LIST Tests)
-endif(NOT TESTS)
 
 # Make the native install offset available in this scope
 GetInstallOffset(INSTALL_OFFSET)
- 
+
 # Sets the SCRIPTS_${SCRIPT_MODULE} variables
 # when using predefined templates for script building
 # like dynamic, static, minimal-static...
@@ -32,7 +39,6 @@ endif()
 # variables set above
 foreach(SCRIPT_MODULE ${SCRIPT_MODULE_LIST})
   ScriptModuleNameToVariable(${SCRIPT_MODULE} SCRIPT_MODULE_VARIABLE)
-
   if (${SCRIPT_MODULE_VARIABLE} STREQUAL "default")
     if(SCRIPTS_USE_WHITELIST)
       list(FIND SCRIPTS_WHITELIST "${SCRIPT_MODULE}" INDEX)
@@ -82,8 +88,10 @@ foreach(GRAPH_KEY ${GRAPH_KEYS})
   message("    |")
 endforeach()
 
-
-set(PRIVATE_PCH_HEADER ScriptPCH.h)
+# Base sources which are used by every script project
+if (USE_SCRIPTPCH)
+  set(PRIVATE_PCH_HEADER ScriptPCH.h)
+endif ()
 
 GroupSources(${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -119,10 +127,6 @@ function(ConfigureScriptLoader SCRIPTLOADER_NAME LOADER_OUT IS_DYNAMIC_SCRIPTLOA
   set(${LOADER_OUT} ${GENERATED_LOADER} PARENT_SCOPE)
 endfunction()
 
-IF(NOT TESTS)
-	set(EXCLUDE_TESTING ${CMAKE_CURRENT_SOURCE_DIR}/Tests)
-ENDIF(NOT TESTS)
-
 # Generates the actual script projects
 # Fills the STATIC_SCRIPT_MODULES and DYNAMIC_SCRIPT_MODULE_PROJECTS variables
 # which contain the names which scripts are linked statically/dynamically and
@@ -141,13 +145,13 @@ foreach(SCRIPT_MODULE ${SCRIPT_MODULE_LIST})
       # Add the module name to STATIC_SCRIPT_MODULES
       list(APPEND STATIC_SCRIPT_MODULES ${SCRIPT_MODULE})
       # Add the module content to the whole static module
-      CollectSourceFiles(${SCRIPT_MODULE_PATH} PRIVATE_SOURCES ${EXCLUDE_TESTING})
+      CollectSourceFiles(${SCRIPT_MODULE_PATH} PRIVATE_SOURCES)
     endif()
   elseif(${SCRIPT_MODULE_VARIABLE} STREQUAL "dynamic")
     # Generate an own dynamic module which is loadable on runtime
     # Add the module content to the whole static module
     unset(SCRIPT_MODULE_PRIVATE_SOURCES)
-    CollectSourceFiles(${SCRIPT_MODULE_PATH} SCRIPT_MODULE_PRIVATE_SOURCES ${EXCLUDE_TESTING})
+    CollectSourceFiles(${SCRIPT_MODULE_PATH} SCRIPT_MODULE_PRIVATE_SOURCES)
     # Configure the scriptloader
     ConfigureScriptLoader(${SCRIPT_MODULE} SCRIPT_MODULE_PRIVATE_SCRIPTLOADER ON ${SCRIPT_MODULE})
     GetProjectNameOfScriptModule(${SCRIPT_MODULE} SCRIPT_MODULE_PROJECT_NAME)
@@ -159,10 +163,9 @@ foreach(SCRIPT_MODULE ${SCRIPT_MODULE_LIST})
       ${SCRIPT_MODULE_PRIVATE_SCRIPTLOADER})
     target_link_libraries(${SCRIPT_MODULE_PROJECT_NAME}
       PRIVATE
-		trinity-core-interface
+        trinity-core-interface
       PUBLIC
-        game
-    )
+        game)
     set_target_properties(${SCRIPT_MODULE_PROJECT_NAME}
       PROPERTIES
         FOLDER
@@ -186,7 +189,7 @@ foreach(SCRIPT_MODULE ${SCRIPT_MODULE_LIST})
       endif()
     endif()
   else()
-    message(FATAL_ERROR "Unknown value \"${SCRIPT_MODULE_VARIABLE}\"!")
+    message(FATAL_ERROR "Unknown value \"${${SCRIPT_MODULE_VARIABLE}}\"!")
   endif()
 endforeach()
 
@@ -195,32 +198,31 @@ set(WORLDSERVER_DYNAMIC_SCRIPT_MODULES_DEPENDENCIES ${DYNAMIC_SCRIPT_MODULE_PROJ
 
 ConfigureScriptLoader("static" SCRIPT_MODULE_PRIVATE_SCRIPTLOADER OFF ${STATIC_SCRIPT_MODULES})
 
-add_library(scripts STATIC 
+add_library(scripts STATIC
   ScriptLoader.h
   ${SCRIPT_MODULE_PRIVATE_SCRIPTLOADER}
-  ${PRIVATE_SOURCES}
-)
+  ${PRIVATE_SOURCES})
 
 target_link_libraries(scripts
   PRIVATE
     trinity-core-interface
   PUBLIC
-    game-interface
-    database
-)
+    game-interface)
 
 target_include_directories(scripts
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR})
-	
+
 set_target_properties(scripts
   PROPERTIES
     FOLDER
       "scripts")
-	  
+
 # Generate precompiled header
-list(APPEND ALL_SCRIPT_PROJECTS scripts ${DYNAMIC_SCRIPT_MODULE_PROJECTS})
-add_cxx_pch("${ALL_SCRIPT_PROJECTS}" ${PRIVATE_PCH_HEADER})
+if (USE_SCRIPTPCH)
+  list(APPEND ALL_SCRIPT_PROJECTS scripts ${DYNAMIC_SCRIPT_MODULE_PROJECTS})
+  add_cxx_pch("${ALL_SCRIPT_PROJECTS}" ${PRIVATE_PCH_HEADER} ${PRIVATE_PCH_SOURCE})
+endif()
 
 # Remove all shared libraries in the installl directory which
 # are contained in the static library already.
@@ -236,4 +238,3 @@ if (DISABLED_SCRIPT_MODULE_PROJECTS)
 endif()
 
 message("")
-

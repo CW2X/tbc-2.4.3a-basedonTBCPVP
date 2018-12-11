@@ -1,18 +1,29 @@
+# Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+#
+# This file is free software; as a special exception the author gives
+# unlimited permission to copy and/or distribute it, with or without
+# modifications, as long as this notice is preserved.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
+# implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
 CollectSourceFiles(
   ${CMAKE_CURRENT_SOURCE_DIR}
   PRIVATE_SOURCES
   # Exclude
-  ${CMAKE_CURRENT_SOURCE_DIR}/PrecompiledHeaders
-)
+  ${CMAKE_CURRENT_SOURCE_DIR}/PrecompiledHeaders)
 
-set(PRIVATE_PCH_HEADER PrecompiledHeaders/sharedPCH.h)
-
+if (USE_COREPCH)
+  set(PRIVATE_PCH_HEADER PrecompiledHeaders/sharedPCH.h)
+endif()
 
 GroupSources(${CMAKE_CURRENT_SOURCE_DIR})
 
 add_definitions(-DTRINITY_API_EXPORT_SHARED)
 
 add_library(shared
+  ${PRIVATE_PCH_SOURCE}
   ${PRIVATE_SOURCES}
 )
 
@@ -20,8 +31,7 @@ CollectIncludeDirectories(
   ${CMAKE_CURRENT_SOURCE_DIR}
   PUBLIC_INCLUDES
   # Exclude
-  ${CMAKE_CURRENT_SOURCE_DIR}/PrecompiledHeaders
-  )
+  ${CMAKE_CURRENT_SOURCE_DIR}/PrecompiledHeaders)
 
 target_include_directories(shared
   PUBLIC
@@ -34,7 +44,7 @@ target_link_libraries(shared
     trinity-core-interface
   PUBLIC
     database)
-	
+
 set_target_properties(shared
     PROPERTIES
       FOLDER
@@ -53,9 +63,6 @@ if( BUILD_SHARED_LIBS )
 endif()
 
 # Generate precompiled header
-add_cxx_pch(shared ${PRIVATE_PCH_HEADER})
-
-
-if(WIN32 AND MSVC)
-    add_definitions(/openmp)
-endif()
+if (USE_COREPCH)
+  add_cxx_pch(shared ${PRIVATE_PCH_HEADER})
+endif ()

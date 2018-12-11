@@ -1,4 +1,4 @@
-# Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
+# Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
 #
 # This file is free software; as a special exception the author gives
 # unlimited permission to copy and/or distribute it, with or without
@@ -44,11 +44,10 @@ endfunction()
 # and stores it in the given variable.
 function(GetScriptModuleList variable)
   GetScriptsBasePath(BASE_PATH)
-
   file(GLOB LOCALE_SCRIPT_MODULE_LIST RELATIVE
     ${BASE_PATH}
     ${BASE_PATH}/*)
-  
+
   set(${variable})
   foreach(SCRIPT_MODULE ${LOCALE_SCRIPT_MODULE_LIST})
     GetPathToScriptModule(${SCRIPT_MODULE} SCRIPT_MODULE_PATH)
@@ -72,7 +71,7 @@ function(IsDynamicLinkingRequired variable)
   if(SCRIPTS MATCHES "dynamic")
     set(IS_DEFAULT_VALUE_DYNAMIC ON)
   endif()
- 
+
   GetScriptModuleList(SCRIPT_MODULE_LIST)
   set(IS_REQUIRED OFF)
   foreach(SCRIPT_MODULE ${SCRIPT_MODULE_LIST})
@@ -86,10 +85,12 @@ function(IsDynamicLinkingRequired variable)
   set(${variable} ${IS_REQUIRED} PARENT_SCOPE)
 endfunction()
 
-# Stores the native variable name 
+# Stores the native variable name
 function(GetNativeSharedLibraryName module variable)
   if(WIN32)
     set(${variable} "${module}.dll" PARENT_SCOPE)
+  elseif(APPLE)
+    set(${variable} "lib${module}.dylib" PARENT_SCOPE)
   else()
     set(${variable} "lib${module}.so" PARENT_SCOPE)
   endif()

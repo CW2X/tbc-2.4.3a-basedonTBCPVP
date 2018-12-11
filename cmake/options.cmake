@@ -1,41 +1,18 @@
-option(DO_DEBUG "Debug mode (No optimization and debug symbols)" 0)
-option(DO_WARN "Enable all compilation warnings" 0)
-option(TOOLS "Build map/vmap/mmap extraction/assembler tools" 0)
-option(PLAYERBOT "Include playerbot system" 1)
-option(TESTS "Include tests functionalities" 1)
-if(TESTS AND NOT PLAYERBOT)
-	message("Tests are enabled, playerbot system is needed and will be compiled too")
-	set(PLAYERBOT ON CACHE BOOL "Include playerbot system" FORCE)
-endif(TESTS AND NOT PLAYERBOT)
+option(SERVERS          "Build worldserver and authserver"                            1)
 
-option(WITH_DYNAMIC_LINKING "Enable dynamic library linking." 0)
-IsDynamicLinkingRequired(WITH_DYNAMIC_LINKING_FORCED)
-if (WITH_DYNAMIC_LINKING AND WITH_DYNAMIC_LINKING_FORCED)
-  set(WITH_DYNAMIC_LINKING_FORCED OFF)
-endif()
-if (WITH_DYNAMIC_LINKING OR WITH_DYNAMIC_LINKING_FORCED)
-  set(BUILD_SHARED_LIBS ON)
-else()
-  set(BUILD_SHARED_LIBS OFF)
-endif()
-
-if(UNIX)
-	#not working on windows atm
-	option(USE_GPERFTOOLS "Include profiling capabilities from gperftools" 0)
-endif()
-option(LICH_KING "NYI Lich King realm" 0)
-#more clang options 
-if(DO_DEBUG AND CLANG_COMPILER)
-option(CLANG_ADDRESS_SANITIZER "Enable clang AddressSanitizer (~2x slowdown)" 0)
-option(CLANG_THREAD_SANITIZER "Enable clang ThreadSanitizer (~5-15x slowdown and 5-10x memory overhead)" 0)
-option(CLANG_MEMORY_SANITIZER "Enable clang MemorySanitizer (~3x slowdown)" 0)
-option(CLANG_LEAK_SANITIZER "Enable clang LeakSanitizer (Almost no slowdown). Generate report at the program end" 0)
-option(CLANG_THREAD_SAFETY_ANALYSIS "Enable clang Thread Safety Analysis (compile time only)" 0)
-endif()
-
-
-set(SCRIPTS "static" CACHE STRING "Build core with scripts (recommanded static for production environnement")
 set(SCRIPTS_AVAILABLE_OPTIONS none static dynamic minimal-static minimal-dynamic)
+
+# Log a fatal error when the value of the SCRIPTS variable isn't a valid option.
+if (SCRIPTS)
+  list (FIND SCRIPTS_AVAILABLE_OPTIONS "${SCRIPTS}" SCRIPTS_INDEX)
+  if (${SCRIPTS_INDEX} EQUAL -1)
+    message(FATAL_ERROR "The value (${SCRIPTS}) of your SCRIPTS variable is invalid! "
+                        "Allowed values are: ${SCRIPTS_AVAILABLE_OPTIONS} if you still "
+                        "have problems search on forum for TCE00019.")
+  endif()
+endif()
+
+set(SCRIPTS "static" CACHE STRING "Build core with scripts")
 set_property(CACHE SCRIPTS PROPERTY STRINGS ${SCRIPTS_AVAILABLE_OPTIONS})
 
 # Build a list of all script modules when -DSCRIPT="custom" is selected
@@ -46,5 +23,23 @@ foreach(SCRIPT_MODULE ${SCRIPT_MODULE_LIST})
   set_property(CACHE ${SCRIPT_MODULE_VARIABLE} PROPERTY STRINGS default disabled static dynamic)
 endforeach()
 
+option(PLAYERBOT        "Include playerbot system"                                    0)
+option(TOOLS            "Build map/vmap/mmap extraction/assembler tools"              0)
+option(USE_SCRIPTPCH    "Use precompiled headers when compiling scripts"              1)
+option(USE_COREPCH      "Use precompiled headers when compiling servers"              1)
+option(WITH_DYNAMIC_LINKING "Enable dynamic library linking."                         0)
+IsDynamicLinkingRequired(WITH_DYNAMIC_LINKING_FORCED)
+if (WITH_DYNAMIC_LINKING AND WITH_DYNAMIC_LINKING_FORCED)
+  set(WITH_DYNAMIC_LINKING_FORCED OFF)
+endif()
+if (WITH_DYNAMIC_LINKING OR WITH_DYNAMIC_LINKING_FORCED)
+  set(BUILD_SHARED_LIBS ON)
+else()
+  set(BUILD_SHARED_LIBS OFF)
+endif()
+option(WITH_WARNINGS    "Show all warnings during compile"                            0)
+option(WITH_COREDEBUG   "Include additional debug-code in core"                       0)
+option(WITH_STRICT_DATABASE_TYPE_CHECKS "Enable strict checking of database field value accessors" 0)
 set(WITH_SOURCE_TREE    "hierarchical" CACHE STRING "Build the source tree for IDE's.")
 set_property(CACHE WITH_SOURCE_TREE PROPERTY STRINGS no flat hierarchical hierarchical-folders)
+option(WITHOUT_GIT      "Disable the GIT testing routines"                            0)

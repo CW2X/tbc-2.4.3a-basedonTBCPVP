@@ -1,71 +1,56 @@
-#include <openssl/opensslv.h>
-#include <openssl/crypto.h>
-#include <boost/asio/io_service.hpp>
-#include <boost/asio/deadline_timer.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/program_options.hpp>
-
-#include "GitRevision.h"
 #include "Common.h"
+#include "AppenderDB.h"
+#include "AsyncAcceptor.h"
+#include "Banner.h"
+#include "BattlegroundMgr.h"
+#include "BigNumber.h"
+#include "CliRunnable.h"
+#include "Configuration/Config.h"
 #include "DatabaseEnv.h"
 #include "DatabaseLoader.h"
-#include "Config.h"
-#include "Log.h"
-#include "BigNumber.h"
+#include "GitRevision.h"
+#include "InstanceSaveMgr.h"
+#include "IoContext.h"
+#include "MapManager.h"
+#include "MySQLThreading.h"
+#include "ObjectAccessor.h"
 #include "OpenSSLCrypto.h"
-#include "Banner.h"
+#include "OutdoorPvP/OutdoorPvPMgr.h"
+#include "ProcessPriority.h"
 #include "RASession.h"
-#include "AsyncAcceptor.h"
+#include "RealmList.h"
+#include "Resolver.h"
+#include "ScriptLoader.h"
 #include "ScriptMgr.h"
-#include "BattleGroundMgr.h"
+#include "ScriptReloadMgr.h"
 #include "TCSoap.h"
-#include "CliRunnable.h"
+#include "World.h"
 #include "WorldSocket.h"
 #include "WorldSocketMgr.h"
-#include "ScriptMgr.h"
-#include "ScriptReloadMgr.h"
-#include "ScriptLoader.h"
-#include "OutdoorPvPMgr.h"
-#include "Realm/Realm.h"
-#include "IoContext.h"
-#include "Resolver.h"
-#include "World.h"
-#include "MapManager.h"
-#include "OutdoorPvPMgr.h"
-#include "InstanceSaveMgr.h"
-#include "Configuration/Config.h"
-#include "ProcessPriority.h"
-#include "Timer.h"
-#include "MapManager.h"
-#include "ScriptReloadMgr.h"
-#include "AppenderDB.h"
-#include "MySQLThreading.h"
-#if TRINITY_PLATFORM == TRINITY_PLATFORM_UNIX
-#include <fstream>
-#include <execinfo.h>
-#endif
+
+#include <openssl/opensslv.h>
+#include <openssl/crypto.h>
+#include <boost/asio/deadline_timer.hpp>
+#include <boost/asio/signal_set.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/program_options.hpp>
+#include <csignal>
+#include <iostream>
 
 using namespace boost::program_options;
 namespace fs = boost::filesystem;
 
-#define WORLD_SLEEP_CONST 50
-
 #ifndef _TRINITY_CORE_CONFIG
-# define _TRINITY_CORE_CONFIG  "worldserver.conf"
-#endif //_TRINITY_CORE_CONFIG
+#define _TRINITY_CORE_CONFIG  "worldserver.conf"
+#endif
 
-// Format is YYYYMMDDRR where RR is the change in the conf file
-// for that day.
-#ifndef _TRINITY_CORE_CONFVER
-# define _TRINITY_CORE_CONFVER 2014060701
-#endif //_TRINITY_CORE_CONFVER
+#define WORLD_SLEEP_CONST 5
 
-#ifdef WIN32
+#ifdef _WIN32
 #include "ServiceWin32.h"
-char serviceName[] = "Sunstriderd";
-char serviceLongName[] = "Sunstrider service";
-char serviceDescription[] = "WoW 2.4.3 Server Emulator service";
+char serviceName[] = "worldserver";
+char serviceLongName[] = "Konno Production World Service";
+char serviceDescription[] = "Konno Production World of Warcraft Emulator";
 /*
  * -1 - not in service mode
  *  0 - stopped
@@ -108,67 +93,26 @@ void ShutdownCLIThread(std::thread* cliThread);
 bool LoadRealmInfo(Trinity::Asio::IoContext& ioContext);
 variables_map GetConsoleArguments(int argc, char** argv, fs::path& configFile, std::string& cfg_service);
 
-//segv handler, print stack to dump file
-void handle_segv()
-{
-#if TRINITY_PLATFORM == TRINITY_PLATFORM_UNIX
-    void* arr[20];
-    size_t size = backtrace(arr, 20);
-    fprintf(stderr, "SEGV or PFE occured :\n");
-    //print to stderr
-    backtrace_symbols_fd(arr, size, STDERR_FILENO);
-
-    //get backtrace as string array
-    char** backtrace = backtrace_symbols(arr, size);
-    //print to a dump file in exec folder as well
-    std::string outputFileName = "mapcrash_" + std::to_string(time(nullptr));
-    std::ofstream dumpFile(outputFileName, std::ios::out);
-    if (dumpFile.is_open())
-    {
-        dumpFile << "Error: signal %d:" << std::endl;
-        for (int i = 0; i < size; i++)
-            dumpFile << backtrace[i] << std::endl;
-
-        dumpFile.close();
-    }
-    //delete array allocated by backtrace_symbols
-    //delete backtrace;
-#endif
-
-    throw std::runtime_error("Segmentation fault or FPE");
-}
-
-
 /// Launch the Sunstrider server
 extern int main(int argc, char **argv)
 {
-#if defined(__has_feature)
-#  if __has_feature(address_sanitizer)
-       printf("Running with -fsanitize=address flag\n");
-#  endif
-#endif
-    signal(SIGABRT, &Trinity::AbortHandler);
+	signal(SIGABRT, &Trinity::AbortHandler);
 
-    ///- Command line parsing to get the configuration file name
-    auto configFile = fs::absolute(_TRINITY_CORE_CONFIG);
-    std::string configService;
+	auto configFile = fs::absolute(_TRINITY_CORE_CONFIG);
+	std::string configService;
 
-    auto vm = GetConsoleArguments(argc, argv, configFile, configService);
-    // exit if help or version is enabled
-    if (vm.count("help") || vm.count("version"))
-        return 0;
-    if (vm.count("tests"))
-        sWorld->SetCITesting();
+	auto vm = GetConsoleArguments(argc, argv, configFile, configService);
+	// exit if help or version is enabled
+	if (vm.count("help") || vm.count("version"))
+		return 0;
 
 #ifdef _WIN32
-    /*
-    if (configService.compare("install") == 0)
-        return WinServiceInstall() == true ? 0 : 1;
-    else if (configService.compare("uninstall") == 0)
-        return WinServiceUninstall() == true ? 0 : 1;
-    else if (configService.compare("run") == 0)
-        WinServiceRun();
-        */
+	if (configService.compare("install") == 0)
+		return WinServiceInstall() == true ? 0 : 1;
+	else if (configService.compare("uninstall") == 0)
+		return WinServiceUninstall() == true ? 0 : 1;
+	else if (configService.compare("run") == 0)
+		WinServiceRun();
 #endif
 
     std::string configError;
@@ -248,12 +192,10 @@ extern int main(int argc, char **argv)
 
     // Start the databases
     if (!StartDB())
-    {
-        return 1;
-    }
+		return 1;
 
     // Set server offline (not connectable)
-    LoginDatabase.DirectPExecute("UPDATE realmlist SET flag = (flag & ~%u) | %u WHERE id = '%d'", REALM_FLAG_OFFLINE, REALM_FLAG_VERSION_MISMATCH, realmID);
+    LoginDatabase.DirectPExecute("UPDATE realmlist SET flag = flag | %u WHERE id = '%d'", REALM_FLAG_OFFLINE, realmID);
 
     LoadRealmInfo(*ioContext);
 
@@ -340,7 +282,9 @@ extern int main(int argc, char **argv)
 
 
     // Set server online (allow connecting now)
-    LoginDatabase.DirectPExecute("UPDATE realmlist SET flag = flag & ~%u, population = 0 WHERE id = '%u'", REALM_FLAG_VERSION_MISMATCH, realmID);
+    LoginDatabase.DirectPExecute("UPDATE realmlist SET flag = flag & ~%u, population = 0 WHERE id = '%u'", REALM_FLAG_OFFLINE, realmID);
+	realm.PopulationLevel = 0.0f;
+	realm.Flags = RealmFlags(realm.Flags & ~uint32(REALM_FLAG_OFFLINE));
 
     // Start the freeze check callback cycle in 5 seconds (cycle itself is 1 sec)
     std::shared_ptr<FreezeDetector> freezeDetector;
@@ -353,7 +297,7 @@ extern int main(int argc, char **argv)
 
     TC_LOG_INFO("server.worldserver", "%s (worldserver-daemon) ready...", GitRevision::GetFullVersion());
 
-  //  sScriptMgr->OnStartup();
+    //sScriptMgr->OnStartup();
 
     WorldUpdateLoop();
 
@@ -362,7 +306,7 @@ extern int main(int argc, char **argv)
 
     sLog->SetSynchronous();
 
-    //  sScriptMgr->OnShutdown();
+    //sScriptMgr->OnShutdown();
 
     // set server offline
     LoginDatabase.DirectPExecute("UPDATE realmlist SET flag = flag | %u WHERE id = '%d'", REALM_FLAG_OFFLINE, realmID);
@@ -497,7 +441,7 @@ void ClearOnlineAccounts()
     CharacterDatabase.DirectExecute("UPDATE characters SET online = 0 WHERE online <> 0");
 
     // Battleground instance ids reset at server restart
-  //  CharacterDatabase.DirectExecute("UPDATE character_battleground_data SET instanceId = 0");
+    //CharacterDatabase.DirectExecute("UPDATE character_battleground_data SET instanceId = 0");
 }
 
 
