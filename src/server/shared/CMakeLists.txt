@@ -12,9 +12,12 @@ CollectSourceFiles(
   ${CMAKE_CURRENT_SOURCE_DIR}
   PRIVATE_SOURCES
   # Exclude
-  ${CMAKE_CURRENT_SOURCE_DIR}/PrecompiledHeaders)
+  #${CMAKE_CURRENT_SOURCE_DIR}/PrecompiledHeaders
+  )
 
-set(PRIVATE_PCH_HEADER PrecompiledHeaders/sharedPCH.h)
+# if (USE_COREPCH)
+  # set(PRIVATE_PCH_HEADER PrecompiledHeaders/sharedPCH.h)
+# endif()
 
 GroupSources(${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -29,7 +32,8 @@ CollectIncludeDirectories(
   ${CMAKE_CURRENT_SOURCE_DIR}
   PUBLIC_INCLUDES
   # Exclude
-  ${CMAKE_CURRENT_SOURCE_DIR}/PrecompiledHeaders)
+  #${CMAKE_CURRENT_SOURCE_DIR}/PrecompiledHeaders
+  )
 
 target_include_directories(shared
   PUBLIC
@@ -61,4 +65,6 @@ if( BUILD_SHARED_LIBS )
 endif()
 
 # Generate precompiled header
-add_cxx_pch(shared ${PRIVATE_PCH_HEADER})
+# if (USE_COREPCH)
+  # add_cxx_pch(shared ${PRIVATE_PCH_HEADER})
+# endif ()
