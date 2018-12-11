@@ -26,9 +26,8 @@
 
 #include <algorithm>
 
-#ifdef PLAYERBOT
+// Playerbot
 #include "playerbot.h"
-#endif
 
 inline bool isNasty(char c)
 {
@@ -351,7 +350,6 @@ void WorldSession::HandleMessagechatOpcode( WorldPacket & recvData )
                 return;
             }
 
-            #ifdef PLAYERBOT
             // Playerbot mod: handle whispered command to bot
             if (toPlayer->GetPlayerbotAI() && lang != LANG_ADDON)
             {
@@ -360,14 +358,10 @@ void WorldSession::HandleMessagechatOpcode( WorldPacket & recvData )
                 receiver->m_speakCount = 0; */
             }
             else
-            #endif
                 GetPlayer()->Whisper(msg, Language(lang),toPlayer);
         } break;
 
         case CHAT_MSG_PARTY:
-#ifdef LICH_KING
-        case CHAT_MSG_PARTY_LEADER:
-#endif
         {
             // if player is in battleground, he cannot say to battleground members by /p
             Group *group = GetPlayer()->GetOriginalGroup();
@@ -375,7 +369,6 @@ void WorldSession::HandleMessagechatOpcode( WorldPacket & recvData )
             if (!group && (!(group = GetPlayer()->GetGroup()) || group->isBGGroup()))
                 return;
 
-            #ifdef PLAYERBOT
             // Playerbot mod: broadcast message to bot members
             for(GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr=itr->next())
             {
@@ -387,7 +380,6 @@ void WorldSession::HandleMessagechatOpcode( WorldPacket & recvData )
                     GetPlayer()->m_speakCount = 0; */
                 }
             }
-            #endif
 
             sScriptMgr->OnPlayerChat(GetPlayer(), type, lang, msg, group);
             WorldPacket data;
@@ -409,7 +401,7 @@ void WorldSession::HandleMessagechatOpcode( WorldPacket & recvData )
                 sScriptMgr->OnPlayerChat(GetPlayer(), type, lang, msg, guild);
                 guild->BroadcastToGuild(this, false, msg, lang == LANG_ADDON ? LANG_ADDON : LANG_UNIVERSAL);
             }
-            #ifdef PLAYERBOT
+
             // Playerbot mod: broadcast message to bot members
             PlayerbotMgr *mgr = GetPlayer()->GetPlayerbotMgr();
             if (mgr && lang != LANG_ADDON)
@@ -421,7 +413,6 @@ void WorldSession::HandleMessagechatOpcode( WorldPacket & recvData )
                         bot->GetPlayerbotAI()->HandleCommand(type, msg, *GetPlayer());
                 }
             }
-            #endif
 
             logChannelId = guildId;
 
@@ -456,7 +447,6 @@ void WorldSession::HandleMessagechatOpcode( WorldPacket & recvData )
             if(!targetGroup)
                 return;
 
-            #ifdef PLAYERBOT
             // Playerbot mod: broadcast message to bot members
             for(GroupReference* itr = targetGroup->GetFirstMember(); itr != nullptr; itr=itr->next())
             {
@@ -468,7 +458,7 @@ void WorldSession::HandleMessagechatOpcode( WorldPacket & recvData )
                     GetPlayer()->m_speakCount = 0; */
                 }
             }
-            #endif
+
             sScriptMgr->OnPlayerChat(GetPlayer(), type, lang, msg, currentGroup);
             WorldPacket data;
             ChatHandler::BuildChatPacket(data, ChatMsg(type), Language(lang), GetPlayer(), nullptr, msg);
@@ -497,7 +487,6 @@ void WorldSession::HandleMessagechatOpcode( WorldPacket & recvData )
             if (!group || !group->isBGGroup() || !group->IsLeader(GetPlayer()->GetGUID()))
                 return;
         }
-        [[fallthrough]];
         case CHAT_MSG_BATTLEGROUND:
         {
             //battleground raid is always in Player->GetGroup(), never in GetOriginalGroup()
@@ -518,14 +507,12 @@ void WorldSession::HandleMessagechatOpcode( WorldPacket & recvData )
             {
                 if(Channel *chn = cMgr->GetChannel(channel, _player))
                 {
-                    #ifdef PLAYERBOT
                     // Playerbot mod: broadcast message to bot members
                     if (_player->GetPlayerbotMgr() && lang != LANG_ADDON && chn->GetFlags() & 0x18)
                     {
                         _player->GetPlayerbotMgr()->HandleCommand(type, msg);
                     }
                     sRandomPlayerbotMgr.HandleCommand(type, msg, *_player);
-                    #endif
 
                     //sScriptMgr->OnPlayerChat(sender, type, lang, msg, chn);
                     chn->Say(_player->GetGUID(),msg.c_str(), Language(lang));

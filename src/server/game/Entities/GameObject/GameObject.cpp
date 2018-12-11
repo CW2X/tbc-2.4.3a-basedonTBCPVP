@@ -543,7 +543,7 @@ void GameObject::Update(uint32 diff)
                     break;
             }
         }
-        [[fallthrough]]; /* no break for switch (m_lootState)*/
+		/* no break for switch (m_lootState)*/
         case GO_READY:
         {
             if (m_respawnCompatibilityMode)

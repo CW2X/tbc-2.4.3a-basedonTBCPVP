@@ -40,5 +40,5 @@ set_target_properties(mapextractor
 if( UNIX )
   install(TARGETS mapextractor DESTINATION bin)
 elseif( WIN32 )
-  install(TARGETS mapextractor DESTINATION "${CMAKE_INSTALL_PREFIX}")
+  install(TARGETS mapextractor DESTINATION "${CMAKE_INSTALL_PREFIX}/tools")
 endif()

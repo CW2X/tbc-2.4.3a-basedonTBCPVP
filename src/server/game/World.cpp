@@ -65,14 +65,10 @@
 #include "World.h"
 #include "WorldPacket.h"
 #include "WorldSession.h"
-#ifdef TESTS
-#include "TestMgr.h"
-#endif
 
-#ifdef PLAYERBOT
+// Playerbot
 #include "PlayerbotAIConfig.h"
 #include "RandomPlayerbotMgr.h"
-#endif
 
 TC_GAME_API std::atomic<bool> World::m_stopEvent(false);
 uint8 World::m_ExitCode = SHUTDOWN_EXIT_CODE;
@@ -1954,9 +1950,8 @@ void World::SetInitialWorldSettings()
 
     sLogsDatabaseAccessor->CleanupOldLogs();
 
-    #ifdef PLAYERBOT
+    // Playerbot
     sPlayerbotAIConfig.Initialize();
-    #endif
 
     TC_LOG_INFO("server.loading", "");
     TC_LOG_INFO("server.loading", "==========================================================");
@@ -2116,10 +2111,9 @@ void World::Update(time_t diff)
         sAuctionMgr->Update();
     }
 
-    #ifdef PLAYERBOT
+    // Playerbot
     sRandomPlayerbotMgr.UpdateAI(diff);
     sRandomPlayerbotMgr.UpdateSessions(diff);
-    #endif
 
     /// <li> Handle file changes
     if (m_timers[WUPDATE_CHECK_FILECHANGES].Passed())
@@ -2700,9 +2694,8 @@ void World::ShutdownServ(uint32 time, uint32 options, uint8 exitcode, const std:
         ShutdownMsg(true, nullptr, m_ShutdownReason);
     }
 
-    #ifdef PLAYERBOT
+	// Playerbot
     sRandomPlayerbotMgr.LogoutAllBots();
-    #endif
 
 //    sScriptMgr->OnShutdownInitiate(ShutdownExitCode(exitcode), ShutdownMask(options));
 }

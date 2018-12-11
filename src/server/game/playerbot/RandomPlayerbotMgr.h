@@ -69,9 +69,6 @@ class TC_GAME_API RandomPlayerbotMgr : public PlayerbotHolder
         int processTicks;
 };
 
-//extra ifdef to make sure we don't try to include the playerbot mgr if playerbot are disabled
-#ifdef PLAYERBOT
 #define sRandomPlayerbotMgr RandomPlayerbotMgr::instance()
-#endif
 
 #endif

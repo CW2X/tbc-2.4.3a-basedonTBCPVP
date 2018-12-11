@@ -1790,7 +1790,6 @@ void SpellMgr::LoadSpellCustomAttr()
         case 56430:
             spellInfo->Effect[0] = SPELL_EFFECT_TRIGGER_MISSILE;
             spellInfo->EffectTriggerSpell[0] = 56429;
-            [[fallthrough]];
         case 56429:
             spellInfo->EffectImplicitTargetA[0] = TARGET_DEST_DEST;
             spellInfo->EffectImplicitTargetB[0] = 0;
@@ -1921,7 +1920,7 @@ void SpellMgr::LoadSpellCustomAttr()
             break;
         case 46008: //Negative Energy
             spellInfo->AttributesEx4 |= SPELL_ATTR4_IGNORE_RESISTANCES;
-            [[fallthrough]];
+			break;
         case 42005: // Bloodboil
         case 38296: //Spitfire Totem
         case 37676: //Insidious Whisper
@@ -2057,13 +2056,13 @@ void SpellMgr::LoadSpellCustomAttr()
         case 45235:
         case 45246:
             spellInfo->AttributesEx4 |= SPELL_ATTR4_IGNORE_RESISTANCES;
-            [[fallthrough]];
+			break;
         case 45342: // Alythess Conflagration
             spellInfo->AttributesEx4 |= SPELL_ATTR4_IGNORE_RESISTANCES;
-            [[fallthrough]];
+			break;
         case 45348: // Alythess SPELL_FLAME_TOUCHED
             spellInfo->AttributesEx4 |= SPELL_ATTR4_IGNORE_RESISTANCES;
-            [[fallthrough]];
+			break;
         case 45347: // Sacrolash SPELL_DARK_TOUCHED
             spellInfo->DmgClass = SPELL_DAMAGE_CLASS_MAGIC;
             spellInfo->AttributesEx3 |= SPELL_ATTR3_STACK_FOR_DIFF_CASTERS;
@@ -2325,7 +2324,7 @@ void SpellMgr::LoadSpellCustomAttr()
             break;
         case 45996:
             spellInfo->AttributesEx3 |= SPELL_ATTR3_NO_DONE_BONUS;
-            [[fallthrough]];
+			break;
         case 46009: // M'uru and Entropius spells
         case 45999:
         case 46268:

@@ -517,8 +517,6 @@ bool MySQLConnection::_HandleMySQLErrno(uint32 errNo, uint8 attempts /*= 5*/)
                 mysql_close(GetHandle());
                 m_Mysql = nullptr;
             }
-
-            [[fallthrough]];
         }
         case CR_CONN_HOST_ERROR:
         {

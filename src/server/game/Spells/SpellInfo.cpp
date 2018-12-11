@@ -189,7 +189,6 @@ uint32 SpellImplicitTargetInfo::GetExplicitTargetMask(bool& srcSet, bool& dstSet
                                 break;
 #endif
                             case TARGET_CHECK_RAID_CLASS:
-                                [[fallthrough]];
                             default:
                                 targetMask = TARGET_FLAG_UNIT;
                                 break;
@@ -3318,7 +3317,6 @@ void SpellInfo::_LoadImmunityInfo()
                     immuneInfo.AuraTypeImmune.insert(SPELL_AURA_MOD_ROOT);
                     immuneInfo.AuraTypeImmune.insert(SPELL_AURA_MOD_CONFUSE);
                     immuneInfo.AuraTypeImmune.insert(SPELL_AURA_MOD_FEAR);
-                    [[fallthrough]];
                 case 61869: // Overload
                 case 63481:
                 case 61887: // Lightning Tendrils

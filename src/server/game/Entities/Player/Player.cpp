@@ -70,10 +70,9 @@
 #include "PetitionMgr.h"
 #include "ReputationMgr.h"
 
-#ifdef PLAYERBOT
+// Playerbot stuff
 #include "PlayerbotAI.h"
 #include "GuildTaskMgr.h"
-#endif
 
 #include <cmath>
 #include <setjmp.h>
@@ -145,15 +144,6 @@ enum CharacterFlags
     CHARACTER_FLAG_UNK32                = 0x80000000
 };
 
-#ifdef LICH_LING
-enum CharacterCustomizeFlags
-{
-    CHAR_CUSTOMIZE_FLAG_NONE            = 0x00000000,
-    CHAR_CUSTOMIZE_FLAG_CUSTOMIZE       = 0x00000001,       // name, gender, etc...
-    CHAR_CUSTOMIZE_FLAG_FACTION         = 0x00010000,       // name, gender, faction, etc...
-    CHAR_CUSTOMIZE_FLAG_RACE            = 0x00100000        // name, gender, race, etc...
-};
-#endif
 // corpse reclaim times
 #define DEATH_EXPIRE_STEP (5*MINUTE)
 #define MAX_DEATH_COUNT 3
@@ -186,11 +176,6 @@ Player::Player(WorldSession *session) :
     m_areaUpdateId(0),
     m_spellModTakingSpell(nullptr),
     m_trade(nullptr),
-#ifdef LICH_KING
-    m_IsBGRandomWinner(false),
-    m_WeeklyQuestChanged(false),
-    m_MonthlyQuestChanged(false),
-#endif
     m_SeasonalQuestChanged(false),
     m_sharedQuestId(0)
 {
@@ -345,11 +330,9 @@ Player::Player(WorldSession *session) :
     for (uint8 i = 0; i < MAX_COMBAT_RATING; i++)
         m_baseRatingValue[i] = 0;
 
-    #ifdef PLAYERBOT
     // playerbot mod
     m_playerbotAI = nullptr;
     m_playerbotMgr = nullptr;
-    #endif
 
     // Experience Blocking
     m_isXpBlocked = false;
@@ -419,10 +402,9 @@ Player::~Player()
     delete _cinematicMgr;
     delete m_reputationMgr;
 
-#ifdef PLAYERBOT
+	// Playerbot
     delete m_playerbotAI;
     delete m_playerbotMgr;
-#endif
 
     //TC sWorld->DecreasePlayerCount();
 }
@@ -1461,12 +1443,12 @@ void Player::Update( uint32 p_time )
     if (IsHasDelayedTeleport() /* && IsAlive()*/)
         TeleportTo(m_teleport_dest, m_teleport_options);
 
-    #ifdef PLAYERBOT
+	// Playerbot
     if (m_playerbotAI)
        m_playerbotAI->UpdateAI(p_time);
+
     if (m_playerbotMgr)
        m_playerbotMgr->UpdateAI(p_time);
-    #endif
 }
 
 void Player::SetDeathState(DeathState s)
@@ -5588,7 +5570,7 @@ void Player::UpdateWeaponSkill(WeaponAttackType attType)
             break;
         case ITEM_SUBCLASS_WEAPON_FIST:
             UpdateSkill(SKILL_UNARMED, weapon_skill_gain);
-            [[fallthrough]];
+			break;
         default:
             UpdateSkill(tmpitem->GetSkill(), weapon_skill_gain);
             break;
@@ -21717,9 +21699,8 @@ bool Player::RewardPlayerAndGroupAtKill(Unit* pVictim)
         }
     }
 
-    #ifdef PLAYERBOT
+    // Playerbot
     sGuildTaskMgr.CheckKillTask(this, pVictim);
-    #endif
 
     return xp || honored_kill;
 }
@@ -23272,7 +23253,6 @@ void Player::PrepareGossipMenu(WorldObject* source, uint32 menuId /*= 0*/, bool 
                         TC_LOG_ERROR("sql.sql", "GOSSIP_OPTION_TRAINER:: Player %s (GUID: %u) request wrong gossip menu: %u with wrong class: %u at Creature: %s (Entry: %u, Trainer Class: %u)",
                             GetName().c_str(), GetGUID().GetCounter(), menu->GetGossipMenu().GetMenuId(), GetClass(), creature->GetName().c_str(), creature->GetEntry(), creature->GetCreatureTemplate()->trainer_class);
 
-                    [[fallthrough]];
                 case GOSSIP_OPTION_GOSSIP:
                 case GOSSIP_OPTION_SPIRITGUIDE:
                 case GOSSIP_OPTION_INNKEEPER:

@@ -18,7 +18,6 @@ Optional<uint32> UpdateFieldsDebug::GetBaseIndex(TypeID type, uint32 index)
         if (index >= UNIT_END)
             return {};
 
-        [[fallthrough]];
     case TYPEID_PLAYER:
         if (index >= PLAYER_END)
             return {};
@@ -420,7 +419,6 @@ bool UpdateFieldsDebug::GetFieldNameString(TypeID type, uint32 index, std::strin
         if (index >= UNIT_END)
             return false;
 
-        [[fallthrough]];
     case TYPEID_PLAYER:
         if (index >= PLAYER_END)
             return false;
@@ -903,7 +901,6 @@ UpdateFieldsDebug::UpdateFieldType UpdateFieldsDebug::GetUpdateFieldType(TypeID 
         if (index >= UNIT_END)
             break;
 
-        [[fallthrough]];
     case TYPEID_PLAYER:
         if (index >= PLAYER_END)
             break;

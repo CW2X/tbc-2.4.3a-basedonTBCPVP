@@ -2202,7 +2202,6 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
                 break;
 #endif
         }
-        [[fallthrough]];
         case SMART_ACTION_SET_UNIT_FIELD_BYTES_1:
         {
             uint32 field = (e.GetActionType() == SMART_ACTION_SET_UNIT_FIELD_BYTES_1 ? UNIT_FIELD_BYTES_1 : UNIT_FIELD_BYTES_2);

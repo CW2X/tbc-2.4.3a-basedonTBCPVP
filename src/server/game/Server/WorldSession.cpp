@@ -40,9 +40,8 @@
 #include "PlayerAntiCheat.h"
 #include "GuildMgr.h"
 
-#ifdef PLAYERBOT
+// Playerbot
 #include "playerbot.h"
-#endif
 
 namespace {
 
@@ -187,7 +186,6 @@ void WorldSession::SendPacket(WorldPacket const* packet)
 {
     ASSERT(packet->GetOpcode() != NULL_OPCODE);
 
-#ifdef PLAYERBOT
     // Playerbot mod: send packet to bot AI
     if (GetPlayer())
     {
@@ -196,7 +194,6 @@ void WorldSession::SendPacket(WorldPacket const* packet)
         else if (GetPlayer()->GetPlayerbotMgr())
             GetPlayer()->GetPlayerbotMgr()->HandleMasterOutgoingPacket(*packet);
     }
-#endif
 
     if (!m_Socket)
         return;
@@ -275,9 +272,9 @@ void WorldSession::LogUnprocessedTail(WorldPacket* packet)
 /// Update the WorldSession (triggered by World update)
 bool WorldSession::Update(uint32 diff, PacketFilter& updater)
 {
-    #ifdef PLAYERBOT
-    if (GetPlayer() && GetPlayer()->GetPlayerbotAI()) return true;
-    #endif
+	// Playerbot
+    if (GetPlayer() && GetPlayer()->GetPlayerbotAI())
+		return true;
 
     ///- Before we process anything:
     /// If necessary, kick the player from the game
@@ -358,10 +355,9 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
                         opHandle->Call(this, *packet);
                         LogUnprocessedTail(packet);
 
-                        #ifdef PLAYERBOT
+						// Playerbot
                         if (_player && _player->GetPlayerbotMgr())
                             _player->GetPlayerbotMgr()->HandleMasterIncomingPacket(*packet);
-                        #endif
                     }
                     // lag can cause STATUS_LOGGEDIN opcodes to arrive after the player started a transfer
                     break;
@@ -448,10 +444,9 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
 
     _clientControl.Update(diff);
 
-    #ifdef PLAYERBOT
+    // Playerbot
     if (GetPlayer() && GetPlayer()->GetPlayerbotMgr())
         GetPlayer()->GetPlayerbotMgr()->UpdateSessions(0);
-    #endif
 
     _recvQueue.readd(requeuePackets.begin(), requeuePackets.end());
 
@@ -561,12 +556,10 @@ void WorldSession::LogoutPlayer(bool Save)
         if (ObjectGuid lguid = GetPlayer()->GetLootGUID())
             DoLootRelease(lguid);
 
-        #ifdef PLAYERBOT
         // Playerbot mod: log out all player bots owned by this toon
         if (GetPlayer()->GetPlayerbotMgr())
             GetPlayer()->GetPlayerbotMgr()->LogoutAllBots();
         sRandomPlayerbotMgr.OnPlayerLogout(_player);
-        #endif
 
         ///- If the player just died before logging out, make him appear as a ghost
         //FIXME: logout must be delayed in case lost connection with client in time of combat
@@ -1633,7 +1626,7 @@ void WorldSession::HandleSpellClick(WorldPacket& recvData)
     unit->HandleSpellClick(_player);
 }
 
-#ifdef PLAYERBOT
+// Playerbot
 void WorldSession::HandleBotPackets()
 {
     WorldPacket* packet;
@@ -1644,7 +1637,6 @@ void WorldSession::HandleBotPackets()
         delete packet;
     }
 }
-#endif
 
 bool WorldSession::StartRecording(std::string const& recordName)
 {

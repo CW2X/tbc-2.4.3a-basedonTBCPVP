@@ -833,9 +833,8 @@ class TC_GAME_API WorldSession
         void HandleBattlemasterJoinArena( WorldPacket &recvData );
         void HandleReportPvPAFK( WorldPacket &recvData );
 
-        #ifdef PLAYERBOT
+        // Playerbot
         void HandleBotPackets();
-        #endif
 
         void HandleWardenDataOpcode(WorldPacket& recvData);
         void HandleWorldTeleportOpcode(WorldPacket& recvData);

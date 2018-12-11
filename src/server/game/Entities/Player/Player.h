@@ -38,12 +38,11 @@ class PlayerAI;
 class CinematicMgr;
 class TradeData;
 class ReputationMgr;
-#ifdef PLAYERBOT
+
 // Playerbot mod
 class PlayerbotAI;
 class PlayerbotTestingAI;
 class PlayerbotMgr;
-#endif
 
 typedef std::deque<Mail*> PlayerMails;
 
@@ -2249,7 +2248,6 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         uint32 GetSaveTimer() const { return m_nextSave; }
         void   SetSaveTimer(uint32 timer) { m_nextSave = timer; }
 
-        #ifdef PLAYERBOT
         // A Player can either have a playerbotMgr (to manage its bots), or have playerbotAI (if it is a bot), or
         // neither. Code that enables bots must create the playerbotMgr and set it using SetPlayerbotMgr.
         // EquipmentSets& GetEquipmentSets() { return m_EquipmentSets; } //revmoed, not existing on BC
@@ -2259,10 +2257,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         PlayerbotMgr* GetPlayerbotMgr() { return m_playerbotMgr; }
         void SetBotDeathTimer() { m_deathTimer = 0; }
         //PlayerTalentMap& GetTalentMap(uint8 spec) { return *m_talents[spec]; }
-        #endif
-        #ifdef TESTS
-        PlayerbotTestingAI* GetTestingPlayerbotAI() const;
-        #endif
+
         bool IsTestingBot() const;
 
         // Recall position
@@ -2694,10 +2689,9 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
 
 		bool m_needsZoneUpdate;
 
-#ifdef PLAYERBOT
+		// Playerbot
         PlayerbotAI* m_playerbotAI;
         PlayerbotMgr* m_playerbotMgr;
-#endif
 
         // Player summoning
         time_t m_summon_expire;

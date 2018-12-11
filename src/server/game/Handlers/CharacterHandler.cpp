@@ -31,12 +31,9 @@
 #include "ReputationMgr.h"
 #include "GameTime.h"
 
-#ifdef PLAYERBOT
+// Playerbot
 #include "playerbot.h"
 #include "PlayerbotAIConfig.h"
-#endif
-
-#ifdef PLAYERBOT
 
 class PlayerbotLoginQueryHolder : public LoginQueryHolder
 {
@@ -113,8 +110,6 @@ Player* PlayerbotHolder::AddPlayerBot(ObjectGuid playerGuid, uint32 masterAccoun
     }
     return bot;
 }
-
-#endif
 
 bool LoginQueryHolder::Initialize()
 {
@@ -957,9 +952,6 @@ void WorldSession::_HandlePlayerLogin(Player* pCurrChar, LoginQueryHolder* holde
     {
         group->CheckLeader(pCurrChar->GetGUID(), false); //check leader login
         group->SendUpdate();
-#ifdef LICH_KING
-        group->ResetMaxEnchantingLevel();
-#endif
     }
 
     // show time before shutdown if shutdown planned.
@@ -983,13 +975,12 @@ void WorldSession::_HandlePlayerLogin(Player* pCurrChar, LoginQueryHolder* holde
         pCurrChar->RepopAtGraveyard();
     }
 
-#ifdef PLAYERBOT
+	// Playerbot
     if (!_player->GetPlayerbotAI())
     {
         _player->SetPlayerbotMgr(new PlayerbotMgr(_player));
         sRandomPlayerbotMgr.OnPlayerLogin(_player);
     }
-#endif
 
     sScriptMgr->OnPlayerLogin(pCurrChar, firstLogin);
 

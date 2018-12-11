@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2017 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,18 +15,9 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Banner.h"
-#include "GitRevision.h"
-#include "StringFormat.h"
-
-void Trinity::Banner::Show(char const* applicationName, void(*log)(char const* text), void(*logExtraInfo)())
-{
-	log(Trinity::StringFormat("%s (%s)", GitRevision::GetFullVersion(), applicationName).c_str());
-	log("<Ctrl-C> to stop.\n");
-	log("Konno Productions - World of Warcraft Emulation");
-	log("Website http://www.konnoproductions.org/");
-	log("This project is made with love!\n");
-
-    if (logExtraInfo)
-        logExtraInfo();
-}
+#include "Common.h"
+#include "World.h"
+#include "Log.h"
+#include "Database/DatabaseEnv.h"
+#include "Configuration/Config.h"
+#include "Util.h"

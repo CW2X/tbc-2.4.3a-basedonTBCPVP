@@ -17,13 +17,10 @@
 #include "Config.h"
 #include "Pet.h"
 
-#ifdef PLAYERBOT
+// Playerbot
 #include "playerbot.h"
 #include "GuildTaskMgr.h"
-#endif
-#ifdef TESTS
-#include "TestMgr.h"
-#endif
+
 
 class misc_commandscript : public CommandScript
 {
@@ -1758,22 +1755,14 @@ public:
 
     static bool HandlePlayerbotConsoleCommand(ChatHandler* handler, char const* args)
     {
-    #ifdef PLAYERBOT
+		// Playerbot
         return RandomPlayerbotMgr::HandlePlayerbotConsoleCommand(handler, args);
-    #else
-        handler->SendSysMessage("Core not build with playerbot");
-        return true;
-    #endif
     }
 
     static bool HandlePlayerbotMgrCommand(ChatHandler* handler, char const* args)
     {
-    #ifdef PLAYERBOT
+		// Playerbot
         return PlayerbotMgr::HandlePlayerbotMgrCommand(handler, args);
-    #else
-        handler->SendSysMessage("Core not build with playerbot");
-        return true;
-    #endif
     }
 };
 

@@ -953,7 +953,6 @@ bool SmartAIMgr::IsEventValid(SmartScriptHolder& e)
                 // allow this to load for now
                 // return false;
             }
-            [[fallthrough]];
         }
         case SMART_ACTION_ADD_AURA:
         case SMART_ACTION_SELF_CAST:
