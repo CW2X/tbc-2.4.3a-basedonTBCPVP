@@ -23,6 +23,7 @@
 #include "Implementation/WorldDatabase.h"
 #include "Implementation/CharacterDatabase.h"
 #include "Implementation/LogsDatabase.h"
+#include "Implementation/RealmDatabase.h"
 #include "Log.h"
 #include "PreparedStatement.h"
 #include "ProducerConsumerQueue.h"
@@ -31,6 +32,7 @@
 #include "QueryResult.h"
 #include "SQLOperation.h"
 #include "Transaction.h"
+
 #ifdef _WIN32 // hack for broken mysql.h not including the correct winsock header for SOCKET definition, fixed in 5.7
 #include <winsock2.h>
 #endif
@@ -477,3 +479,4 @@ template class TC_DATABASE_API DatabaseWorkerPool<LoginDatabaseConnection>;
 template class TC_DATABASE_API DatabaseWorkerPool<WorldDatabaseConnection>;
 template class TC_DATABASE_API DatabaseWorkerPool<LogsDatabaseConnection>;
 template class TC_DATABASE_API DatabaseWorkerPool<CharacterDatabaseConnection>;
+template class TC_DATABASE_API DatabaseWorkerPool<RealmDatabaseConnection>;

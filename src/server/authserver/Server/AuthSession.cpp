@@ -1,30 +1,48 @@
+/*
+ * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include "AuthSession.h"
-#include "Log.h"
 #include "AuthCodes.h"
-#include "Database/DatabaseEnv.h"
-#include "QueryCallback.h"
+#include "Config.h"
+#include "Errors.h"
+#include "Log.h"
+#include "DatabaseEnv.h"
+#include "RealmList.h"
 #include "SHA1.h"
 #include "TOTP.h"
-#include "openssl/crypto.h"
-#include "Configuration/Config.h"
-#include "RealmList.h"
+#include "Util.h"
 #include <boost/lexical_cast.hpp>
-
+#include <openssl/crypto.h>
 
 using boost::asio::ip::tcp;
 
 enum eAuthCmd
 {
-    AUTH_LOGON_CHALLENGE = 0x00,
-    AUTH_LOGON_PROOF = 0x01,
-    AUTH_RECONNECT_CHALLENGE = 0x02,
-    AUTH_RECONNECT_PROOF = 0x03,
-    REALM_LIST = 0x10,
-    XFER_INITIATE = 0x30,
-    XFER_DATA = 0x31,
-    XFER_ACCEPT = 0x32,
-    XFER_RESUME = 0x33,
-    XFER_CANCEL = 0x34
+    AUTH_LOGON_CHALLENGE      = 0x00,
+    AUTH_LOGON_PROOF          = 0x01,
+    AUTH_RECONNECT_CHALLENGE  = 0x02,
+    AUTH_RECONNECT_PROOF      = 0x03,
+    REALM_LIST                = 0x10,
+    XFER_INITIATE             = 0x30,
+    XFER_DATA                 = 0x31,
+    XFER_ACCEPT               = 0x32,
+    XFER_RESUME               = 0x33,
+    XFER_CANCEL               = 0x34
 };
 
 #pragma pack(push, 1)
@@ -102,11 +120,11 @@ std::unordered_map<uint8, AuthHandler> AuthSession::InitHandlers()
 {
     std::unordered_map<uint8, AuthHandler> handlers;
 
-    handlers[AUTH_LOGON_CHALLENGE] = { STATUS_CHALLENGE, AUTH_LOGON_CHALLENGE_INITIAL_SIZE, &AuthSession::HandleLogonChallenge };
-    handlers[AUTH_LOGON_PROOF] = { STATUS_LOGON_PROOF, sizeof(AUTH_LOGON_PROOF_C),        &AuthSession::HandleLogonProof };
-    handlers[AUTH_RECONNECT_CHALLENGE] = { STATUS_CHALLENGE, AUTH_LOGON_CHALLENGE_INITIAL_SIZE, &AuthSession::HandleReconnectChallenge };
-    handlers[AUTH_RECONNECT_PROOF] = { STATUS_RECONNECT_PROOF, sizeof(AUTH_RECONNECT_PROOF_C),    &AuthSession::HandleReconnectProof };
-    handlers[REALM_LIST] = { STATUS_AUTHED,    REALM_LIST_PACKET_SIZE,            &AuthSession::HandleRealmList };
+    handlers[AUTH_LOGON_CHALLENGE]     = { STATUS_CHALLENGE,       AUTH_LOGON_CHALLENGE_INITIAL_SIZE, &AuthSession::HandleLogonChallenge };
+    handlers[AUTH_LOGON_PROOF]         = { STATUS_LOGON_PROOF,     sizeof(AUTH_LOGON_PROOF_C),        &AuthSession::HandleLogonProof };
+    handlers[AUTH_RECONNECT_CHALLENGE] = { STATUS_CHALLENGE,       AUTH_LOGON_CHALLENGE_INITIAL_SIZE, &AuthSession::HandleReconnectChallenge };
+    handlers[AUTH_RECONNECT_PROOF]     = { STATUS_RECONNECT_PROOF, sizeof(AUTH_RECONNECT_PROOF_C),    &AuthSession::HandleReconnectProof };
+    handlers[REALM_LIST]               = { STATUS_AUTHED,          REALM_LIST_PACKET_SIZE,            &AuthSession::HandleRealmList };
 
     return handlers;
 }
@@ -118,7 +136,7 @@ void AccountInfo::LoadResult(Field* fields)
     //          0           1         2               3          4                5                                                             6
     //SELECT a.id, a.username, a.locked, a.lock_country, a.last_ip, a.failed_logins, ab.unbandate > UNIX_TIMESTAMP() OR ab.unbandate = ab.bandate,
     //                               7           8            9               10   11   12
-    //       ab.unbandate = ab.bandate, aa.gmlevel, a.token_key, a.password, a.v, a.s
+    //       ab.unbandate = ab.bandate, aa.gmlevel, a.token_key, a.sha_pass_hash, a.v, a.s
     //FROM account a LEFT JOIN account_access aa ON a.id = aa.id LEFT JOIN account_banned ab ON ab.id = a.id AND ab.active = 1 WHERE a.username = ?
 
     Id = fields[0].GetUInt32();
@@ -146,7 +164,6 @@ void AuthSession::Start()
 
     PreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_IP_INFO);
     stmt->setString(0, ip_address);
-    stmt->setUInt32(1, inet_addr(ip_address.c_str()));
 
     _queryProcessor.AddQuery(LoginDatabase.AsyncQuery(stmt).WithPreparedCallback(std::bind(&AuthSession::CheckIpCallback, this, std::placeholders::_1)));
 }
@@ -171,9 +188,6 @@ void AuthSession::CheckIpCallback(PreparedQueryResult result)
             Field* fields = result->Fetch();
             if (fields[0].GetUInt64() != 0)
                 banned = true;
-
-            if (!fields[1].GetString().empty())
-                _ipCountry = fields[1].GetString();
 
         } while (result->NextRow());
 
@@ -263,7 +277,7 @@ bool AuthSession::HandleLogonChallenge()
     if (challenge->size - (sizeof(sAuthLogonChallenge_C) - AUTH_LOGON_CHALLENGE_INITIAL_SIZE - 1) != challenge->I_len)
         return false;
 
-    std::string login((const char*)challenge->I, challenge->I_len);
+    std::string login((char const*)challenge->I, challenge->I_len);
     TC_LOG_DEBUG("server.authserver", "[AuthChallenge] '%s'", login.c_str());
 
     _build = challenge->build;
@@ -343,14 +357,14 @@ void AuthSession::LogonChallengeCallback(PreparedQueryResult result)
         {
             pkt << uint8(WOW_FAIL_BANNED);
             SendPacket(pkt);
-            TC_LOG_DEBUG("server.authserver", "'%s:%d' [AuthChallenge] Banned account %s tried to login!", ipAddress.c_str(), port, _accountInfo.Login.c_str());
+            TC_LOG_INFO("server.authserver.banned", "'%s:%d' [AuthChallenge] Banned account %s tried to login!", ipAddress.c_str(), port, _accountInfo.Login.c_str());
             return;
         }
         else
         {
             pkt << uint8(WOW_FAIL_SUSPENDED);
             SendPacket(pkt);
-            TC_LOG_DEBUG("server.authserver", "'%s:%d' [AuthChallenge] Temporarily banned account %s tried to login!", ipAddress.c_str(), port, _accountInfo.Login.c_str());
+            TC_LOG_INFO("server.authserver.banned", "'%s:%d' [AuthChallenge] Temporarily banned account %s tried to login!", ipAddress.c_str(), port, _accountInfo.Login.c_str());
             return;
         }
     }
@@ -387,7 +401,8 @@ void AuthSession::LogonChallengeCallback(PreparedQueryResult result)
     {
         pkt << uint8(WOW_SUCCESS);
         _status = STATUS_LOGON_PROOF;
-    } else
+    }
+    else
         pkt << uint8(WOW_FAIL_VERSION_INVALID);
 
     // B may be calculated < 32B so we force minimal length to 32B
@@ -458,7 +473,7 @@ bool AuthSession::HandleLogonProof()
         return false;
 
     SHA1Hash sha;
-    sha.UpdateBigNumbers(&A, &B, NULL);
+    sha.UpdateBigNumbers(&A, &B, nullptr);
     sha.Finalize();
     BigNumber u;
     u.SetBinary(sha.GetDigest(), 20);
@@ -494,11 +509,11 @@ bool AuthSession::HandleLogonProof()
     uint8 hash[20];
 
     sha.Initialize();
-    sha.UpdateBigNumbers(&N, NULL);
+    sha.UpdateBigNumbers(&N, nullptr);
     sha.Finalize();
     memcpy(hash, sha.GetDigest(), 20);
     sha.Initialize();
-    sha.UpdateBigNumbers(&g, NULL);
+    sha.UpdateBigNumbers(&g, nullptr);
     sha.Finalize();
 
     for (int i = 0; i < 20; ++i)
@@ -514,9 +529,9 @@ bool AuthSession::HandleLogonProof()
     memcpy(t4, sha.GetDigest(), SHA_DIGEST_LENGTH);
 
     sha.Initialize();
-    sha.UpdateBigNumbers(&t3, NULL);
+    sha.UpdateBigNumbers(&t3, nullptr);
     sha.UpdateData(t4, SHA_DIGEST_LENGTH);
-    sha.UpdateBigNumbers(&s, &A, &B, &K, NULL);
+    sha.UpdateBigNumbers(&s, &A, &B, &K, nullptr);
     sha.Finalize();
     BigNumber M;
     M.SetBinary(sha.GetDigest(), sha.GetLength());
@@ -555,13 +570,12 @@ bool AuthSession::HandleLogonProof()
         stmt->setString(1, GetRemoteIpAddress().to_string());
         stmt->setUInt32(2, GetLocaleByName(_localizationName));
         stmt->setString(3, _os);
-        stmt->setUInt16(4, _build);
-        stmt->setString(5, _accountInfo.Login);
+        stmt->setString(4, _accountInfo.Login);
         LoginDatabase.DirectExecute(stmt);
 
         // Finish SRP6 and send the final result to the client
         sha.Initialize();
-        sha.UpdateBigNumbers(&A, &M, &K, NULL);
+        sha.UpdateBigNumbers(&A, &M, &K, nullptr);
         sha.Finalize();
 
         ByteBuffer packet;
@@ -602,7 +616,7 @@ bool AuthSession::HandleLogonProof()
         packet << uint8(0);
         SendPacket(packet);
 
-        TC_LOG_DEBUG("server.authserver", "'%s:%d' [AuthChallenge] account %s tried to login with invalid password!",
+        TC_LOG_INFO("server.authserver.hack", "'%s:%d' [AuthChallenge] account %s tried to login with invalid password!",
             GetRemoteIpAddress().to_string().c_str(), GetRemotePort(), _accountInfo.Login.c_str());
 
         uint32 MaxWrongPassCount = sConfigMgr->GetIntDefault("WrongPass.MaxCount", 0);
@@ -611,7 +625,7 @@ bool AuthSession::HandleLogonProof()
         if (sConfigMgr->GetBoolDefault("WrongPass.Logging", false))
         {
             PreparedStatement* logstmt = LoginDatabase.GetPreparedStatement(LOGIN_INS_FALP_IP_LOGGING);
-            logstmt->setString(0, _accountInfo.Login);
+            logstmt->setUInt32(0, _accountInfo.Id);
             logstmt->setString(1, GetRemoteIpAddress().to_string());
             logstmt->setString(2, "Logged on failed AccountLogin due wrong password");
 
@@ -625,7 +639,7 @@ bool AuthSession::HandleLogonProof()
             stmt->setString(0, _accountInfo.Login);
             LoginDatabase.Execute(stmt);
 
-            if (_accountInfo.FailedLogins >= MaxWrongPassCount)
+            if (++_accountInfo.FailedLogins >= MaxWrongPassCount)
             {
                 uint32 WrongPassBanTime = sConfigMgr->GetIntDefault("WrongPass.BanTime", 600);
                 bool WrongPassBanType = sConfigMgr->GetBoolDefault("WrongPass.BanType", false);
@@ -665,7 +679,7 @@ bool AuthSession::HandleReconnectChallenge()
     if (challenge->size - (sizeof(sAuthLogonChallenge_C) - AUTH_LOGON_CHALLENGE_INITIAL_SIZE - 1) != challenge->I_len)
         return false;
 
-    std::string login((const char*)challenge->I, challenge->I_len);
+    std::string login((char const*)challenge->I, challenge->I_len);
     TC_LOG_DEBUG("server.authserver", "[ReconnectChallenge] '%s'", login.c_str());
 
     _build = challenge->build;
@@ -732,7 +746,7 @@ bool AuthSession::HandleReconnectProof()
     SHA1Hash sha;
     sha.Initialize();
     sha.UpdateData(_accountInfo.Login);
-    sha.UpdateBigNumbers(&t1, &_reconnectProof, &K, NULL);
+    sha.UpdateBigNumbers(&t1, &_reconnectProof, &K, nullptr);
     sha.Finalize();
 
     if (!memcmp(sha.GetDigest(), reconnectProof->R2, SHA_DIGEST_LENGTH))
@@ -748,7 +762,7 @@ bool AuthSession::HandleReconnectProof()
     }
     else
     {
-        TC_LOG_ERROR("server.authserver", "'%s:%d' [ERROR] user %s tried to login, but session is invalid.", GetRemoteIpAddress().to_string().c_str(),
+        TC_LOG_ERROR("server.authserver.hack", "'%s:%d' [ERROR] user %s tried to login, but session is invalid.", GetRemoteIpAddress().to_string().c_str(),
             GetRemotePort(), _accountInfo.Login.c_str());
         return false;
     }
@@ -758,10 +772,10 @@ bool AuthSession::HandleRealmList()
 {
     TC_LOG_DEBUG("server.authserver", "Entering _HandleRealmList");
 
-    PreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_REALM_CHARACTER_COUNTS);
+    PreparedStatement* stmt = RealmDatabase.GetPreparedStatement(REALM_SEL_REALM_CHARACTER_COUNTS);
     stmt->setUInt32(0, _accountInfo.Id);
 
-    _queryProcessor.AddQuery(LoginDatabase.AsyncQuery(stmt).WithPreparedCallback(std::bind(&AuthSession::RealmListCallback, this, std::placeholders::_1)));
+    _queryProcessor.AddQuery(RealmDatabase.AsyncQuery(stmt).WithPreparedCallback(std::bind(&AuthSession::RealmListCallback, this, std::placeholders::_1)));
     _status = STATUS_WAITING_FOR_REALM_LIST;
     return true;
 }
@@ -784,7 +798,7 @@ void AuthSession::RealmListCallback(PreparedQueryResult result)
     size_t RealmListSize = 0;
     for (RealmList::RealmMap::value_type const& i : sRealmList->GetRealms())
     {
-        const Realm &realm = i.second;
+        Realm const& realm = i.second;
         // don't work with realms which not compatible with the client
         bool okBuild = ((_expversion & POST_BC_EXP_FLAG) && realm.Build == _build) || ((_expversion & PRE_BC_EXP_FLAG) && !AuthHelper::IsPreBCAcceptedClientBuild(realm.Build));
 
@@ -796,7 +810,7 @@ void AuthSession::RealmListCallback(PreparedQueryResult result)
             if (!buildInfo)
                 continue;
 
-            flag |= REALM_FLAG_OFFLINE | REALM_FLAG_SPECIFYBUILD;   // tell the client what build the realm is for
+            flag |= REALM_FLAG_VERSION_MISMATCH; // if client version doesn't match, show invalid version on realm.
         }
 
         if (!buildInfo)
@@ -889,7 +903,6 @@ void AuthSession::SetVSFields(const std::string& rI)
     v = g.ModExp(x, N);
 
     // No SQL injection (username escaped)
-
     PreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_VS);
     stmt->setString(0, v.AsHexStr());
     stmt->setString(1, s.AsHexStr());

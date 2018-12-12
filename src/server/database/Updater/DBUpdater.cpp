@@ -161,6 +161,33 @@ bool DBUpdater<LogsDatabaseConnection>::IsEnabled(uint32 const updateMask)
     return (updateMask & DatabaseLoader::DATABASE_LOGS) ? true : false;
 }
 
+// Realm Database
+template<>
+std::string DBUpdater<RealmDatabaseConnection>::GetConfigEntry()
+{
+	return "Updates.Realm";
+}
+
+template<>
+std::string DBUpdater<RealmDatabaseConnection>::GetTableName()
+{
+	return "Realm";
+}
+
+template<>
+std::string DBUpdater<RealmDatabaseConnection>::GetBaseFile()
+{
+	return BuiltInConfig::GetSourceDirectory() +
+		"/sql/base/realm_database.sql";
+}
+
+template<>
+bool DBUpdater<RealmDatabaseConnection>::IsEnabled(uint32 const updateMask)
+{
+	// This way silences warnings under msvc
+	return (updateMask & DatabaseLoader::DATABASE_REALM) ? true : false;
+}
+
 // All
 template<class T>
 BaseLocation DBUpdater<T>::GetBaseLocationType()
@@ -405,3 +432,4 @@ template class TC_DATABASE_API DBUpdater<LoginDatabaseConnection>;
 template class TC_DATABASE_API DBUpdater<WorldDatabaseConnection>;
 template class TC_DATABASE_API DBUpdater<CharacterDatabaseConnection>;
 template class TC_DATABASE_API DBUpdater<LogsDatabaseConnection>;
+template class TC_DATABASE_API DBUpdater<RealmDatabaseConnection>;

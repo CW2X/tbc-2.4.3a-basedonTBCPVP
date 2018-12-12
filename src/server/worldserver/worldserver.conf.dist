@@ -38,6 +38,8 @@ LogsDir = ""
 #    LoginDatabaseInfo
 #    WorldDatabaseInfo
 #    CharacterDatabaseInfo
+#    LogsDatabaseInfo
+#    RealmDatabaseInfo
 #        Database connection settings for the world server.
 #        Default: hostname;port;username;password;database
 #
@@ -46,6 +48,7 @@ LoginDatabaseInfo     = "127.0.0.1;3306;trinity;trinity;auth"
 WorldDatabaseInfo     = "127.0.0.1;3306;trinity;trinity;world"
 CharacterDatabaseInfo = "127.0.0.1;3306;trinity;trinity;characters"
 LogsDatabaseInfo      = "127.0.0.1;3306;trinity;trinity;logs"
+RealmDatabaseInfo     = "127.0.0.1;3306;trinity;trinity;realm"
 
 #
 #    MaxPingTime
@@ -59,6 +62,7 @@ MaxPingTime = 5
 #    WorldDatabase.WorkerThreads
 #    CharacterDatabase.WorkerThreads
 #    LogsDatabase.WorkerThreads
+#    RealmDatabase.WorkerThreads
 #        Description: The amount of worker threads spawned to handle asynchronous (delayed) MySQL
 #                     statements. Each worker thread is mirrored with its own connection to the
 #                     MySQL server and their own thread on the MySQL server.
@@ -66,29 +70,34 @@ MaxPingTime = 5
 #                 1 - (WorldDatabase.WorkerThreads)
 #                 1 - (CharacterDatabase.WorkerThreads)
 #                 1 - (LogsDatabase.WorkerThreads)
+#                 1 - (RealmDatabase.WorkerThreads)
 #
 
 LoginDatabase.WorkerThreads     = 1
 WorldDatabase.WorkerThreads     = 1
 CharacterDatabase.WorkerThreads = 1
 LogsDatabase.WorkerThreads      = 1
+RealmDatabase.WorkerThreads     = 1
 
 #
 #    LoginDatabase.SynchThreads
 #    WorldDatabase.SynchThreads
 #    CharacterDatabase.SynchThreads
 #    LogsDatabase.SynchThreads
+#    RealmDatabase.SynchThreads
 #        Description: The amount of MySQL connections spawned to handle.
 #        Default:     1 - (LoginDatabase.WorkerThreads)
 #                     1 - (WorldDatabase.WorkerThreads)
 #                     1 - (CharacterDatabase.WorkerThreads)
 #                     1 - (LogsDatabase.WorkerThreads)
+#                     1 - (RealmDatabase.WorkerThreads)
 #
 
 LoginDatabase.SynchThreads     = 1
 WorldDatabase.SynchThreads     = 1
 CharacterDatabase.SynchThreads = 1
 LogsDatabase.SynchThreads      = 1
+RealmDatabase.SynchThreads     = 1
 
 #
 #    WorldServerPort

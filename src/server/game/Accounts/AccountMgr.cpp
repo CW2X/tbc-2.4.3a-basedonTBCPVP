@@ -37,9 +37,6 @@ AccountOpResult AccountMgr::CreateAccount(std::string username, std::string pass
 
     LoginDatabase.DirectExecute(stmt); // Enforce saving, otherwise AddGroup can fail
 
-    stmt = LoginDatabase.GetPreparedStatement(LOGIN_INS_REALM_CHARACTERS_INIT);
-    LoginDatabase.Execute(stmt);
-
     return AOR_OK;                                          // everything's fine
 }
 
@@ -104,15 +101,16 @@ AccountOpResult AccountMgr::DeleteAccount(uint32 accountId)
     stmt->setUInt32(0, accountId);
     trans->Append(stmt);
 
-    stmt = LoginDatabase.GetPreparedStatement(LOGIN_DEL_REALM_CHARACTERS);
-    stmt->setUInt32(0, accountId);
-    trans->Append(stmt);
-
     stmt = LoginDatabase.GetPreparedStatement(LOGIN_DEL_ACCOUNT_BANNED);
     stmt->setUInt32(0, accountId);
     trans->Append(stmt);
 
     LoginDatabase.CommitTransaction(trans);
+
+	// Realm Database stuff here.
+	stmt = RealmDatabase.GetPreparedStatement(REALM_DEL_REALM_CHARACTERS);
+	stmt->setUInt32(0, accountId);
+	RealmDatabase.Execute(stmt);
 
     return AOR_OK;
 }

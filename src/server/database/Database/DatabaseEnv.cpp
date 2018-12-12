@@ -21,3 +21,4 @@ DatabaseWorkerPool<WorldDatabaseConnection> WorldDatabase;
 DatabaseWorkerPool<CharacterDatabaseConnection> CharacterDatabase;
 DatabaseWorkerPool<LoginDatabaseConnection> LoginDatabase;
 DatabaseWorkerPool<LogsDatabaseConnection> LogsDatabase;
+DatabaseWorkerPool<RealmDatabaseConnection> RealmDatabase;

@@ -404,9 +404,9 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket & recvData)
             return;
         }
 
-        PreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_SUM_REALM_CHARACTERS);
+        PreparedStatement* stmt = RealmDatabase.GetPreparedStatement(REALM_SEL_SUM_REALM_CHARACTERS);
         stmt->setUInt32(0, GetAccountId());
-        queryCallback.SetNextQuery(LoginDatabase.AsyncQuery(stmt));
+        queryCallback.SetNextQuery(RealmDatabase.AsyncQuery(stmt));
     })
         .WithChainingPreparedCallback([this](QueryCallback& queryCallback, PreparedQueryResult result)
     {
@@ -514,20 +514,20 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket & recvData)
             newChar.SaveToDB(true);
             createInfo->CharCount += 1;
 
-            SQLTransaction trans = LoginDatabase.BeginTransaction();
+            SQLTransaction trans = RealmDatabase.BeginTransaction();
 
-            PreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_DEL_REALM_CHARACTERS_BY_REALM);
+            PreparedStatement* stmt = RealmDatabase.GetPreparedStatement(REALM_DEL_REALM_CHARACTERS_BY_REALM);
             stmt->setUInt32(0, GetAccountId());
             stmt->setUInt32(1, realm.Id.Realm);
             trans->Append(stmt);
 
-            stmt = LoginDatabase.GetPreparedStatement(LOGIN_INS_REALM_CHARACTERS);
+            stmt = RealmDatabase.GetPreparedStatement(REALM_INS_REALM_CHARACTERS);
             stmt->setUInt32(0, createInfo->CharCount);
             stmt->setUInt32(1, GetAccountId());
             stmt->setUInt32(2, realm.Id.Realm);
             trans->Append(stmt);
 
-            LoginDatabase.CommitTransaction(trans);
+            RealmDatabase.CommitTransaction(trans);
 
             // sun: moved to Player::SaveToDB (see explanation there)
             // SendCharCreate(CHAR_CREATE_SUCCESS);

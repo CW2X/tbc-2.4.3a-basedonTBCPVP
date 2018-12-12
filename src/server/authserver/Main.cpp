@@ -18,13 +18,15 @@
 #include "MySQLThreading.h"
 #include "GitRevision.h"
 #include "Util.h"
-#include <iostream>
+#include "AppenderDB.h"
+
 #include <boost/asio/signal_set.hpp>
 #include <boost/program_options.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <openssl/opensslv.h>
 #include <openssl/crypto.h>
-#include "AppenderDB.h"
+
+#include <iostream>
 #include <csignal>
 
 using boost::asio::ip::tcp;
@@ -212,7 +214,8 @@ bool StartDB()
     // Increasing it is just silly since only 1 will be used ever.
     DatabaseLoader loader("server.authserver", DatabaseLoader::DATABASE_NONE);
     loader
-        .AddDatabase(LoginDatabase, "Login");
+        .AddDatabase(LoginDatabase, "Login")
+		.AddDatabase(RealmDatabase, "Realm");
 
     if (!loader.Load())
         return false;
@@ -226,6 +229,7 @@ bool StartDB()
 void StopDB()
 {
     LoginDatabase.Close();
+	RealmDatabase.Close();
     MySQL::Library_End();
 }
 
@@ -244,6 +248,7 @@ void KeepDatabaseAliveHandler(std::weak_ptr<boost::asio::deadline_timer> dbPingT
         {
             TC_LOG_INFO("server.authserver", "Ping MySQL to keep connection alive");
             LoginDatabase.KeepAlive();
+			RealmDatabase.KeepAlive();
 
             dbPingTimer->expires_from_now(boost::posix_time::minutes(dbPingInterval));
             dbPingTimer->async_wait(std::bind(&KeepDatabaseAliveHandler, dbPingTimerRef, dbPingInterval, std::placeholders::_1));

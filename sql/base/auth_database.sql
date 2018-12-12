@@ -1,31 +1,21 @@
--- MySQL dump 10.15  Distrib 10.0.28-MariaDB, for debian-linux-gnu (x86_64)
---
--- Host: localhost    Database: localhost
--- ------------------------------------------------------
--- Server version	10.0.28-MariaDB-0+deb8u1
+-- --------------------------------------------------------
+-- Host:                         192.168.174.3
+-- Server version:               5.7.24-0ubuntu0.18.04.1 - (Ubuntu)
+-- Server OS:                    Linux
+-- HeidiSQL Version:             9.4.0.5125
+-- --------------------------------------------------------
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
 /*!40101 SET NAMES utf8 */;
-/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
-/*!40103 SET TIME_ZONE='+00:00' */;
-/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!50503 SET NAMES utf8mb4 */;
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
-/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
---
--- Table structure for table `account`
---
-
-DROP TABLE IF EXISTS `account`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `account` (
+-- Dumping structure for table account
+CREATE TABLE IF NOT EXISTS `account` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Identifier',
   `username` varchar(32) NOT NULL DEFAULT '',
-  `password` varchar(40) NOT NULL DEFAULT '',
+  `sha_pass_hash` varchar(40) NOT NULL DEFAULT '',
   `sessionkey` varchar(80) NOT NULL DEFAULT '',
   `v` varchar(64) NOT NULL DEFAULT '',
   `s` varchar(64) NOT NULL DEFAULT '',
@@ -38,7 +28,7 @@ CREATE TABLE `account` (
   `failed_logins` int(10) unsigned NOT NULL DEFAULT '0',
   `locked` tinyint(3) unsigned NOT NULL DEFAULT '0',
   `lock_country` varchar(2) NOT NULL DEFAULT '00',
-  `last_login` timestamp NULL,
+  `last_login` timestamp NULL DEFAULT NULL,
   `online` tinyint(3) unsigned NOT NULL DEFAULT '0',
   `expansion` tinyint(3) unsigned NOT NULL DEFAULT '2',
   `mutetime` bigint(20) NOT NULL DEFAULT '0',
@@ -46,58 +36,31 @@ CREATE TABLE `account` (
   `muteby` varchar(50) NOT NULL DEFAULT '',
   `locale` tinyint(3) unsigned NOT NULL DEFAULT '0',
   `os` varchar(3) NOT NULL DEFAULT '',
-  `build` smallint(5) unsigned DEFAULT NULL,
   `recruiter` int(10) unsigned NOT NULL DEFAULT '0',
-  `newMailTS` int(11) NOT NULL DEFAULT '0' COMMENT 'Timestamp for mail change',
-  `newMail` varchar(255) DEFAULT NULL COMMENT 'New mail applied when newMailTS expire',
-  `rank` int(32) DEFAULT NULL,
-  `staff_id` int(32) DEFAULT NULL,
-  `vp` varchar(32) DEFAULT NULL,
-  `dp` varchar(32) DEFAULT NULL,
-  `isactive` int(32) DEFAULT NULL,
-  `activation` varchar(255) DEFAULT NULL,
-  `pass_verif` varchar(255) DEFAULT NULL COMMENT 'Web recover password',
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_username` (`username`)
-) ENGINE=InnoDB AUTO_INCREMENT=98 DEFAULT CHARSET=utf8 COMMENT='Account System';
-/*!40101 SET character_set_client = @saved_cs_client */;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8 COMMENT='Account System';
 
-/*Data for the table `account` */		
-  		  
- insert  into `account`(`id`,`username`,`password`,`sessionkey`,`v`,`s`,`token_key`,`email`,`reg_mail`,`joindate`,`last_ip`,`last_attempt_ip`,`failed_logins`,`locked`,`lock_country`,`last_login`,`online`,`expansion`,`mutetime`,`mutereason`,`muteby`,`locale`,`os`,`recruiter`,`newMailTS`,`newMail`,`rank`,`staff_id`,`vp`,`dp`,`isactive`,`activation`) values (1,'TEST','3D0D99423E31FCC67A6745EC89D70D700344BC76','4F655C922864A4315B5A32CB9FFA3DD87EA85BC04284A841D9734C7753F1443FFD15643822D38028','1B66E60BD064AFA4B1BD4280021C985DF37C78AB2F42F35DD8B68681F2177DD4','A071BC67E9EA79DC8799206CED92B31C7D443F534C2911FB8D1E428F283BDE8D','','','','2014-07-26 22:23:54','109.222.215.54','109.222.215.54',0,0,'00','2015-03-28 18:22:15',0,2,0,'','',0,'Win',0,0,NULL,0,NULL,NULL,NULL,1,NULL),(2,'TEST2','4EBB48A1FCFA0F4B846B039CE23D2F1412B80E90','D655E031A351F5170CED4CDE4854597601B39D45A7C8BED41C410FA8F68942A00C5D06796AED01CE','78EA465B778040B59E9DD3ECA23A0E5B6DC1A659D6C442047EA87A2C9C79C722','9C657403085563C29BB337D2CF6C29A60B3F6B9BE681CB46577A74AA2892FDFF','','','','2014-07-26 22:24:08','92.140.162.107','92.140.162.107',0,0,'00','2015-03-26 16:18:15',0,2,0,'','',2,'Win',0,0,NULL,0,NULL,NULL,NULL,1,NULL),(3,'TEST3','bf0f312a51ed09706a0476f44e7f2fc6b3131fc3','C6C947494E312B1488D0A5BCFFB2A5D66D65D5AC592DAB52B7BAA7CFFDA8374042852628A842ABF6','5385DEEE2AF09AED94BA246B5A66B15D2DB2CCB14558C523D4FF2EEAF33949E4','A54F0AA02C6CE4A27F9F78E17E29EF450678EC278AED5D2ADC07D9DA65994561','','lol','lal','2014-09-10 23:32:20','86.73.238.81','86.73.238.81',0,0,'00','2015-03-26 16:11:25',0,2,0,'','',2,'Win',0,0,NULL,0,NULL,NULL,NULL,1,NULL),(4,'TEST4','8495ed33b86da3c2b9e2131d272749e997adf110','1B86B5A57EA4A0403F05EF3A0B48849E7A7EBDFDAC66762FC199D60B770EA8170F474BBCD682678C','8312AC78F3A3C992B08CAF1E21983D9EA4E7993C5C46F820A5BB07D51C4E8AAD','C33773F4C29288DCB1B7692AEAA1ACCD2EDC9D9A3E02EBB2EA3509AFCC3E35FB','','lol','lal','2014-09-10 23:38:50','109.89.168.63','109.89.168.63',0,0,'00','2015-03-28 18:22:17',0,2,0,'','',0,'Win',0,0,NULL,0,NULL,NULL,NULL,1,NULL),(5,'TEST5','6ca6d8465d6f8c59df6e46e87944c0c4abb96988','5264D3B16031BE32985008A9282EA34E4BA2935A7FB7464895C64548DDD6456EBDAD1F0548B7B386','14D6D7846B3DA559ED2A1791791F0FFFCF33F8E4BDBF88E65E128D3824601856','976484A3F7DB6D524A10895178334BDAD3BFE0B809B656ECB6FAD1D809C1C977','','lol','lal','2014-09-10 23:38:58','109.89.168.63','109.89.168.63',0,0,'00','2015-01-25 14:04:12',0,2,0,'','',0,'Win',0,0,NULL,0,NULL,NULL,NULL,1,NULL);
+-- Dumping data for table account: ~0 rows (approximately)
+DELETE FROM `account`;
+/*!40000 ALTER TABLE `account` DISABLE KEYS */;
+/*!40000 ALTER TABLE `account` ENABLE KEYS */;
 
---
--- Table structure for table `account_access`
---
-
-DROP TABLE IF EXISTS `account_access`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `account_access` (
+-- Dumping structure for table account_access
+CREATE TABLE IF NOT EXISTS `account_access` (
   `id` int(10) unsigned NOT NULL,
   `gmlevel` tinyint(3) unsigned NOT NULL,
   `RealmID` int(11) NOT NULL DEFAULT '-1',
   PRIMARY KEY (`id`,`RealmID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
 
+-- Dumping data for table account_access: ~0 rows (approximately)
+DELETE FROM `account_access`;
+/*!40000 ALTER TABLE `account_access` DISABLE KEYS */;
+/*!40000 ALTER TABLE `account_access` ENABLE KEYS */;
 
-
-insert  into `account_access`(`id`,`gmlevel`,`RealmID`) values 
-(1,5,-1),
-(2,5,-1),
-(3,5,-1),
-(4,5,-1),
-(5,5,-1);
-
---
--- Table structure for table `account_banned`
---
-
-DROP TABLE IF EXISTS `account_banned`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `account_banned` (
+-- Dumping structure for table account_banned
+CREATE TABLE IF NOT EXISTS `account_banned` (
   `id` int(10) unsigned NOT NULL DEFAULT '0' COMMENT 'Account id',
   `bandate` int(10) unsigned NOT NULL DEFAULT '0',
   `unbandate` int(10) unsigned NOT NULL DEFAULT '0',
@@ -106,100 +69,43 @@ CREATE TABLE `account_banned` (
   `active` tinyint(3) unsigned NOT NULL DEFAULT '1',
   PRIMARY KEY (`id`,`bandate`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Ban List';
-/*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Table structure for table `autobroadcast`
---
+-- Dumping data for table account_banned: ~0 rows (approximately)
+DELETE FROM `account_banned`;
+/*!40000 ALTER TABLE `account_banned` DISABLE KEYS */;
+/*!40000 ALTER TABLE `account_banned` ENABLE KEYS */;
 
-DROP TABLE IF EXISTS `autobroadcast`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `autobroadcast` (
+-- Dumping structure for table account_muted
+CREATE TABLE IF NOT EXISTS `account_muted` (
+  `guid` int(10) unsigned NOT NULL DEFAULT '0' COMMENT 'Global Unique Identifier',
+  `mutedate` int(10) unsigned NOT NULL DEFAULT '0',
+  `mutetime` int(10) unsigned NOT NULL DEFAULT '0',
+  `mutedby` varchar(50) NOT NULL,
+  `mutereason` varchar(255) NOT NULL,
+  PRIMARY KEY (`guid`,`mutedate`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='mute List';
+
+-- Dumping data for table account_muted: ~0 rows (approximately)
+DELETE FROM `account_muted`;
+/*!40000 ALTER TABLE `account_muted` DISABLE KEYS */;
+/*!40000 ALTER TABLE `account_muted` ENABLE KEYS */;
+
+-- Dumping structure for table autobroadcast
+CREATE TABLE IF NOT EXISTS `autobroadcast` (
   `realmid` int(11) NOT NULL DEFAULT '-1',
   `id` tinyint(3) unsigned NOT NULL AUTO_INCREMENT,
   `weight` tinyint(3) unsigned DEFAULT '1',
   `text` longtext NOT NULL,
   PRIMARY KEY (`id`,`realmid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Table structure for table `creature_respawn`
---
+-- Dumping data for table autobroadcast: ~0 rows (approximately)
+DELETE FROM `autobroadcast`;
+/*!40000 ALTER TABLE `autobroadcast` DISABLE KEYS */;
+/*!40000 ALTER TABLE `autobroadcast` ENABLE KEYS */;
 
-DROP TABLE IF EXISTS `creature_respawn`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `creature_respawn` (
-  `guid` int(10) unsigned NOT NULL DEFAULT '0' COMMENT 'Global Unique Identifier',
-  `respawnTime` int(10) unsigned NOT NULL DEFAULT '0',
-  `mapId` smallint(10) unsigned NOT NULL DEFAULT '0',
-  `instanceId` int(10) unsigned NOT NULL DEFAULT '0' COMMENT 'Instance Identifier',
-  PRIMARY KEY (`guid`,`instanceId`),
-  KEY `idx_instance` (`instanceId`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Grid Loading System';
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `gameobject_respawn`
---
-
-DROP TABLE IF EXISTS `gameobject_respawn`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `gameobject_respawn` (
-  `guid` int(10) unsigned NOT NULL DEFAULT '0' COMMENT 'Global Unique Identifier',
-  `respawnTime` int(10) unsigned NOT NULL DEFAULT '0',
-  `mapId` smallint(10) unsigned NOT NULL DEFAULT '0',
-  `instanceId` int(10) unsigned NOT NULL DEFAULT '0' COMMENT 'Instance Identifier',
-  PRIMARY KEY (`guid`,`instanceId`),
-  KEY `idx_instance` (`instanceId`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Grid Loading System';
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `ip2nation`
---
-
-DROP TABLE IF EXISTS `ip2nation`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `ip2nation` (
-  `ip` int(11) unsigned NOT NULL DEFAULT '0',
-  `country` char(2) NOT NULL DEFAULT '',
-  KEY `ip` (`ip`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `ip2nationCountries`
---
-
-DROP TABLE IF EXISTS `ip2nationCountries`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `ip2nationCountries` (
-  `code` varchar(4) NOT NULL DEFAULT '',
-  `iso_code_2` varchar(2) NOT NULL DEFAULT '',
-  `iso_code_3` varchar(3) DEFAULT '',
-  `iso_country` varchar(255) NOT NULL DEFAULT '',
-  `country` varchar(255) NOT NULL DEFAULT '',
-  `lat` float NOT NULL DEFAULT '0',
-  `lon` float NOT NULL DEFAULT '0',
-  PRIMARY KEY (`code`),
-  KEY `code` (`code`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `ip_banned`
---
-
-DROP TABLE IF EXISTS `ip_banned`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `ip_banned` (
+-- Dumping structure for table ip_banned
+CREATE TABLE IF NOT EXISTS `ip_banned` (
   `ip` varchar(15) NOT NULL DEFAULT '127.0.0.1',
   `bandate` int(10) unsigned NOT NULL,
   `unbandate` int(10) unsigned NOT NULL,
@@ -207,32 +113,28 @@ CREATE TABLE `ip_banned` (
   `banreason` varchar(255) NOT NULL DEFAULT 'no reason',
   PRIMARY KEY (`ip`,`bandate`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Banned IPs';
-/*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Table structure for table `logs`
---
+-- Dumping data for table ip_banned: ~0 rows (approximately)
+DELETE FROM `ip_banned`;
+/*!40000 ALTER TABLE `ip_banned` DISABLE KEYS */;
+/*!40000 ALTER TABLE `ip_banned` ENABLE KEYS */;
 
-DROP TABLE IF EXISTS `logs`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `logs` (
+-- Dumping structure for table logs
+CREATE TABLE IF NOT EXISTS `logs` (
   `time` int(10) unsigned NOT NULL,
   `realm` int(10) unsigned NOT NULL,
   `type` varchar(250) NOT NULL,
   `level` tinyint(3) unsigned NOT NULL DEFAULT '0',
   `string` text CHARACTER SET latin1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Table structure for table `logs_ip_actions`
---
+-- Dumping data for table logs: ~0 rows (approximately)
+DELETE FROM `logs`;
+/*!40000 ALTER TABLE `logs` DISABLE KEYS */;
+/*!40000 ALTER TABLE `logs` ENABLE KEYS */;
 
-DROP TABLE IF EXISTS `logs_ip_actions`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `logs_ip_actions` (
+-- Dumping structure for table logs_ip_actions
+CREATE TABLE IF NOT EXISTS `logs_ip_actions` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Unique Identifier',
   `account_id` int(10) unsigned NOT NULL COMMENT 'Account ID',
   `character_guid` int(10) unsigned NOT NULL COMMENT 'Character Guid',
@@ -243,17 +145,15 @@ CREATE TABLE `logs_ip_actions` (
   `time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Timestamp',
   `comment` text COMMENT 'Allows users to add a comment',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Used to log ips of individual actions';
-/*!40101 SET character_set_client = @saved_cs_client */;
+) ENGINE=InnoDB AUTO_INCREMENT=36 DEFAULT CHARSET=utf8 COMMENT='Used to log ips of individual actions';
 
---
--- Table structure for table `rbac_account_permissions`
---
+-- Dumping data for table logs_ip_actions: ~0 rows (approximately)
+DELETE FROM `logs_ip_actions`;
+/*!40000 ALTER TABLE `logs_ip_actions` DISABLE KEYS */;
+/*!40000 ALTER TABLE `logs_ip_actions` ENABLE KEYS */;
 
-DROP TABLE IF EXISTS `rbac_account_permissions`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `rbac_account_permissions` (
+-- Dumping structure for table rbac_account_permissions
+CREATE TABLE IF NOT EXISTS `rbac_account_permissions` (
   `accountId` int(10) unsigned NOT NULL COMMENT 'Account id',
   `permissionId` int(10) unsigned NOT NULL COMMENT 'Permission id',
   `granted` tinyint(1) NOT NULL DEFAULT '1' COMMENT 'Granted = 1, Denied = 0',
@@ -263,16 +163,19 @@ CREATE TABLE `rbac_account_permissions` (
   CONSTRAINT `fk__rbac_account_permissions__account` FOREIGN KEY (`accountId`) REFERENCES `account` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk__rbac_account_roles__rbac_permissions` FOREIGN KEY (`permissionId`) REFERENCES `rbac_permissions` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Account-Permission relation';
-/*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Table structure for table `rbac_default_permissions`
---
+-- Dumping data for table rbac_account_permissions: ~4 rows (approximately)
+DELETE FROM `rbac_account_permissions`;
+/*!40000 ALTER TABLE `rbac_account_permissions` DISABLE KEYS */;
+INSERT INTO `rbac_account_permissions` (`accountId`, `permissionId`, `granted`, `realmId`) VALUES
+	(1, 180, 1, -1),
+	(1, 183, 1, -1),
+	(1, 185, 1, -1),
+	(1, 192, 1, -1);
+/*!40000 ALTER TABLE `rbac_account_permissions` ENABLE KEYS */;
 
-DROP TABLE IF EXISTS `rbac_default_permissions`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `rbac_default_permissions` (
+-- Dumping structure for table rbac_default_permissions
+CREATE TABLE IF NOT EXISTS `rbac_default_permissions` (
   `secId` int(10) unsigned NOT NULL COMMENT 'Security Level id',
   `permissionId` int(10) unsigned NOT NULL COMMENT 'permission id',
   `realmId` int(11) NOT NULL DEFAULT '-1' COMMENT 'Realm Id, -1 means all',
@@ -280,16 +183,18 @@ CREATE TABLE `rbac_default_permissions` (
   KEY `fk__rbac_default_permissions__rbac_permissions` (`permissionId`),
   CONSTRAINT `fk__rbac_default_permissions__rbac_permissions` FOREIGN KEY (`permissionId`) REFERENCES `rbac_permissions` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Default permission to assign to different account security levels';
-/*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Table structure for table `rbac_linked_permissions`
---
+-- Dumping data for table rbac_default_permissions: ~3 rows (approximately)
+DELETE FROM `rbac_default_permissions`;
+/*!40000 ALTER TABLE `rbac_default_permissions` DISABLE KEYS */;
+INSERT INTO `rbac_default_permissions` (`secId`, `permissionId`, `realmId`) VALUES
+	(2, 192, -1),
+	(1, 193, -1),
+	(0, 194, -1);
+/*!40000 ALTER TABLE `rbac_default_permissions` ENABLE KEYS */;
 
-DROP TABLE IF EXISTS `rbac_linked_permissions`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `rbac_linked_permissions` (
+-- Dumping structure for table rbac_linked_permissions
+CREATE TABLE IF NOT EXISTS `rbac_linked_permissions` (
   `id` int(10) unsigned NOT NULL COMMENT 'Permission id',
   `linkedId` int(10) unsigned NOT NULL COMMENT 'Linked Permission id',
   PRIMARY KEY (`id`,`linkedId`),
@@ -298,100 +203,936 @@ CREATE TABLE `rbac_linked_permissions` (
   CONSTRAINT `fk__rbac_linked_permissions__rbac_permissions1` FOREIGN KEY (`id`) REFERENCES `rbac_permissions` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk__rbac_linked_permissions__rbac_permissions2` FOREIGN KEY (`linkedId`) REFERENCES `rbac_permissions` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Permission - Linked Permission relation';
-/*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Table structure for table `rbac_permissions`
---
+-- Dumping data for table rbac_linked_permissions: ~244 rows (approximately)
+DELETE FROM `rbac_linked_permissions`;
+/*!40000 ALTER TABLE `rbac_linked_permissions` DISABLE KEYS */;
+INSERT INTO `rbac_linked_permissions` (`id`, `linkedId`) VALUES
+	(180, 217),
+	(180, 223),
+	(180, 225),
+	(180, 242),
+	(180, 244),
+	(180, 245),
+	(180, 247),
+	(180, 248),
+	(180, 249),
+	(180, 251),
+	(180, 252),
+	(180, 253),
+	(180, 255),
+	(180, 274),
+	(180, 275),
+	(180, 283),
+	(180, 402),
+	(180, 403),
+	(180, 430),
+	(180, 433),
+	(180, 435),
+	(180, 447),
+	(180, 448),
+	(180, 488),
+	(180, 489),
+	(180, 532),
+	(180, 545),
+	(180, 551),
+	(180, 554),
+	(180, 727),
+	(180, 728),
+	(180, 745),
+	(180, 748),
+	(180, 753),
+	(181, 239),
+	(181, 240),
+	(181, 273),
+	(181, 284),
+	(181, 367),
+	(181, 368),
+	(181, 371),
+	(181, 372),
+	(181, 373),
+	(181, 374),
+	(181, 375),
+	(181, 376),
+	(181, 377),
+	(181, 387),
+	(181, 392),
+	(181, 394),
+	(181, 401),
+	(181, 407),
+	(181, 412),
+	(181, 415),
+	(181, 417),
+	(181, 424),
+	(181, 429),
+	(181, 436),
+	(181, 442),
+	(181, 450),
+	(181, 451),
+	(181, 453),
+	(181, 459),
+	(181, 466),
+	(181, 468),
+	(181, 490),
+	(181, 496),
+	(181, 500),
+	(181, 504),
+	(181, 505),
+	(181, 507),
+	(181, 510),
+	(181, 512),
+	(181, 515),
+	(181, 517),
+	(181, 520),
+	(181, 523),
+	(181, 524),
+	(181, 525),
+	(181, 528),
+	(181, 529),
+	(181, 531),
+	(181, 534),
+	(181, 544),
+	(181, 561),
+	(181, 562),
+	(181, 570),
+	(181, 593),
+	(181, 594),
+	(181, 602),
+	(181, 603),
+	(181, 604),
+	(181, 718),
+	(181, 725),
+	(181, 737),
+	(181, 740),
+	(181, 741),
+	(181, 742),
+	(181, 743),
+	(181, 744),
+	(181, 746),
+	(181, 747),
+	(181, 749),
+	(181, 750),
+	(181, 751),
+	(181, 752),
+	(181, 754),
+	(181, 755),
+	(181, 756),
+	(181, 759),
+	(181, 760),
+	(181, 794),
+	(181, 860),
+	(181, 865),
+	(181, 1002),
+	(183, 200),
+	(183, 201),
+	(183, 202),
+	(183, 203),
+	(183, 204),
+	(183, 205),
+	(183, 206),
+	(183, 257),
+	(183, 258),
+	(183, 259),
+	(183, 260),
+	(183, 261),
+	(183, 262),
+	(183, 291),
+	(183, 294),
+	(183, 420),
+	(183, 422),
+	(183, 607),
+	(183, 630),
+	(183, 680),
+	(183, 698),
+	(183, 726),
+	(183, 729),
+	(183, 730),
+	(183, 733),
+	(183, 734),
+	(183, 735),
+	(183, 761),
+	(183, 762),
+	(183, 764),
+	(183, 778),
+	(183, 791),
+	(183, 792),
+	(185, 300),
+	(185, 303),
+	(185, 304),
+	(185, 312),
+	(185, 348),
+	(185, 349),
+	(185, 352),
+	(185, 355),
+	(185, 358),
+	(185, 361),
+	(185, 364),
+	(185, 389),
+	(185, 390),
+	(185, 391),
+	(185, 398),
+	(185, 399),
+	(185, 444),
+	(185, 449),
+	(185, 456),
+	(185, 457),
+	(185, 552),
+	(185, 553),
+	(185, 571),
+	(185, 575),
+	(185, 576),
+	(185, 611),
+	(185, 612),
+	(185, 613),
+	(185, 615),
+	(185, 616),
+	(185, 618),
+	(185, 619),
+	(185, 620),
+	(185, 621),
+	(185, 622),
+	(185, 1001),
+	(185, 1003),
+	(185, 1004),
+	(192, 1),
+	(192, 2),
+	(192, 7),
+	(192, 9),
+	(192, 10),
+	(192, 11),
+	(192, 24),
+	(192, 25),
+	(192, 26),
+	(192, 27),
+	(192, 28),
+	(192, 31),
+	(192, 33),
+	(192, 34),
+	(192, 35),
+	(192, 36),
+	(192, 37),
+	(192, 38),
+	(192, 39),
+	(192, 43),
+	(192, 44),
+	(192, 45),
+	(192, 47),
+	(192, 48),
+	(192, 180),
+	(192, 181),
+	(193, 1),
+	(193, 2),
+	(193, 7),
+	(193, 9),
+	(193, 10),
+	(193, 11),
+	(193, 24),
+	(193, 25),
+	(193, 26),
+	(193, 27),
+	(193, 28),
+	(193, 31),
+	(193, 32),
+	(193, 33),
+	(193, 34),
+	(193, 36),
+	(193, 37),
+	(193, 38),
+	(193, 39),
+	(193, 44),
+	(193, 45),
+	(193, 47),
+	(193, 181),
+	(194, 3),
+	(194, 4),
+	(194, 5),
+	(194, 6),
+	(194, 9),
+	(194, 10),
+	(194, 24),
+	(194, 28),
+	(194, 43);
+/*!40000 ALTER TABLE `rbac_linked_permissions` ENABLE KEYS */;
 
-DROP TABLE IF EXISTS `rbac_permissions`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `rbac_permissions` (
+-- Dumping structure for table rbac_permissions
+CREATE TABLE IF NOT EXISTS `rbac_permissions` (
   `id` int(10) unsigned NOT NULL DEFAULT '0' COMMENT 'Permission id',
   `name` varchar(100) NOT NULL COMMENT 'Permission name',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Permission List';
-/*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Table structure for table `realmcharacters`
---
+-- Dumping data for table rbac_permissions: ~673 rows (approximately)
+DELETE FROM `rbac_permissions`;
+/*!40000 ALTER TABLE `rbac_permissions` DISABLE KEYS */;
+INSERT INTO `rbac_permissions` (`id`, `name`) VALUES
+	(1, 'Instant logout'),
+	(2, 'Skip Queue'),
+	(3, 'Join Normal Battleground'),
+	(4, 'Join Random Battleground'),
+	(5, 'Join Arenas'),
+	(6, 'Join Dungeon Finder'),
+	(7, 'Skip idle connection check'),
+	(9, 'Allow use of the mail box'),
+	(10, 'Allow use of the auction house'),
+	(11, 'Log GM trades'),
+	(13, 'Skip Instance required bosses check'),
+	(14, 'Skip character creation team mask check'),
+	(15, 'Skip character creation class mask check'),
+	(16, 'Skip character creation race mask check'),
+	(17, 'Skip character creation reserved name check'),
+	(18, 'Skip character creation death knight min level check'),
+	(19, 'Skip needed requirements to use channel check'),
+	(20, 'Skip disable map check'),
+	(21, 'Skip reset talents when used more than allowed check'),
+	(22, 'Skip spam chat check'),
+	(23, 'Skip over-speed ping check'),
+	(24, 'Two side faction characters on the same account'),
+	(25, 'Allow say chat between factions'),
+	(26, 'Allow channel chat between factions'),
+	(27, 'Two side mail interaction'),
+	(28, 'See two side who list'),
+	(29, 'Add friends of other faction'),
+	(30, 'Save character without delay with .save command'),
+	(31, 'Use params with .unstuck command'),
+	(32, 'Can be assigned tickets with .assign ticket command'),
+	(33, 'Notify if a command was not found'),
+	(34, 'Check if should appear in list using .gm ingame command'),
+	(35, 'See all security levels with who command'),
+	(36, 'Filter whispers'),
+	(37, 'Use staff badge in chat'),
+	(38, 'Resurrect with full Health Points'),
+	(39, 'Restore saved gm setting states'),
+	(40, 'Allows to add a gm to friend list'),
+	(41, 'Use Config option START_GM_LEVEL to assign new character level'),
+	(42, 'Allows to use CMSG_WORLD_TELEPORT opcode'),
+	(43, 'Allows to use CMSG_WHOIS opcode'),
+	(44, 'Receive global GM messages/texts'),
+	(45, 'Join channels without announce'),
+	(46, 'Change channel settings without being channel moderator'),
+	(47, 'Enables lower security than target check'),
+	(48, 'Enable IP, Last Login and EMail output in pinfo'),
+	(49, 'Forces to enter the email for confirmation on password change'),
+	(50, 'Allow user to check his own email with .account'),
+	(51, 'Allow trading between factions'),
+	(52, 'Suspend use of the mail box'),
+	(180, 'Role: Administrator Commands'),
+	(181, 'Role: Gamemaster Commands'),
+	(182, 'Role: Player Commands'),
+	(183, 'Role: Head Administrator Commands'),
+	(184, 'Role: Head GameMaster Commands'),
+	(185, 'Role: Developer Commands'),
+	(192, 'Role: Sec Level Administrator'),
+	(193, 'Role: Sec Level Gamemaster'),
+	(194, 'Role: Sec Level Player'),
+	(200, 'Command: rbac'),
+	(201, 'Command: rbac account'),
+	(202, 'Command: rbac account list'),
+	(203, 'Command: rbac account grant'),
+	(204, 'Command: rbac account deny'),
+	(205, 'Command: rbac account revoke'),
+	(206, 'Command: rbac list'),
+	(217, 'Command: account'),
+	(218, 'Command: account addon'),
+	(219, 'Command: account create'),
+	(220, 'Command: account delete'),
+	(221, 'Command: account lock'),
+	(222, 'Command: account lock country'),
+	(223, 'Command: account lock ip'),
+	(224, 'Command: account onlinelist'),
+	(225, 'Command: account password'),
+	(226, 'Command: account set'),
+	(227, 'Command: account set addon'),
+	(228, 'Command: account set gmlevel'),
+	(229, 'Command: account set password'),
+	(230, 'Command: achievement'),
+	(231, 'Command: achievement add'),
+	(232, 'Command: arena'),
+	(233, 'Command: arena captain'),
+	(234, 'Command: arena create'),
+	(235, 'Command: arena disband'),
+	(236, 'Command: arena info'),
+	(237, 'Command: arena lookup'),
+	(238, 'Command: arena rename'),
+	(239, 'Command: ban'),
+	(240, 'Command: ban account'),
+	(241, 'Command: ban character'),
+	(242, 'Command: ban ip'),
+	(243, 'Command: ban playeraccount'),
+	(244, 'Command: baninfo'),
+	(245, 'Command: baninfo account'),
+	(246, 'Command: baninfo character'),
+	(247, 'Command: baninfo ip'),
+	(248, 'Command: banlist'),
+	(249, 'Command: banlist account'),
+	(250, 'Command: banlist character'),
+	(251, 'Command: banlist ip'),
+	(252, 'Command: unban'),
+	(253, 'Command: unban account'),
+	(254, 'Command: unban character'),
+	(255, 'Command: unban ip'),
+	(256, 'Command: unban playeraccount'),
+	(257, 'Command: bf'),
+	(258, 'Command: bf start'),
+	(259, 'Command: bf stop'),
+	(260, 'Command: bf switch'),
+	(261, 'Command: bf timer'),
+	(262, 'Command: bf enable'),
+	(263, 'Command: account email'),
+	(264, 'Command: account set sec'),
+	(265, 'Command: account set sec email'),
+	(266, 'Command: account set sec regmail'),
+	(267, 'Command: cast'),
+	(268, 'Command: cast back'),
+	(269, 'Command: cast dist'),
+	(270, 'Command: cast self'),
+	(271, 'Command: cast target'),
+	(272, 'Command: cast dest'),
+	(273, 'Command: character'),
+	(274, 'Command: character customize'),
+	(275, 'Command: character changefaction'),
+	(276, 'Command: character changerace'),
+	(277, 'Command: character deleted'),
+	(279, 'Command: character deleted list'),
+	(280, 'Command: character deleted restore'),
+	(283, 'Command: character level'),
+	(284, 'Command: character rename'),
+	(285, 'Command: character reputation'),
+	(286, 'Command: character titles'),
+	(287, 'Command: levelup'),
+	(288, 'Command: pdump'),
+	(289, 'Command: pdump load'),
+	(290, 'Command: pdump write'),
+	(291, 'Command: cheat'),
+	(292, 'Command: cheat casttime'),
+	(293, 'Command: cheat cooldown'),
+	(294, 'Command: cheat explore'),
+	(295, 'Command: cheat god'),
+	(296, 'Command: cheat power'),
+	(297, 'Command: cheat status'),
+	(298, 'Command: cheat taxi'),
+	(299, 'Command: cheat waterwalk'),
+	(300, 'Command: debug'),
+	(301, 'Command: debug anim'),
+	(302, 'Command: debug areatriggers'),
+	(303, 'Command: debug arena'),
+	(304, 'Command: debug bg'),
+	(305, 'Command: debug entervehicle'),
+	(306, 'Command: debug getitemstate'),
+	(307, 'Command: debug getitemvalue'),
+	(308, 'Command: debug getvalue'),
+	(309, 'Command: debug combat'),
+	(310, 'Command: debug itemexpire'),
+	(311, 'Command: debug lootrecipient'),
+	(312, 'Command: debug los'),
+	(313, 'Command: debug mod32value'),
+	(314, 'Command: debug moveflags'),
+	(315, 'Command: debug play'),
+	(316, 'Command: debug play cinematics'),
+	(317, 'Command: debug play movie'),
+	(318, 'Command: debug play sound'),
+	(319, 'Command: debug send'),
+	(320, 'Command: debug send buyerror'),
+	(321, 'Command: debug send channelnotify'),
+	(322, 'Command: debug send chatmessage'),
+	(323, 'Command: debug send equiperror'),
+	(324, 'Command: debug send largepacket'),
+	(325, 'Command: debug send opcode'),
+	(326, 'Command: debug send qinvalidmsg'),
+	(327, 'Command: debug send qpartymsg'),
+	(328, 'Command: debug send sellerror'),
+	(329, 'Command: debug send setphaseshift'),
+	(330, 'Command: debug send spellfail'),
+	(331, 'Command: debug setaurastate'),
+	(332, 'Command: debug setbit'),
+	(333, 'Command: debug setitemvalue'),
+	(334, 'Command: debug setvalue'),
+	(335, 'Command: debug setvid'),
+	(336, 'Command: debug spawnvehicle'),
+	(337, 'Command: debug threat'),
+	(338, 'Command: debug update'),
+	(339, 'Command: debug worldstate'),
+	(340, 'Command: wpgps'),
+	(341, 'Command: deserter'),
+	(342, 'Command: deserter bg'),
+	(343, 'Command: deserter bg add'),
+	(344, 'Command: deserter bg remove'),
+	(345, 'Command: deserter instance'),
+	(346, 'Command: deserter instance add'),
+	(347, 'Command: deserter instance remove'),
+	(348, 'Command: disable'),
+	(349, 'Command: disable add'),
+	(350, 'Command: disable add achievement_criteria'),
+	(351, 'Command: disable add battleground'),
+	(352, 'Command: disable add map'),
+	(353, 'Command: disable add mmap'),
+	(354, 'Command: disable add outdoorpvp'),
+	(355, 'Command: disable add quest'),
+	(356, 'Command: disable add spell'),
+	(357, 'Command: disable add vmap'),
+	(358, 'Command: disable remove'),
+	(359, 'Command: disable remove achievement_criteria'),
+	(360, 'Command: disable remove battleground'),
+	(361, 'Command: disable remove map'),
+	(362, 'Command: disable remove mmap'),
+	(363, 'Command: disable remove outdoorpvp'),
+	(364, 'Command: disable remove quest'),
+	(365, 'Command: disable remove spell'),
+	(366, 'Command: disable remove vmap'),
+	(367, 'Command: event'),
+	(368, 'Command: event activelist'),
+	(369, 'Command: event start'),
+	(370, 'Command: event stop'),
+	(371, 'Command: gm'),
+	(372, 'Command: gm chat'),
+	(373, 'Command: gm fly'),
+	(374, 'Command: gm ingame'),
+	(375, 'Command: gm list'),
+	(376, 'Command: gm visible'),
+	(377, 'Command: go'),
+	(387, 'Command: gobject'),
+	(388, 'Command: gobject activate'),
+	(389, 'Command: gobject add'),
+	(390, 'Command: gobject add temp'),
+	(391, 'Command: gobject delete'),
+	(392, 'Command: gobject info'),
+	(393, 'Command: gobject move'),
+	(394, 'Command: gobject near'),
+	(395, 'Command: gobject set'),
+	(396, 'Command: gobject set phase'),
+	(397, 'Command: gobject set state'),
+	(398, 'Command: gobject target'),
+	(399, 'Command: gobject turn'),
+	(400, 'Command: debug transport'),
+	(401, 'Command: guild'),
+	(402, 'Command: guild create'),
+	(403, 'Command: guild delete'),
+	(404, 'Command: guild invite'),
+	(405, 'Command: guild uninvite'),
+	(406, 'Command: guild rank'),
+	(407, 'Command: guild rename'),
+	(408, 'Command: honor'),
+	(409, 'Command: honor add'),
+	(410, 'Command: honor add kill'),
+	(411, 'Command: honor update'),
+	(412, 'Command: instance'),
+	(413, 'Command: instance listbinds'),
+	(414, 'Command: instance unbind'),
+	(415, 'Command: instance stats'),
+	(416, 'Command: instance savedata'),
+	(417, 'Command: learn'),
+	(418, 'Command: learn all'),
+	(419, 'Command: learn all my'),
+	(420, 'Command: learn all my class'),
+	(421, 'Command: learn all my pettalents'),
+	(422, 'Command: learn all my spells'),
+	(423, 'Command: learn all my talents'),
+	(424, 'Command: learn all gm'),
+	(425, 'Command: learn all crafts'),
+	(426, 'Command: learn all default'),
+	(427, 'Command: learn all lang'),
+	(428, 'Command: learn all recipes'),
+	(429, 'Command: unlearn'),
+	(430, 'Command: lfg'),
+	(431, 'Command: lfg player'),
+	(432, 'Command: lfg group'),
+	(433, 'Command: lfg queue'),
+	(434, 'Command: lfg clean'),
+	(435, 'Command: lfg options'),
+	(436, 'Command: list'),
+	(437, 'Command: list creature'),
+	(438, 'Command: list item'),
+	(439, 'Command: list object'),
+	(440, 'Command: list auras'),
+	(441, 'Command: list mail'),
+	(442, 'Command: lookup'),
+	(443, 'Command: lookup area'),
+	(444, 'Command: lookup creature'),
+	(445, 'Command: lookup event'),
+	(446, 'Command: lookup faction'),
+	(447, 'Command: lookup item'),
+	(448, 'Command: lookup itemset'),
+	(449, 'Command: lookup object'),
+	(450, 'Command: lookup quest'),
+	(451, 'Command: lookup player'),
+	(452, 'Command: lookup player ip'),
+	(453, 'Command: lookup player account'),
+	(454, 'Command: lookup player email'),
+	(455, 'Command: lookup skill'),
+	(456, 'Command: lookup spell'),
+	(457, 'Command: lookup spell id'),
+	(458, 'Command: lookup taxinode'),
+	(459, 'Command: lookup tele'),
+	(460, 'Command: lookup title'),
+	(461, 'Command: lookup map'),
+	(462, 'Command: announce'),
+	(463, 'Command: channel'),
+	(464, 'Command: channel set'),
+	(465, 'Command: channel set ownership'),
+	(466, 'Command: gmannounce'),
+	(467, 'Command: gmnameannounce'),
+	(468, 'Command: gmnotify'),
+	(469, 'Command: nameannounce'),
+	(470, 'Command: notify'),
+	(471, 'Command: whispers'),
+	(472, 'Command: group'),
+	(473, 'Command: group leader'),
+	(474, 'Command: group disband'),
+	(475, 'Command: group remove'),
+	(476, 'Command: group join'),
+	(477, 'Command: group list'),
+	(478, 'Command: group summon'),
+	(479, 'Command: pet'),
+	(480, 'Command: pet create'),
+	(481, 'Command: pet learn'),
+	(482, 'Command: pet unlearn'),
+	(483, 'Command: send'),
+	(484, 'Command: send items'),
+	(485, 'Command: send mail'),
+	(486, 'Command: send message'),
+	(487, 'Command: send money'),
+	(488, 'Command: additem'),
+	(489, 'Command: additemset'),
+	(490, 'Command: appear'),
+	(491, 'Command: aura'),
+	(492, 'Command: bank'),
+	(493, 'Command: bindsight'),
+	(494, 'Command: combatstop'),
+	(495, 'Command: cometome'),
+	(496, 'Command: commands'),
+	(497, 'Command: cooldown'),
+	(498, 'Command: damage'),
+	(499, 'Command: dev'),
+	(500, 'Command: die'),
+	(501, 'Command: dismount'),
+	(502, 'Command: distance'),
+	(503, 'Command: flusharenapoints'),
+	(504, 'Command: freeze'),
+	(505, 'Command: gps'),
+	(506, 'Command: guid'),
+	(507, 'Command: help'),
+	(508, 'Command: hidearea'),
+	(509, 'Command: itemmove'),
+	(510, 'Command: kick'),
+	(511, 'Command: linkgrave'),
+	(512, 'Command: listfreeze'),
+	(513, 'Command: maxskill'),
+	(514, 'Command: movegens'),
+	(515, 'Command: mute'),
+	(516, 'Command: neargrave'),
+	(517, 'Command: pinfo'),
+	(518, 'Command: playall'),
+	(519, 'Command: possess'),
+	(520, 'Command: recall'),
+	(521, 'Command: repairitems'),
+	(522, 'Command: respawn'),
+	(523, 'Command: revive'),
+	(524, 'Command: saveall'),
+	(525, 'Command: save'),
+	(526, 'Command: setskill'),
+	(527, 'Command: showarea'),
+	(528, 'Command: summon'),
+	(529, 'Command: unaura'),
+	(530, 'Command: unbindsight'),
+	(531, 'Command: unfreeze'),
+	(532, 'Command: unmute'),
+	(533, 'Command: unpossess'),
+	(534, 'Command: unstuck'),
+	(535, 'Command: wchange'),
+	(536, 'Command: mmap'),
+	(537, 'Command: mmap loadedtiles'),
+	(538, 'Command: mmap loc'),
+	(539, 'Command: mmap path'),
+	(540, 'Command: mmap stats'),
+	(541, 'Command: mmap testarea'),
+	(542, 'Command: morph'),
+	(543, 'Command: demorph'),
+	(544, 'Command: modify'),
+	(545, 'Command: modify arenapoints'),
+	(546, 'Command: modify bit'),
+	(547, 'Command: modify drunk'),
+	(548, 'Command: modify energy'),
+	(549, 'Command: modify faction'),
+	(550, 'Command: modify gender'),
+	(551, 'Command: modify honor'),
+	(552, 'Command: modify hp'),
+	(553, 'Command: modify mana'),
+	(554, 'Command: modify money'),
+	(555, 'Command: modify mount'),
+	(556, 'Command: modify phase'),
+	(557, 'Command: modify rage'),
+	(558, 'Command: modify reputation'),
+	(559, 'Command: modify runicpower'),
+	(560, 'Command: modify scale'),
+	(561, 'Command: modify speed'),
+	(562, 'Command: modify speed all'),
+	(563, 'Command: modify speed backwalk'),
+	(564, 'Command: modify speed fly'),
+	(565, 'Command: modify speed walk'),
+	(566, 'Command: modify speed swim'),
+	(567, 'Command: modify spell'),
+	(568, 'Command: modify standstate'),
+	(569, 'Command: modify talentpoints'),
+	(570, 'Command: npc'),
+	(571, 'Command: npc add'),
+	(572, 'Command: npc add formation'),
+	(573, 'Command: npc add item'),
+	(574, 'Command: npc add move'),
+	(575, 'Command: npc add temp'),
+	(576, 'Command: npc add delete'),
+	(577, 'Command: npc add delete item'),
+	(578, 'Command: npc add follow'),
+	(579, 'Command: npc add follow stop'),
+	(580, 'Command: npc set'),
+	(581, 'Command: npc set allowmove'),
+	(582, 'Command: npc set entry'),
+	(583, 'Command: npc set factionid'),
+	(584, 'Command: npc set flag'),
+	(585, 'Command: npc set level'),
+	(586, 'Command: npc set link'),
+	(587, 'Command: npc set model'),
+	(588, 'Command: npc set movetype'),
+	(589, 'Command: npc set phase'),
+	(590, 'Command: npc set spawndist'),
+	(591, 'Command: npc set spawntime'),
+	(592, 'Command: npc set data'),
+	(593, 'Command: npc info'),
+	(594, 'Command: npc near'),
+	(595, 'Command: npc move'),
+	(596, 'Command: npc playemote'),
+	(597, 'Command: npc say'),
+	(598, 'Command: npc textemote'),
+	(599, 'Command: npc whisper'),
+	(600, 'Command: npc yell'),
+	(601, 'Command: npc tame'),
+	(602, 'Command: quest'),
+	(603, 'Command: quest add'),
+	(604, 'Command: quest complete'),
+	(605, 'Command: quest remove'),
+	(606, 'Command: quest reward'),
+	(607, 'Command: reload'),
+	(608, 'Command: reload access_requirement'),
+	(609, 'Command: reload achievement_criteria_data'),
+	(610, 'Command: reload achievement_reward'),
+	(611, 'Command: reload all'),
+	(612, 'Command: reload all achievement'),
+	(613, 'Command: reload all area'),
+	(614, 'Command: broadcast_text'),
+	(615, 'Command: reload all gossips'),
+	(616, 'Command: reload all item'),
+	(617, 'Command: reload all locales'),
+	(618, 'Command: reload all loot'),
+	(619, 'Command: reload all npc'),
+	(620, 'Command: reload all quest'),
+	(621, 'Command: reload all scripts'),
+	(622, 'Command: reload all spell'),
+	(623, 'Command: reload areatrigger_involvedrelation'),
+	(624, 'Command: reload areatrigger_tavern'),
+	(625, 'Command: reload areatrigger_teleport'),
+	(626, 'Command: reload auctions'),
+	(627, 'Command: reload autobroadcast'),
+	(628, 'Command: reload command'),
+	(629, 'Command: reload conditions'),
+	(630, 'Command: reload config'),
+	(631, 'Command: reload battleground_template'),
+	(632, 'Command: .mutehistory'),
+	(633, 'Command: reload creature_linked_respawn'),
+	(634, 'Command: reload creature_loot_template'),
+	(635, 'Command: reload creature_onkill_reputation'),
+	(636, 'Command: reload creature_questender'),
+	(637, 'Command: reload creature_queststarter'),
+	(638, 'Command: reload creature_summon_groups'),
+	(639, 'Command: reload creature_template'),
+	(640, 'Command: reload creature_text'),
+	(641, 'Command: reload disables'),
+	(642, 'Command: reload disenchant_loot_template'),
+	(643, 'Command: reload event_scripts'),
+	(644, 'Command: reload fishing_loot_template'),
+	(645, 'Command: reload game_graveyard_zone'),
+	(646, 'Command: reload game_tele'),
+	(647, 'Command: reload gameobject_questender'),
+	(648, 'Command: reload gameobject_loot_template'),
+	(649, 'Command: reload gameobject_queststarter'),
+	(650, 'Command: reload gm_tickets'),
+	(651, 'Command: reload gossip_menu'),
+	(652, 'Command: reload gossip_menu_option'),
+	(653, 'Command: reload item_enchantment_template'),
+	(654, 'Command: reload item_loot_template'),
+	(655, 'Command: reload item_set_names'),
+	(656, 'Command: reload lfg_dungeon_rewards'),
+	(657, 'Command: reload locales_achievement_reward'),
+	(658, 'Command: reload locales_creature'),
+	(659, 'Command: reload locales_creature_text'),
+	(660, 'Command: reload locales_gameobject'),
+	(661, 'Command: reload locales_gossip_menu_option'),
+	(662, 'Command: reload locales_item'),
+	(663, 'Command: reload locales_item_set_name'),
+	(664, 'Command: reload locales_npc_text'),
+	(665, 'Command: reload locales_page_text'),
+	(666, 'Command: reload locales_points_of_interest'),
+	(667, 'Command: reload locales_quest'),
+	(668, 'Command: reload mail_level_reward'),
+	(669, 'Command: reload mail_loot_template'),
+	(670, 'Command: reload milling_loot_template'),
+	(671, 'Command: reload npc_spellclick_spells'),
+	(672, 'Command: reload npc_trainer'),
+	(673, 'Command: reload npc_vendor'),
+	(674, 'Command: reload page_text'),
+	(675, 'Command: reload pickpocketing_loot_template'),
+	(676, 'Command: reload points_of_interest'),
+	(677, 'Command: reload prospecting_loot_template'),
+	(678, 'Command: reload quest_poi'),
+	(679, 'Command: reload quest_template'),
+	(680, 'Command: reload rbac'),
+	(681, 'Command: reload reference_loot_template'),
+	(682, 'Command: reload reserved_name'),
+	(683, 'Command: reload reputation_reward_rate'),
+	(684, 'Command: reload reputation_spillover_template'),
+	(685, 'Command: reload skill_discovery_template'),
+	(686, 'Command: reload skill_extra_item_template'),
+	(687, 'Command: reload skill_fishing_base_level'),
+	(688, 'Command: reload skinning_loot_template'),
+	(689, 'Command: reload smart_scripts'),
+	(690, 'Command: reload spell_required'),
+	(691, 'Command: reload spell_area'),
+	(692, 'Command: reload spell_bonus_data'),
+	(693, 'Command: reload spell_group'),
+	(694, 'Command: reload spell_learn_spell'),
+	(695, 'Command: reload spell_loot_template'),
+	(696, 'Command: reload spell_linked_spell'),
+	(697, 'Command: reload spell_pet_auras'),
+	(698, 'Command: character changeaccount'),
+	(699, 'Command: reload spell_proc'),
+	(700, 'Command: reload spell_scripts'),
+	(701, 'Command: reload spell_target_position'),
+	(702, 'Command: reload spell_threats'),
+	(703, 'Command: reload spell_group_stack_rules'),
+	(704, 'Command: reload trinity_string'),
+	(705, 'Command: reload warden_action'),
+	(706, 'Command: reload waypoint_scripts'),
+	(707, 'Command: reload waypoint_data'),
+	(708, 'Command: reload vehicle_accessory'),
+	(709, 'Command: reload vehicle_template_accessory'),
+	(710, 'Command: reset'),
+	(711, 'Command: reset achievements'),
+	(712, 'Command: reset honor'),
+	(713, 'Command: reset level'),
+	(714, 'Command: reset spells'),
+	(715, 'Command: reset stats'),
+	(716, 'Command: reset talents'),
+	(717, 'Command: reset all'),
+	(718, 'Command: server'),
+	(719, 'Command: server corpses'),
+	(720, 'Command: server exit'),
+	(721, 'Command: server idlerestart'),
+	(722, 'Command: server idlerestart cancel'),
+	(723, 'Command: server idleshutdown'),
+	(724, 'Command: server idleshutdown cancel'),
+	(725, 'Command: server info'),
+	(726, 'Command: server plimit'),
+	(727, 'Command: server restart'),
+	(728, 'Command: server restart cancel'),
+	(729, 'Command: server set'),
+	(730, 'Command: server set closed'),
+	(731, 'Command: server set difftime'),
+	(732, 'Command: server set loglevel'),
+	(733, 'Command: server set motd'),
+	(734, 'Command: server shutdown'),
+	(735, 'Command: server shutdown cancel'),
+	(736, 'Command: server motd'),
+	(737, 'Command: tele'),
+	(738, 'Command: tele add'),
+	(739, 'Command: tele del'),
+	(740, 'Command: tele name'),
+	(741, 'Command: tele group'),
+	(742, 'Command: ticket'),
+	(743, 'Command: ticket assign'),
+	(744, 'Command: ticket close'),
+	(745, 'Command: ticket closedlist'),
+	(746, 'Command: ticket comment'),
+	(747, 'Command: ticket complete'),
+	(748, 'Command: ticket delete'),
+	(749, 'Command: ticket escalate'),
+	(750, 'Command: ticket escalatedlist'),
+	(751, 'Command: ticket list'),
+	(752, 'Command: ticket onlinelist'),
+	(753, 'Command: ticket reset'),
+	(754, 'Command: ticket response'),
+	(755, 'Command: ticket response append'),
+	(756, 'Command: ticket response appendln'),
+	(757, 'Command: ticket togglesystem'),
+	(758, 'Command: ticket unassign'),
+	(759, 'Command: ticket viewid'),
+	(760, 'Command: ticket viewname'),
+	(761, 'Command: titles'),
+	(762, 'Command: titles add'),
+	(763, 'Command: titles current'),
+	(764, 'Command: titles remove'),
+	(765, 'Command: titles set'),
+	(766, 'Command: titles set mask'),
+	(767, 'Command: wp'),
+	(768, 'Command: wp add'),
+	(769, 'Command: wp event'),
+	(770, 'Command: wp load'),
+	(771, 'Command: wp modify'),
+	(772, 'Command: wp unload'),
+	(773, 'Command: wp reload'),
+	(774, 'Command: wp show'),
+	(777, 'Command: mailbox'),
+	(778, 'Command: ahbot'),
+	(779, 'Command: ahbot items'),
+	(780, 'Command: ahbot items gray'),
+	(781, 'Command: ahbot items white'),
+	(782, 'Command: ahbot items green'),
+	(783, 'Command: ahbot items blue'),
+	(784, 'Command: ahbot items purple'),
+	(785, 'Command: ahbot items orange'),
+	(786, 'Command: ahbot items yellow'),
+	(787, 'Command: ahbot ratio'),
+	(788, 'Command: ahbot ratio alliance'),
+	(789, 'Command: ahbot ratio horde'),
+	(790, 'Command: ahbot ratio neutral'),
+	(791, 'Command: ahbot rebuild'),
+	(792, 'Command: ahbot reload'),
+	(793, 'Command: ahbot status'),
+	(794, 'Command: guild info'),
+	(795, 'Command: instance setbossstate'),
+	(796, 'Command: instance getbossstate'),
+	(797, 'Command: pvpstats'),
+	(798, 'Command: mod xp'),
+	(835, 'Command: debug loadcells'),
+	(836, 'Command: debug boundary'),
+	(837, 'Command: npc evade'),
+	(838, 'Command: pet level'),
+	(839, 'Command: server shutdown force'),
+	(840, 'Command: server restart force'),
+	(841, 'Command: debug neargraveyard'),
+	(843, 'Command: reload quest_greeting'),
+	(855, 'Command: debug play music'),
+	(856, 'Command: npc spawngroup'),
+	(857, 'Command: npc despawngroup'),
+	(858, 'Command: gobject spawngroup'),
+	(859, 'Command: gobject despawngroup'),
+	(860, 'Command: list respawns'),
+	(861, 'Command: group set'),
+	(862, 'Command: group set assistant'),
+	(863, 'Command: group set maintank'),
+	(864, 'Command: group set mainassist'),
+	(865, 'Command: npc showloot'),
+	(866, 'Command: list spawnpoints'),
+	(867, 'Command: reload quest_greeting_locale'),
+	(870, 'Command: debug threatinfo'),
+	(871, 'Command: debug instancespawn'),
+	(872, 'Command: server debug'),
+	(873, 'Command: reload creature_movement_override'),
+	(1000, 'Command: lfg debug'),
+	(1001, 'Command: npc reload'),
+	(1002, 'Command: list quests'),
+	(1003, 'Command: disable add item'),
+	(1004, 'Command: disable remove item');
+/*!40000 ALTER TABLE `rbac_permissions` ENABLE KEYS */;
 
-DROP TABLE IF EXISTS `realmcharacters`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `realmcharacters` (
-  `realmid` int(10) unsigned NOT NULL DEFAULT '0',
-  `acctid` int(10) unsigned NOT NULL,
-  `numchars` tinyint(3) unsigned NOT NULL DEFAULT '0',
-  PRIMARY KEY (`realmid`,`acctid`),
-  KEY `acctid` (`acctid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Realm Character Tracker';
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `realmlist`
---
-
-DROP TABLE IF EXISTS `realmlist`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `realmlist` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `name` varchar(32) NOT NULL DEFAULT '',
-  `address` varchar(255) NOT NULL DEFAULT '127.0.0.1',
-  `localAddress` varchar(255) NOT NULL DEFAULT '127.0.0.1',
-  `localSubnetMask` varchar(255) NOT NULL DEFAULT '255.255.255.0',
-  `port` smallint(5) unsigned NOT NULL DEFAULT '8085',
-  `icon` tinyint(3) unsigned NOT NULL DEFAULT '0',
-  `flag` tinyint(3) unsigned NOT NULL DEFAULT '2',
-  `timezone` tinyint(3) unsigned NOT NULL DEFAULT '0',
-  `allowedSecurityLevel` tinyint(3) unsigned NOT NULL DEFAULT '0',
-  `population` float unsigned NOT NULL DEFAULT '0',
-  `gamebuild` int(10) unsigned NOT NULL DEFAULT '8606',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `idx_name` (`name`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8 COMMENT='Realm System';
-/*!40101 SET character_set_client = @saved_cs_client */;
-
-/*Data for the table `realmlist` */
-
-INSERT INTO `realmlist` VALUES (1,'Sunstrider TBC','127.0.0.1','127.0.0.1','255.255.255.0',8085,1,0,1,0,0,8606);
-
---
--- Table structure for table `uptime`
---
-
-DROP TABLE IF EXISTS `uptime`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `uptime` (
-  `realmid` int(10) unsigned NOT NULL,
-  `starttime` int(10) unsigned NOT NULL DEFAULT '0',
-  `uptime` int(10) unsigned NOT NULL DEFAULT '0',
-  `maxplayers` smallint(5) unsigned NOT NULL DEFAULT '0',
-  `revision` varchar(255) NOT NULL DEFAULT 'Trinitycore',
-  PRIMARY KEY (`realmid`,`starttime`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Uptime system';
-/*!40101 SET character_set_client = @saved_cs_client */;
-
-DROP TABLE IF EXISTS `updates_include`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `updates_include` (
-  `path` varchar(200) NOT NULL COMMENT 'directory to include. $ means relative to the source directory.',
-  `state` enum('RELEASED','ARCHIVED') NOT NULL DEFAULT 'RELEASED' COMMENT 'defines if the directory contains released or archived updates.',
-  PRIMARY KEY (`path`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='List of directories where we want to include sql updates.';
-/*!40101 SET character_set_client = @saved_cs_client */;
-
-INSERT INTO `updates_include` VALUES ('$/sql/updates/auth','RELEASED'),('$/sql/custom/auth','RELEASED'),('$/sql/old/2.4.3/auth','ARCHIVED');
-
-DROP TABLE IF EXISTS `updates`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `updates` (
+-- Dumping structure for table updates
+CREATE TABLE IF NOT EXISTS `updates` (
   `name` varchar(200) NOT NULL COMMENT 'filename with extension of the update.',
   `hash` char(40) DEFAULT '' COMMENT 'sha1 hash of the sql file.',
   `state` enum('RELEASED','ARCHIVED') NOT NULL DEFAULT 'RELEASED' COMMENT 'defines if an update is released or archived.',
@@ -399,15 +1140,24 @@ CREATE TABLE `updates` (
   `speed` int(10) unsigned NOT NULL DEFAULT '0' COMMENT 'time the query takes to apply in ms.',
   PRIMARY KEY (`name`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='List of all applied updates in this database.';
-/*!40101 SET character_set_client = @saved_cs_client */;
 
+-- Dumping data for table updates: 0 rows
+DELETE FROM `updates`;
+/*!40000 ALTER TABLE `updates` DISABLE KEYS */;
+/*!40000 ALTER TABLE `updates` ENABLE KEYS */;
 
-/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+-- Dumping structure for table updates_include
+CREATE TABLE IF NOT EXISTS `updates_include` (
+  `path` varchar(200) NOT NULL COMMENT 'directory to include. $ means relative to the source directory.',
+  `state` enum('RELEASED','ARCHIVED') NOT NULL DEFAULT 'RELEASED' COMMENT 'defines if the directory contains released or archived updates.',
+  PRIMARY KEY (`path`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='List of directories where we want to include sql updates.';
 
-/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
-/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
-/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+-- Dumping data for table updates_include: 0 rows
+DELETE FROM `updates_include`;
+/*!40000 ALTER TABLE `updates_include` DISABLE KEYS */;
+/*!40000 ALTER TABLE `updates_include` ENABLE KEYS */;
+
+/*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
+/*!40014 SET FOREIGN_KEY_CHECKS=IF(@OLD_FOREIGN_KEY_CHECKS IS NULL, 1, @OLD_FOREIGN_KEY_CHECKS) */;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
-/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
