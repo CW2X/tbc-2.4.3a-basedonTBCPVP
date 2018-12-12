@@ -1,4 +1,5 @@
-# Konno Productions TBC (master)
+# Konno Productions (master)
+#### The Burning Crusade (2.4.3a)
 
 | Build Status | Code Quality |
 | ------------- |:-------------:|
