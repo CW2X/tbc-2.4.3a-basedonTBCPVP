@@ -44,7 +44,6 @@
 #include "Transport.h"
 #include "InstanceScript.h"
 #include "UpdateFieldFlags.h"
-#include "LogsDatabaseAccessor.h"
 #include "GuildMgr.h"
 #include "MovementDefines.h"
 #include "MovementPacketBuilder.h"
@@ -12136,9 +12135,6 @@ void Unit::LogBossDown(Creature* cVictim)
         default:
             break;
         }
-
-        if (mustLog)
-            LogsDatabaseAccessor::BossDown(cVictim, bossName, bossNameFr, downByGuildId, guildname, guildPercentage, leaderGuid);
     }
 }
 

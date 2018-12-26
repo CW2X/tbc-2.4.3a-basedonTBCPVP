@@ -23,29 +23,21 @@
 #include "Common.h"
 #include "ObjectMgr.h"
 #include "World.h"
-#include "WorldSession.h"
 #include "Configuration/Config.h"
 
-#include "AccountMgr.h"
-#include "Chat.h"
 #include "CliRunnable.h"
-#include "Language.h"
 #include "Log.h"
-#include "MapManager.h"
-#include "Player.h"
 #include "Util.h"
-
-#include <chrono>
-#include <thread>
 
 #if TRINITY_PLATFORM != TRINITY_PLATFORM_WINDOWS
 #include <readline/readline.h>
 #include <readline/history.h>
+#include "Chat.h"
 
-char* command_finder(const char* text, int state)
+char* command_finder(char const* text, int state)
 {
-    static int idx, len;
-    const char* ret;
+    static size_t idx, len;
+    char const* ret;
     std::vector<ChatCommand> const& cmd = ChatHandler::getCommandTable();
 
     if (!state)
@@ -59,11 +51,11 @@ char* command_finder(const char* text, int state)
         ret = cmd[idx].Name;
         if (!cmd[idx].AllowConsole)
         {
-            idx++;
+            ++idx;
             continue;
         }
 
-        idx++;
+        ++idx;
         //printf("Checking %s \n", cmd[idx].Name);
         if (strncmp(ret, text, len) == 0)
             return strdup(ret);
@@ -72,7 +64,7 @@ char* command_finder(const char* text, int state)
     return ((char*)nullptr);
 }
 
-char** cli_completion(const char* text, int start, int /*end*/)
+char** cli_completion(char const* text, int start, int /*end*/)
 {
     char** matches = nullptr;
 
@@ -92,7 +84,7 @@ int cli_hook_func()
 
 #endif
 
-void utf8print(void* /*arg*/, const char* str)
+void utf8print(void* /*arg*/, char const* str)
 {
 #if TRINITY_PLATFORM == TRINITY_PLATFORM_WINDOWS
     wchar_t wtemp_buf[6000];
@@ -100,9 +92,7 @@ void utf8print(void* /*arg*/, const char* str)
     if (!Utf8toWStr(str, strlen(str), wtemp_buf, wtemp_len))
         return;
 
-    char temp_buf[6000];
-    CharToOemBuffW(&wtemp_buf[0], &temp_buf[0], wtemp_len+1);
-    printf(temp_buf);
+    wprintf(L"%s", wtemp_buf);
 #else
 {
     printf("%s", str);
@@ -113,7 +103,7 @@ void utf8print(void* /*arg*/, const char* str)
 
 void commandFinished(void*, bool /*success*/)
 {
-    printf("TC> ");
+    printf("KP> ");
     fflush(stdout);
 }
 
@@ -127,7 +117,7 @@ int kb_hit_return()
     tv.tv_usec = 0;
     FD_ZERO(&fds);
     FD_SET(STDIN_FILENO, &fds);
-    select(STDIN_FILENO+1, &fds, NULL, NULL, &tv);
+    select(STDIN_FILENO+1, &fds, nullptr, nullptr, &tv);
     return FD_ISSET(STDIN_FILENO, &fds);
 }
 #endif
@@ -147,14 +137,12 @@ void CliThread()
 
     // print this here the first time
     // later it will be printed after command queue updates
-    printf("TC>");
+    printf("KP>");
 
     ///- As long as the World is running (no World::m_stopEvent), get the command line and handle it
     while (!World::IsStopped())
     {
         fflush(stdout);
-        //hack : avoid thread eating all cpu if process is running in background (in this case readline does not stop execution as it should)
-        std::this_thread::sleep_for(std::chrono::milliseconds(5));
 
         char *command_str ;             // = fgets(commandbuf, sizeof(commandbuf), stdin);
 
@@ -162,7 +150,7 @@ void CliThread()
         char commandbuf[256];
         command_str = fgets(commandbuf, sizeof(commandbuf), stdin);
 #else
-        command_str = readline("TC>");
+        command_str = readline("KP>");
         rl_bind_key('\t', rl_complete);
 #endif
 
@@ -178,7 +166,7 @@ void CliThread()
             if (!*command_str)
             {
 #if TRINITY_PLATFORM == TRINITY_PLATFORM_WINDOWS
-                printf("TC>");
+                printf("KP>");
 #else
                 free(command_str);
 #endif
@@ -189,7 +177,7 @@ void CliThread()
             if (!consoleToUtf8(command_str, command))         // convert from console encoding to utf8
             {
 #if TRINITY_PLATFORM == TRINITY_PLATFORM_WINDOWS
-                printf("TC>");
+                printf("KP>");
 #else
                 free(command_str);
 #endif

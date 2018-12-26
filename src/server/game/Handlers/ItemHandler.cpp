@@ -12,7 +12,6 @@
 #include "ObjectAccessor.h"
 #include "SpellMgr.h"
 #include "QueryPackets.h"
-#include "LogsDatabaseAccessor.h"
 
 void WorldSession::HandleSplitItemOpcode( WorldPacket & recvData )
 {
@@ -295,8 +294,6 @@ void WorldSession::HandleDestroyItemOpcode( WorldPacket & recvData )
         return;
     }
 
-    LogsDatabaseAccessor::CharacterItemDelete(_player, pItem);
-
     if(count)
     {
         uint32 i_count = count;
@@ -459,8 +456,6 @@ void WorldSession::HandleSellItemOpcode( WorldPacket & recvData )
                     _player->AddItemToBuyBackSlot( pNewItem );
                     if( _player->IsInWorld() )
                         pNewItem->SendUpdateToPlayer( _player );
-
-                    LogsDatabaseAccessor::BuyOrSellItemToVendor(LogsDatabaseAccessor::TRANSACTION_SELL, _player, pNewItem, pCreature);
                 }
                 else
                 {
@@ -468,8 +463,6 @@ void WorldSession::HandleSellItemOpcode( WorldPacket & recvData )
                     _player->RemoveItem( pItem->GetBagSlot(), pItem->GetSlot(), true);
                     pItem->RemoveItemFromUpdateQueueOf(_player);
                     _player->AddItemToBuyBackSlot( pItem );
-
-                    LogsDatabaseAccessor::BuyOrSellItemToVendor(LogsDatabaseAccessor::TRANSACTION_SELL, _player, pItem, pCreature);
                 }
 
                 _player->ModifyMoney( pProto->SellPrice * count );
@@ -520,8 +513,6 @@ void WorldSession::HandleBuybackItem(WorldPacket & recvData)
             _player->RemoveItemFromBuyBackSlot( slot, false );
             _player->ItemAddedQuestCheck( pItem->GetEntry(), pItem->GetCount());
             _player->StoreItem( dest, pItem, true );
-
-            LogsDatabaseAccessor::BuyOrSellItemToVendor(LogsDatabaseAccessor::TRANSACTION_BUYBACK, _player, pItem, pCreature);
         }
         else
             _player->SendEquipError( msg, pItem, nullptr );

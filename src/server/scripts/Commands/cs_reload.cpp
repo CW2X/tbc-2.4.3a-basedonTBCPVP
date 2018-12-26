@@ -916,7 +916,7 @@ public:
 
         if (reloadExistingCreatures)
         {
-            if (Creature* target = handler->GetSelectedCreature())
+            if (Creature* target = handler->getSelectedCreature())
             {
                 if (target->GetAIName() == SMARTAI_AI_NAME)
                     target->AIM_Initialize();

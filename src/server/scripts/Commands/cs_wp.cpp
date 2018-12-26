@@ -32,7 +32,7 @@ public:
 
     static bool HandleWpShowCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
         // first arg: on, off, first, last
         char* show_str = strtok((char*)args, " ");
@@ -44,7 +44,7 @@ public:
         char* guid_str = strtok((char*)nullptr, " ");
 
         uint32 pathid = 0;
-        Creature* target =  handler->GetSelectedCreature();
+        Creature* target =  handler->getSelectedCreature();
 
         // Did player provide a PathID?
 
@@ -385,7 +385,7 @@ public:
 
     static bool HandleWpUnLoadPathCommand(ChatHandler* handler, char const* args)
     {
-        Creature* target =  handler->GetSelectedCreature();
+        Creature* target =  handler->getSelectedCreature();
 
         if(!target)
         {
@@ -422,7 +422,7 @@ public:
 
     static bool HandleWpEventCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
         char* show_str = strtok((char*)args, " ");
 
@@ -647,7 +647,7 @@ public:
 
     static bool HandleWpModifyCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
         // first arg: add del text emote spell waittime move
         char* show_str = strtok((char*)args, " ");
@@ -675,7 +675,7 @@ public:
         uint32 pathid = 0;
         uint32 point = 0;
         uint32 wpGuid = 0;
-        Creature* target =  handler->GetSelectedCreature();
+        Creature* target =  handler->getSelectedCreature();
 
         if(!target || target->GetEntry() != VISUAL_WAYPOINT)
         {
@@ -849,7 +849,7 @@ public:
     */
     static bool HandleWpChangePathTypeCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
         char* pathIdStr = strtok((char*)args, " ");
         uint32 pathId = uint32(atoi(pathIdStr));
@@ -919,7 +919,7 @@ public:
     /** .path teleport #path_id [#point_id] **/
     static bool HandleWpTeleportToPathCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
         Player* p = handler->GetSession() ? handler->GetSession()->GetPlayer() : nullptr;
         if (!p)
@@ -969,7 +969,7 @@ public:
     */
     static bool HandleWpChangePathDirectionCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
         char* pathIdStr = strtok((char*)args, " ");
         uint32 pathId = uint32(atoi(pathIdStr));
@@ -1046,7 +1046,7 @@ public:
             path_number = strtok((char*)args, " ");
 
         uint32 point = 0;
-        Creature* target =  handler->GetSelectedCreature();
+        Creature* target =  handler->getSelectedCreature();
 
         if (!path_number)
             {
@@ -1094,7 +1094,7 @@ public:
 
     static bool HandleWpLoadPathCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
         // optional
         char* path_number = nullptr;
@@ -1105,7 +1105,7 @@ public:
 
         uint32 pathid = 0;
         uint32 guidlow = 0;
-        Creature* target =  handler->GetSelectedCreature();
+        Creature* target =  handler->getSelectedCreature();
 
         if(!target)
         {

@@ -29,7 +29,6 @@
 #include "ObjectMgr.h"
 #include "Player.h"
 #include "World.h"
-#include "LogsDatabaseAccessor.h"
 
 MailDraft::MailDraft(std::string const& subject, std::string const& body)
     : m_mailTemplateId(0), m_mailTemplateItemsNeed(false), m_subject(subject), m_money(0), m_COD(0), m_body(body), m_itemTextId(0)
@@ -306,7 +305,4 @@ void MailDraft::SendMailTo(SQLTransaction& trans, MailReceiver const& receiver, 
         SQLTransaction temp = SQLTransaction(nullptr);
         deleteIncludedItems(temp);
     }
-
-    //log it
-    LogsDatabaseAccessor::Mail(mailId, sender.GetMailMessageType(), sender.GetSenderId(), receiver.GetPlayerGUIDLow(), GetSubject(), GetBody(), m_items, m_money, m_COD);
 }

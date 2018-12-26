@@ -64,7 +64,7 @@ public:
     //morph creature or player
     static bool HandleMorphCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
         uint16 display_id = 0;
 
@@ -79,7 +79,7 @@ public:
         if (!display_id)
             return false;
 
-        Unit *target = handler->GetSelectedUnit();
+        Unit *target = handler->getSelectedUnit();
         if (!target)
             target = handler->GetSession()->GetPlayer();
 
@@ -91,7 +91,7 @@ public:
     //demorph player or unit
     static bool HandleDeMorphCommand(ChatHandler* handler, char const* /*args*/)
     {
-        Unit *target = handler->GetSelectedUnit();
+        Unit *target = handler->getSelectedUnit();
         if (!target)
             target = handler->GetSession()->GetPlayer();
 
@@ -102,7 +102,7 @@ public:
 
     static bool HandleDrunkCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
         uint32 drunklevel = (uint32)atoi(args);
         if(drunklevel > 100)
@@ -111,7 +111,7 @@ public:
         uint16 drunkMod = drunklevel * 0xFFFF / 100;
 
         //handler->GetSession()->GetPlayer()->SetDrunkValue(drunkMod);
-        Unit *pUnit = handler->GetSelectedUnit();
+        Unit *pUnit = handler->getSelectedUnit();
         Player *plr;
         if (pUnit && pUnit->GetTypeId() == TYPEID_PLAYER)
             plr = reinterpret_cast<Player*>(pUnit);
@@ -156,7 +156,7 @@ public:
         if(hpm > 500000000)
             hpm = 500000000;            
 
-        Player *chr = handler->GetSelectedPlayerOrSelf();
+        Player *chr = handler->getSelectedPlayerOrSelf();
         if (chr == nullptr)
         {
             handler->SendSysMessage(LANG_NO_CHAR_SELECTED);
@@ -166,7 +166,7 @@ public:
 
         handler->PSendSysMessage(LANG_YOU_CHANGE_HP, chr->GetName().c_str(), hp, hpm);
         if (handler->needReportToTarget(chr))
-            ChatHandler(chr).PSendSysMessage(LANG_YOURS_HP_CHANGED, handler->GetName().c_str(), hp, hpm);
+            ChatHandler(chr->GetSession()).PSendSysMessage(LANG_YOURS_HP_CHANGED, handler->GetNameLink().c_str(), hp, hpm);
 
         chr->SetMaxHealth( hpm );
         chr->SetHealth( hp );
@@ -177,7 +177,7 @@ public:
     //Edit Player Mana
     static bool HandleModifyManaCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
         // char* pmana = strtok((char*)args, " ");
         // if (!pmana)
@@ -199,7 +199,7 @@ public:
             return false;
         }
 
-        Unit* unit = handler->GetSelectedUnit();
+        Unit* unit = handler->getSelectedUnit();
         if (unit == nullptr)
         {
             handler->SendSysMessage(LANG_SELECT_CHAR_OR_CREATURE);
@@ -210,7 +210,7 @@ public:
         handler->PSendSysMessage(LANG_YOU_CHANGE_MANA, unit->GetName().c_str(), mana, manam);
         if(Player* p = unit->ToPlayer())
             if (handler->needReportToTarget(p))
-                ChatHandler(p).PSendSysMessage(LANG_YOURS_MANA_CHANGED, handler->GetName().c_str(), mana, manam);
+                ChatHandler(p->GetSession()).PSendSysMessage(LANG_YOURS_MANA_CHANGED, handler->GetNameLink().c_str(), mana, manam);
 
         unit->SetMaxPower(POWER_MANA,manam );
         unit->SetPower(POWER_MANA, mana );
@@ -221,7 +221,7 @@ public:
     //Edit Player Energy
     static bool HandleModifyEnergyCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
         // char* pmana = strtok((char*)args, " ");
         // if (!pmana)
@@ -244,7 +244,7 @@ public:
             return false;
         }
 
-        Player *chr = handler->GetSelectedPlayerOrSelf();
+        Player *chr = handler->getSelectedPlayerOrSelf();
         if (!chr)
         {
             handler->SendSysMessage(LANG_NO_CHAR_SELECTED);
@@ -254,7 +254,7 @@ public:
 
         handler->PSendSysMessage(LANG_YOU_CHANGE_ENERGY, chr->GetName().c_str(), energy/10, energym/10);
         if (handler->needReportToTarget(chr))
-            ChatHandler(chr).PSendSysMessage(LANG_YOURS_ENERGY_CHANGED, handler->GetName().c_str(), energy/10, energym/10);
+            ChatHandler(chr->GetSession()).PSendSysMessage(LANG_YOURS_ENERGY_CHANGED, handler->GetNameLink().c_str(), energy/10, energym/10);
 
         chr->SetMaxPower(POWER_ENERGY,energym );
         chr->SetPower(POWER_ENERGY, energy );
@@ -267,7 +267,7 @@ public:
     //Edit Player Rage
     static bool HandleModifyRageCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
         // char* pmana = strtok((char*)args, " ");
         // if (!pmana)
@@ -290,7 +290,7 @@ public:
             return false;
         }
 
-        Player *chr = handler->GetSelectedPlayerOrSelf();
+        Player *chr = handler->getSelectedPlayerOrSelf();
         if (chr == nullptr)
         {
             handler->SendSysMessage(LANG_NO_CHAR_SELECTED);
@@ -300,7 +300,7 @@ public:
 
         handler->PSendSysMessage(LANG_YOU_CHANGE_RAGE, chr->GetName().c_str(), rage/10, ragem/10);
         if (handler->needReportToTarget(chr))
-            ChatHandler(chr).PSendSysMessage(LANG_YOURS_RAGE_CHANGED, handler->GetName().c_str(), rage/10, ragem/10);
+            ChatHandler(chr->GetSession()).PSendSysMessage(LANG_YOURS_RAGE_CHANGED, handler->GetNameLink().c_str(), rage/10, ragem/10);
 
         chr->SetMaxPower(POWER_RAGE,ragem );
         chr->SetPower(POWER_RAGE, rage );
@@ -313,9 +313,9 @@ public:
     */
     static bool HandleModifyFactionCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
-        Unit* u = handler->GetSelectedUnit();
+        Unit* u = handler->getSelectedUnit();
         if(!u)
         {
             handler->SendSysMessage(LANG_SELECT_CHAR_OR_CREATURE);
@@ -351,7 +351,7 @@ public:
         }
 
         //player case only
-        if (handler->GetSelectedPlayer()) 
+        if (handler->getSelectedPlayer()) 
         {
             u->SetFaction(factionid);
             handler->PSendSysMessage("You changed %s    's faction to %i", u->GetName().c_str(),factionid);
@@ -395,7 +395,7 @@ public:
     //Edit Player Spell
     static bool HandleModifySpellCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
         char* pspellflatid = strtok((char*)args, " ");
         if (!pspellflatid)
             return false;
@@ -420,7 +420,7 @@ public:
         else
             mark = atoi(pmark);
 
-        Player *chr = handler->GetSelectedPlayerOrSelf();
+        Player *chr = handler->getSelectedPlayerOrSelf();
         if (chr == nullptr)
         {
             handler->SendSysMessage(LANG_NO_CHAR_SELECTED);
@@ -430,7 +430,7 @@ public:
 
         handler->PSendSysMessage(LANG_YOU_CHANGE_SPELLFLATID, spellflatid, val, mark, chr->GetName().c_str());
         if (handler->needReportToTarget(chr))
-            ChatHandler(chr).PSendSysMessage(LANG_YOURS_SPELLFLATID_CHANGED, handler->GetName().c_str(), spellflatid, val, mark);
+            ChatHandler(chr->GetSession()).PSendSysMessage(LANG_YOURS_SPELLFLATID_CHANGED, handler->GetNameLink().c_str(), spellflatid, val, mark);
 
         WorldPacket data(SMSG_SET_FLAT_SPELL_MODIFIER, (1+1+2+2));
         data << uint8(spellflatid);
@@ -445,12 +445,12 @@ public:
     //Edit Player TP
     static bool HandleModifyTalentCommand (ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
         int tp = atoi((char*)args);
         if (tp>0)
         {
-            Player* player = handler->GetSelectedPlayerOrSelf();
+            Player* player = handler->getSelectedPlayerOrSelf();
             if(!player)
             {
                 handler->SendSysMessage(LANG_NO_CHAR_SELECTED);
@@ -466,7 +466,7 @@ public:
     //Edit Player Aspeed
     static bool HandleModifyASpeedCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
         float ASpeed = (float)atof((char*)args);
 
@@ -477,7 +477,7 @@ public:
             return false;
         }
 
-        Unit* u = handler->GetSelectedUnit();
+        Unit* u = handler->getSelectedUnit();
         if (u == nullptr)
         {
             handler->SendSysMessage(LANG_NO_SELECTION);
@@ -495,7 +495,7 @@ public:
 
         handler->PSendSysMessage(LANG_YOU_CHANGE_ASPEED, ASpeed, u->GetName().c_str());
         if (chr && handler->needReportToTarget(chr))
-            ChatHandler(chr).PSendSysMessage(LANG_YOURS_ASPEED_CHANGED, handler->GetName().c_str(), ASpeed);
+            ChatHandler(chr->GetSession()).PSendSysMessage(LANG_YOURS_ASPEED_CHANGED, handler->GetNameLink().c_str(), ASpeed);
 
         if (chr)
         {
@@ -557,7 +557,7 @@ public:
     static bool HandleModifySpeedCommand(ChatHandler* handler, char const* args)
     {
         float Speed;
-        Player* target = handler->GetSelectedPlayerOrSelf();
+        Player* target = handler->getSelectedPlayerOrSelf();
         if (CheckModifySpeed(handler, args, target, Speed, 0.1f, 50.0f))
         {
             if (auto replayPlayer = handler->GetSession()->GetReplayPlayer())
@@ -581,7 +581,7 @@ public:
     static bool HandleModifySwimCommand(ChatHandler* handler, char const* args)
     {
         float swimSpeed;
-        Player* target = handler->GetSelectedPlayerOrSelf();
+        Player* target = handler->getSelectedPlayerOrSelf();
         if (CheckModifySpeed(handler, args, target, swimSpeed, 0.1f, 50.0f))
         {
             if (auto replayPlayer = handler->GetSession()->GetReplayPlayer())
@@ -605,7 +605,7 @@ public:
     static bool HandleModifyBWalkCommand(ChatHandler* handler, char const* args)
     {
         float backSpeed;
-        Player* target = handler->GetSelectedPlayerOrSelf();
+        Player* target = handler->getSelectedPlayerOrSelf();
         if (CheckModifySpeed(handler, args, target, backSpeed, 0.1f, 50.0f))
         {
             NotifyModification(handler, target, LANG_YOU_CHANGE_BACK_SPEED, LANG_YOURS_BACK_SPEED_CHANGED, backSpeed);
@@ -619,7 +619,7 @@ public:
     static bool HandleModifyFlyCommand(ChatHandler* handler, char const* args)
     {
         float flySpeed;
-        Player* target = handler->GetSelectedPlayerOrSelf();
+        Player* target = handler->getSelectedPlayerOrSelf();
         if (CheckModifySpeed(handler, args, target, flySpeed, 0.1f, 50.0f, false))
         {
             NotifyModification(handler, target, LANG_YOU_CHANGE_FLY_SPEED, LANG_YOURS_FLY_SPEED_CHANGED, flySpeed);
@@ -633,7 +633,7 @@ public:
     static bool HandleModifyScaleCommand(ChatHandler* handler, char const* args)
     {
         float Scale;
-        Unit* target = handler->GetSelectedUnit();
+        Unit* target = handler->getSelectedUnit();
         if (CheckModifySpeed(handler, args, target, Scale, 0.1f, 10.0f, false))
         {
             NotifyModification(handler, target, LANG_YOU_CHANGE_SIZE, LANG_YOURS_SIZE_CHANGED, Scale);
@@ -649,7 +649,7 @@ public:
         if (phasemask < PHASEMASK_NORMAL)
             return false;
 
-        Unit* target = handler->GetSelectedUnit();
+        Unit* target = handler->getSelectedUnit();
         if (!target)
             target = handler->GetSession()->GetPlayer();
 
@@ -681,7 +681,7 @@ public:
             return false;
         }
 
-        Player* target = handler->GetSelectedPlayerOrSelf();
+        Player* target = handler->getSelectedPlayerOrSelf();
         if (!target)
         {
             handler->SendSysMessage(LANG_NO_CHAR_SELECTED);
@@ -707,9 +707,9 @@ public:
     //Edit Player money
     static bool HandleModifyMoneyCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
-        Player *chr = handler->GetSelectedPlayerOrSelf();
+        Player *chr = handler->getSelectedPlayerOrSelf();
         if (chr == nullptr)
         {
             handler->SendSysMessage(LANG_NO_CHAR_SELECTED);
@@ -734,7 +734,7 @@ public:
             {
                 handler->PSendSysMessage(LANG_YOU_TAKE_ALL_MONEY, chr->GetName().c_str());
                 if (handler->needReportToTarget(chr))
-                    ChatHandler(chr).PSendSysMessage(LANG_YOURS_ALL_MONEY_GONE, handler->GetName().c_str());
+                    ChatHandler(chr->GetSession()).PSendSysMessage(LANG_YOURS_ALL_MONEY_GONE, handler->GetNameLink().c_str());
 
                 chr->SetMoney(0);
             }
@@ -742,7 +742,7 @@ public:
             {
                 handler->PSendSysMessage(LANG_YOU_TAKE_MONEY, abs(moneyToAdd), chr->GetName().c_str());
                 if (handler->needReportToTarget(chr))
-                    ChatHandler(chr).PSendSysMessage(LANG_YOURS_MONEY_TAKEN, handler->GetName().c_str(), abs(moneyToAdd));
+                    ChatHandler(chr->GetSession()).PSendSysMessage(LANG_YOURS_MONEY_TAKEN, handler->GetNameLink().c_str(), abs(moneyToAdd));
                 chr->SetMoney( newmoney );
             }
         }
@@ -750,7 +750,7 @@ public:
         {
             handler->PSendSysMessage(LANG_YOU_GIVE_MONEY, moneyToAdd, chr->GetName().c_str());
             if (handler->needReportToTarget(chr))
-                ChatHandler(chr).PSendSysMessage(LANG_YOURS_MONEY_GIVEN, handler->GetName().c_str(), moneyToAdd);
+                ChatHandler(chr->GetSession()).PSendSysMessage(LANG_YOURS_MONEY_GIVEN, handler->GetNameLink().c_str(), moneyToAdd);
             chr->ModifyMoney( moneyToAdd );
         }
 
@@ -762,9 +762,9 @@ public:
     //Edit Player field
     static bool HandleModifyBitCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
-        Player *chr = handler->GetSelectedPlayerOrSelf();
+        Player *chr = handler->getSelectedPlayerOrSelf();
         if (chr == nullptr)
         {
             handler->SendSysMessage(LANG_NO_CHAR_SELECTED);
@@ -813,9 +813,9 @@ public:
 
     static bool HandleModifyHonorCommand (ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
-        Player *target = handler->GetSelectedPlayerOrSelf();
+        Player *target = handler->getSelectedPlayerOrSelf();
         if(!target)
         {
             handler->SendSysMessage(LANG_PLAYER_NOT_FOUND);
@@ -835,13 +835,13 @@ public:
     //Edit Player KnownTitles
     static bool HandleModifyKnownTitlesCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
         uint64 titles = 0;
 
         sscanf((char*)args, UI64FMTD, &titles);
 
-        Player *chr = handler->GetSelectedPlayerOrSelf();
+        Player *chr = handler->getSelectedPlayerOrSelf();
         if (!chr)
         {
             handler->SendSysMessage(LANG_NO_CHAR_SELECTED);
@@ -865,9 +865,9 @@ public:
 
     static bool HandleModifyRepCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
-        Player* target = handler->GetSelectedPlayerOrSelf();
+        Player* target = handler->getSelectedPlayerOrSelf();
         if(!target)
         {
             handler->SendSysMessage(LANG_PLAYER_NOT_FOUND);
@@ -959,9 +959,9 @@ public:
 
     static bool HandleModifyArenaCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
-        Player *target = handler->GetSelectedPlayerOrSelf();
+        Player *target = handler->getSelectedPlayerOrSelf();
         if(!target)
         {
             handler->SendSysMessage(LANG_PLAYER_NOT_FOUND);
@@ -980,9 +980,9 @@ public:
 
     static bool HandleModifyGenderCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
-        Player *player = handler->GetSelectedPlayerOrSelf();
+        Player *player = handler->getSelectedPlayerOrSelf();
 
         if(!player)
         {
@@ -1034,7 +1034,7 @@ public:
 
         handler->PSendSysMessage(LANG_YOU_CHANGE_GENDER, player->GetName().c_str(),gender_full);
         if (handler->needReportToTarget(player))
-            ChatHandler(player).PSendSysMessage(LANG_YOUR_GENDER_CHANGED, gender_full, handler->GetName().c_str());
+            ChatHandler(player->GetSession()).PSendSysMessage(LANG_YOUR_GENDER_CHANGED, gender_full, handler->GetNameLink().c_str());
         return true;
     }
 };

@@ -1,19 +1,3 @@
-/*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 
 #include "Hyperlinks.h"
 #include "advstd.h"
@@ -98,27 +82,6 @@ static bool equal_with_len(char const* str1, char const* str2, size_t len)
     return !len && !*str1;
 }
 
-#ifdef LICH_KING
-template <>
-struct LinkValidator<LinkTags::achievement>
-{
-    static bool IsTextValid(AchievementLinkData const& data, char const* pos, size_t len)
-    {
-        if (!len)
-            return false;
-        for (uint8 i = 0; i < TOTAL_LOCALES; ++i)
-            if (equal_with_len(data.Achievement->Title[i], pos, len))
-                return true;
-        return false;
-    }
-
-    static bool IsColorValid(AchievementLinkData const&, HyperlinkColor c)
-    {
-        return c == CHAT_LINK_COLOR_ACHIEVEMENT;
-    }
-};
-#endif
-
 template <>
 struct LinkValidator<LinkTags::item>
 {
@@ -152,7 +115,7 @@ struct LinkValidator<LinkTags::item>
             if (randomSuffix)
             {
                 if (len > name.length() + 1 &&
-                  (strncmp(name.c_str(), pos, name.length()) == 0) && 
+                  (strncmp(name.c_str(), pos, name.length()) == 0) &&
                   (*(pos + name.length()) == ' ') &&
                   equal_with_len(randomSuffix[i], pos + name.length() + 1, len - name.length() - 1))
                     return true;
@@ -216,140 +179,43 @@ struct LinkValidator<LinkTags::spell>
     }
 };
 
-#ifdef LICH_KING
-template <>
-struct LinkValidator<LinkTags::enchant>
-{
-    static bool IsTextValid(SpellInfo const* info, char const* pos, size_t len)
-    {
-        if (LinkValidator<LinkTags::spell>::IsTextValid(info, pos, len))
-            return true;
-
-        SkillLineAbilityMapBounds bounds = sSpellMgr->GetSkillLineAbilityMapBounds(info->Id);
-        if (bounds.first == bounds.second)
-            return LinkValidator<LinkTags::spell>::IsTextValid(info, pos, len);
-
-        SkillLineEntry const* skill = sSkillLineStore.LookupEntry(bounds.first->second->skillId);
-        if (!skill)
-            return false;
-
-        for (auto pair = bounds.first; pair != bounds.second; ++pair)
-        {
-            SkillLineEntry const* skill = sSkillLineStore.LookupEntry(pair->second->skillId);
-            if (!skill)
-                return false;
-
-            for (uint8 i = 0; i < TOTAL_LOCALES; ++i)
-            {
-                char const* skillName = skill->name[i];
-                size_t skillLen = strlen(skillName);
-                if (len > skillLen + 2 &&                         // or of form [Skill Name: Spell Name]
-                    !strncmp(pos, skillName, skillLen) && !strncmp(pos + skillLen, ": ", 2) &&
-                    equal_with_len(info->SpellName[i], pos + (skillLen + 2), len - (skillLen + 2)))
-                    return true;
-            }
-        }
-        return false;
-    }
-
-    static bool IsColorValid(SpellInfo const*, HyperlinkColor c)
-    {
-        return c == CHAT_LINK_COLOR_ENCHANT;
-    }
-};
-
-template <>
-struct LinkValidator<LinkTags::glyph>
-{
-    static bool IsTextValid(GlyphLinkData const& data, char const* pos, size_t len)
-    {
-        if (SpellInfo const* info = sSpellMgr->GetSpellInfo(data.Glyph->SpellId))
-            return LinkValidator<LinkTags::spell>::IsTextValid(info, pos, len);
-        return false;
-    }
-
-    static bool IsColorValid(GlyphLinkData const&, HyperlinkColor c)
-    {
-        return c == CHAT_LINK_COLOR_GLYPH;
-    }
-};
-
-template <>
-struct LinkValidator<LinkTags::talent>
-{
-    static bool IsTextValid(TalentLinkData const& data, char const* pos, size_t len)
-    {
-        if (SpellInfo const* info = sSpellMgr->GetSpellInfo(data.Talent->RankID[data.Rank-1]))
-            return LinkValidator<LinkTags::spell>::IsTextValid(info, pos, len);
-        return false;
-    }
-
-    static bool IsColorValid(TalentLinkData const&, HyperlinkColor c)
-    {
-        return c == CHAT_LINK_COLOR_TALENT;
-    }
-};
-
-template <>
-struct LinkValidator<LinkTags::trade>
-{
-    static bool IsTextValid(TradeskillLinkData const& data, char const* pos, size_t len)
-    {
-        return LinkValidator<LinkTags::spell>::IsTextValid(data.Spell, pos, len);
-    }
-
-    static bool IsColorValid(TradeskillLinkData const&, HyperlinkColor c)
-    {
-        return c == CHAT_LINK_COLOR_TRADE;
-    }
-};
-#endif
-
-#define TryValidateAs(tagname)                                                                  \
-{                                                                                               \
-    using taginfo = typename LinkTags::tagname;                                                 \
-    ASSERT(!strcmp(taginfo::tag(), #tagname));                                                  \
-    if (info.tag.second == strlen(taginfo::tag()) &&                                            \
-        !strncmp(info.tag.first, taginfo::tag(), strlen(taginfo::tag())))                       \
-    {                                                                                           \
-        advstd::remove_cvref_t<typename taginfo::value_type> t;                                 \
-        if (!taginfo::StoreTo(t, info.data.first, info.data.second))                            \
-            return false;                                                                       \
-        if (!LinkValidator<taginfo>::IsColorValid(t, info.color))                               \
-            return false;                                                                       \
-        if (sWorld->getIntConfig(CONFIG_CHAT_STRICT_LINK_CHECKING_SEVERITY))                    \
-            if (!LinkValidator<taginfo>::IsTextValid(t, info.text.first, info.text.second))     \
-                return false;                                                                   \
-        return true;                                                                            \
-    }                                                                                           \
+#define TryValidateAs(tagname)                                                                          \
+{                                                                                                       \
+    ASSERT(!strcmp(LinkTags::tagname::tag(), #tagname));                                                \
+    if (info.tag.second == strlen(LinkTags::tagname::tag()) &&                                          \
+        !strncmp(info.tag.first, LinkTags::tagname::tag(), strlen(LinkTags::tagname::tag())))           \
+    {                                                                                                   \
+        advstd::remove_cvref_t<typename LinkTags::tagname::value_type> t;                               \
+        if (!LinkTags::tagname::StoreTo(t, info.data.first, info.data.second))                          \
+            return false;                                                                               \
+        if (!LinkValidator<LinkTags::tagname>::IsColorValid(t, info.color))                             \
+            return false;                                                                               \
+        if (sWorld->getIntConfig(CONFIG_CHAT_STRICT_LINK_CHECKING_SEVERITY))                            \
+            if (!LinkValidator<LinkTags::tagname>::IsTextValid(t, info.text.first, info.text.second))   \
+                return false;                                                                           \
+        return true;                                                                                    \
+    }                                                                                                   \
 }
-        
+
 static bool ValidateLinkInfo(HyperlinkInfo const& info)
 {
-#ifdef LICH_KING
-    TryValidateAs(achievement);
-    TryValidateAs(enchant);
-    TryValidateAs(glyph);
-    TryValidateAs(talent);
-    TryValidateAs(trade);
-#endif
+	TryValidateAs(area);
+	TryValidateAs(areatrigger);
+	TryValidateAs(creature);
+	TryValidateAs(creature_entry);
+	TryValidateAs(gameevent);
+	TryValidateAs(gameobject);
+	TryValidateAs(gameobject_entry);
+	TryValidateAs(item);
+	TryValidateAs(itemset);
+	TryValidateAs(player);
+	TryValidateAs(quest);
+	TryValidateAs(skill);
+	TryValidateAs(spell);
+	TryValidateAs(taxinode);
+	TryValidateAs(tele);
+	TryValidateAs(title);
 
-    TryValidateAs(area);
-    TryValidateAs(areatrigger);
-    TryValidateAs(creature);
-    TryValidateAs(creature_entry);
-    TryValidateAs(gameevent);
-    TryValidateAs(gameobject);
-    TryValidateAs(gameobject_entry);
-    TryValidateAs(item);
-    TryValidateAs(itemset);
-    TryValidateAs(player);
-    TryValidateAs(quest);
-    TryValidateAs(skill);
-    TryValidateAs(spell);
-    TryValidateAs(taxinode);
-    TryValidateAs(tele);
-    TryValidateAs(title);
     return false;
 }
 
@@ -368,7 +234,7 @@ bool Trinity::Hyperlinks::CheckAllLinks(std::string const& str)
                 return false;
         }
     }
-
+    
     // Step 2: Parse all link sequences
     // They look like this: |c<color>|H<linktag>:<linkdata>|h[<linktext>]|h|r
     // - <color> is 8 hex characters AARRGGBB

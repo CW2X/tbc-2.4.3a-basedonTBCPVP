@@ -29,8 +29,6 @@ public:
 
     static bool HandleListCreatureCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         // number or [name] Shift-click form |color|Hcreature_entry:creature_id|h[name]|h|r
         char* cId = handler->extractKeyFromLink((char*)args, "Hcreature_entry");
         if (!cId)
@@ -124,9 +122,8 @@ public:
 
     static bool HandleListItemCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        char* cId = handler->extractKeyFromLink((char*)args, "Hitem");
 
-            char* cId = handler->extractKeyFromLink((char*)args, "Hitem");
         if (!cId)
             return false;
 
@@ -335,10 +332,8 @@ public:
 
     static bool HandleListObjectCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-            // number or [name] Shift-click form |color|Hgameobject_entry:go_id|h[name]|h|r
-            char* cId = handler->extractKeyFromLink((char*)args, "Hgameobject_entry");
+        // number or [name] Shift-click form |color|Hgameobject_entry:go_id|h[name]|h|r
+        char* cId = handler->extractKeyFromLink((char*)args, "Hgameobject_entry");
         if (!cId)
             return false;
 
@@ -408,7 +403,7 @@ public:
 
     static bool HandleListAurasCommand(ChatHandler* handler, char const* args)
     {
-        Unit* unit = handler->GetSelectedUnit();
+        Unit* unit = handler->getSelectedUnit();
         if (!unit)
         {
             handler->SendSysMessage(LANG_SELECT_CHAR_OR_CREATURE);

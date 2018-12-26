@@ -41,7 +41,7 @@ public:
 
     static bool HandleInstanceListBindsCommand(ChatHandler* handler, char const* /*args*/)
     {
-        Player* player = handler->GetSelectedPlayerOrSelf();
+        Player* player = handler->getSelectedPlayerOrSelf();
         uint32 counter = 0;
         for (uint8 i = 0; i < MAX_DIFFICULTY; i++)
         {
@@ -78,12 +78,11 @@ public:
 
     static bool HandleInstanceUnbindCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        std::string cmd = args;
 
-            std::string cmd = args;
         if (cmd == "all")
         {
-            Player* player = handler->GetSelectedPlayerOrSelf();
+            Player* player = handler->getSelectedPlayerOrSelf();
             uint32 counter = 0;
             for (uint8 i = 0; i < MAX_DIFFICULTY; i++)
             {
@@ -142,9 +141,8 @@ public:
 
     static bool HandleInstanceSetDataCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        char *chrDataId = strtok((char *)args, " ");
 
-            char *chrDataId = strtok((char *)args, " ");
         if (!chrDataId)
             return false;
 
@@ -170,9 +168,8 @@ public:
 
     static bool HandleInstanceGetDataCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        char *chrDataId = strtok((char *)args, " ");
 
-            char *chrDataId = strtok((char *)args, " ");
         if (!chrDataId)
             return false;
 
@@ -192,9 +189,8 @@ public:
 
     static bool HandleInstanceSetBossStateCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        char *chrDataId = strtok((char *)args, " ");
 
-            char *chrDataId = strtok((char *)args, " ");
         if (!chrDataId)
             return false;
 
@@ -230,9 +226,8 @@ public:
 
     static bool HandleInstanceGetBossStateCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        char *chrDataId = strtok((char *)args, " ");
 
-            char *chrDataId = strtok((char *)args, " ");
         if (!chrDataId)
             return false;
 

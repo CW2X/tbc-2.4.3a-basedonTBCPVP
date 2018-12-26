@@ -33,7 +33,7 @@ public:
         if (!*args)
         {
             //if no arguments given, try getting selected creature
-            target = handler->GetSelectedCreature();
+            target = handler->getSelectedCreature();
 
             if (!target)
             {
@@ -75,7 +75,7 @@ public:
         if (!*args)
         {
             //if no arguments given, try getting selected creature
-            target = handler->GetSelectedCreature();
+            target = handler->getSelectedCreature();
 
             if (!target)
             {

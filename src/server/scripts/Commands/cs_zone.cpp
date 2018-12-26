@@ -22,7 +22,7 @@ public:
 
     static bool HandleZoneBuffCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
         char *bufid = strtok((char *)args, " ");
         if (!bufid)
@@ -43,7 +43,7 @@ public:
 
     static bool HandleZoneMorphCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
         char *displid = strtok((char *)args, " ");
         if (!displid)

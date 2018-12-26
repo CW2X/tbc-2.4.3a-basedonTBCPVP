@@ -40,7 +40,7 @@ public:
 
         // units
         Player* player = handler->GetSession()->GetPlayer();
-        Unit* target = handler->GetSelectedUnit();
+        Unit* target = handler->getSelectedUnit();
         if (!player || !target)
         {
             handler->PSendSysMessage("Invalid target/source selection.");

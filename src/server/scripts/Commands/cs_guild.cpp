@@ -37,8 +37,6 @@ public:
      */
     static bool HandleGuildCreateCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         char *lname = strtok((char*)args, " ");
         char *gname = strtok(nullptr, "");
 
@@ -83,8 +81,6 @@ public:
 
     static bool HandleGuildInviteCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         char* par1 = strtok((char*)args, " ");
         char* par2 = strtok(nullptr, "");
         if (!par1 || !par2)
@@ -131,8 +127,6 @@ public:
 
     static bool HandleGuildUninviteCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         char* par1 = strtok((char*)args, " ");
         if (!par1)
             return false;
@@ -184,8 +178,6 @@ public:
 
     static bool HandleGuildRankCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         char* nameStr;
         char* rankStr;
         handler->extractOptFirstArg((char*)args, &nameStr, &rankStr);
@@ -213,8 +205,6 @@ public:
 
     static bool HandleGuildDeleteCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         char* par1 = strtok((char*)args, " ");
         char* par2 = strtok(nullptr, " ");
         if (!par1)
@@ -251,8 +241,6 @@ public:
 
     static bool HandleGuildRenameCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         char* guildIdStr = strtok((char*)args, " ");
         if (!guildIdStr)
             return false;

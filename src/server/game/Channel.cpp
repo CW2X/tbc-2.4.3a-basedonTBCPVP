@@ -602,32 +602,6 @@ void Channel::Say(ObjectGuid playerGUID, const char *what, Language lang)
         MakeNotModerator(&data);
         SendToOne(&data, playerGUID);
     }
-    else if (this->GetName() == "world" && plr && plr->GetLevel() < sWorld->getConfig(CONFIG_WORLDCHANNEL_MINLEVEL))
-        ChatHandler(plr).PSendSysMessage("You must be at least level %u to speak on this channel.", sWorld->getConfig(CONFIG_WORLDCHANNEL_MINLEVEL));
-    else if (m_name == "2v2" || m_name == "3v3" || m_name == "5v5" || m_name == "pvp")
-        return;
-    else
-    {
-        if(!plr)
-            return;
-
-        WorldPacket data;
-        ChatHandler::BuildChatPacket(data, CHAT_MSG_CHANNEL, lang, plr, nullptr, what, 0, m_name);
-        SendToAll(&data, !players[playerGUID].IsModerator() ? playerGUID : ObjectGuid::Empty);
-        // if player is horde, put this on gmworlda, alliance side (and vice-versa)
-        if (plr && this->GetName() == "world") {
-            ChannelMgr* cMgrOther = channelMgr(plr->GetTeam());
-            if (!cMgrOther)
-                return;
-
-            std::string gmchannelName = plr->GetTeam() == HORDE ? "gmworldh" : "gmworlda"; 
-            if (Channel* chan = cMgrOther->GetJoinChannel(gmchannelName, 0)) {
-                WorldPacket data2;
-                ChatHandler::BuildChatPacket(data2, CHAT_MSG_CHANNEL, lang, plr, nullptr, what, 0, gmchannelName);
-                chan->SendToAll(&data2, ObjectGuid::Empty);
-            }
-        }
-    }
 }
 
 void Channel::Invite(ObjectGuid playerGUID, const char *newname)

@@ -31,12 +31,5 @@
 #include "SpellScript.h"
 #include "SpellAuraEffects.h"
 
-#ifdef TESTS
-    #include "TestCase.h"
-    #include "TestPlayer.h"
-    #include "ClassSpells.h"
-    #include "Pet.h"
-#endif
-
 #endif
 

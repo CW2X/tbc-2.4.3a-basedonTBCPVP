@@ -11,7 +11,6 @@
 #include "AccountMgr.h"
 #include "ServerPktHeader.h"
 #include <boost/asio/ip/tcp.hpp>
-#include "LogsDatabaseAccessor.h"
 
 class EncryptablePacket : public WorldPacket
 {
@@ -39,12 +38,11 @@ WorldSocket::~WorldSocket()
 
 void WorldSocket::Start()
 {
-    std::string ip_address = GetRemoteIpAddress().to_string();
-    PreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_IP_INFO);
-    stmt->setString(0, ip_address);
-    stmt->setUInt32(1, inet_addr(ip_address.c_str()));
+	std::string ip_address = GetRemoteIpAddress().to_string();
+	PreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_IP_INFO);
+	stmt->setString(0, ip_address);
 
-    _queryProcessor.AddQuery(LoginDatabase.AsyncQuery(stmt).WithPreparedCallback(std::bind(&WorldSocket::CheckIpCallback, this, std::placeholders::_1)));
+	_queryProcessor.AddQuery(LoginDatabase.AsyncQuery(stmt).WithPreparedCallback(std::bind(&WorldSocket::CheckIpCallback, this, std::placeholders::_1)));
 }
 
 void WorldSocket::CheckIpCallback(PreparedQueryResult result)
@@ -620,8 +618,6 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<AuthSession> authSes
     _worldSession = new WorldSession(account.Id, ClientBuild(authSession->Build), std::move(authSession->Account), shared_from_this(), account.Security,
         account.Expansion, mutetime, account.Locale, account.Recruiter, account.IsRectuiter);
     _worldSession->ReadAddonsInfo(authSession->AddonInfo);
-
-    sLogsDatabaseAccessor->LogConnectionIP(_worldSession);
 
     // Initialize Warden system only if it is enabled by config
     if (wardenActive)

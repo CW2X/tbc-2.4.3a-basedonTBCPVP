@@ -9,7 +9,6 @@
 #include "AuctionHouseMgr.h"
 #include "Util.h"
 #include "Chat.h"
-#include "LogsDatabaseAccessor.h"
 #include "Mail.h"
 #include "CharacterCache.h"
 #include "GameTime.h"
@@ -166,12 +165,6 @@ void WorldSession::HandleAuctionSellItem( WorldPacket & recvData )
 
     AuctionHouseObject* auctionHouse = sAuctionMgr->GetAuctionsMap( pCreature->GetFaction() );
     uint32 totalcount = auctionHouse->GetAuctionsCount(_player);
-    //Check for max auctions reached
-    if(totalcount > MAX_AUCTIONS)
-    {
-        ChatHandler(_player).PSendSysMessage("Vous avez atteint le maximum d'encheres simultanees.");
-        return;
-    }
 
     // client send time in minutes, convert to common used sec time
     etime *= MINUTE;
@@ -229,8 +222,6 @@ void WorldSession::HandleAuctionSellItem( WorldPacket & recvData )
         SendAuctionCommandResult(0, AUCTION_SELL_ITEM, AUCTION_NOT_ENOUGHT_MONEY);
         return;
     }
-
-    LogsDatabaseAccessor::CreateAuction(GetPlayer(), it->GetGUID().GetCounter(), it->GetEntry(), it->GetCount());
 
     pl->ModifyMoney( -int32(deposit) );
 

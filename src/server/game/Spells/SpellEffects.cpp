@@ -45,7 +45,6 @@
 #include "ScriptMgr.h"
 #include "GameObjectAI.h"
 #include "InstanceScript.h"
-#include "LogsDatabaseAccessor.h"
 #include "SpellHistory.h"
 #include "ReputationMgr.h"
 
@@ -4321,8 +4320,6 @@ void Spell::EffectEnchantItemPerm(uint32 i)
         if(!item_owner)
             return;
 
-        LogsDatabaseAccessor::Enchantment(p_caster, item_owner, itemTarget->GetGUID().GetCounter(), itemTarget->GetEntry(), enchant_id, true);
-
         // remove old enchanting before applying new if equipped
         item_owner->ApplyEnchantment(itemTarget,PERM_ENCHANTMENT_SLOT,false);
 
@@ -4459,8 +4456,6 @@ void Spell::EffectEnchantItemTmp(uint32 i)
     Player* item_owner = itemTarget->GetOwner();
     if(!item_owner)
         return;
-
-    LogsDatabaseAccessor::Enchantment(p_caster, item_owner, itemTarget->GetGUID().GetCounter(), itemTarget->GetEntry(), enchant_id, false);
 
     // remove old enchanting before applying new if equipped
     item_owner->ApplyEnchantment(itemTarget,TEMP_ENCHANTMENT_SLOT,false);

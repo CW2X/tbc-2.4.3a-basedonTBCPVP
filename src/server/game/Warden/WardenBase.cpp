@@ -116,9 +116,6 @@ void WardenBase::Update()
             if ((_wardenKickTimer > maxClientResponseDelay * IN_MILLISECONDS)) {
                 if (sWorld->getConfig(CONFIG_WARDEN_KICK))
                     Client->KickPlayer();
-                
-                //if (sWorld->getConfig(CONFIG_WARDEN_DB_LOG))
-                    //LogsDatabase.PQuery("INSERT INTO warden_fails (guid, account, check_id, comment, time) VALUES (%u, %u, 0, 'Response timeout', %u)", Client->GetPlayer() ? Client->GetPlayer()->GetGUID().GetCounter() : 0, Client->GetAccountId(), time(NULL));
             }
             else
                 _wardenKickTimer += diff;

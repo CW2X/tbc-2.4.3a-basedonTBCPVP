@@ -31,14 +31,15 @@ public:
         //default to "on" if no input specified
         std::string argstr = *args ? (char*)args : "on";
 
-        Player *chr = handler->GetSelectedPlayerOrSelf();
+        Player *chr = handler->getSelectedPlayerOrSelf();
 
         if (argstr == "on")
         {
             chr->SetTaxiCheater(true);
             handler->PSendSysMessage(LANG_YOU_GIVE_TAXIS, chr->GetName().c_str());
             if (handler->needReportToTarget(chr))
-                ChatHandler(chr).PSendSysMessage(LANG_YOURS_TAXIS_ADDED, handler->GetName().c_str());
+				ChatHandler(chr->GetSession()).PSendSysMessage(LANG_YOURS_TAXIS_REMOVED, handler->GetNameLink().c_str());
+
             return true;
         }
 
@@ -47,7 +48,7 @@ public:
             chr->SetTaxiCheater(false);
             handler->PSendSysMessage(LANG_YOU_REMOVE_TAXIS, chr->GetName().c_str());
             if (handler->needReportToTarget(chr))
-                ChatHandler(chr).PSendSysMessage(LANG_YOURS_TAXIS_REMOVED, handler->GetName().c_str());
+				ChatHandler(chr->GetSession()).PSendSysMessage(LANG_YOURS_TAXIS_REMOVED, handler->GetNameLink().c_str());
 
             return true;
         }
@@ -164,11 +165,9 @@ public:
 
     static bool HandleExploreCheatCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        int flag = atoi((char*)args);
 
-            int flag = atoi((char*)args);
-
-        Player *chr = handler->GetSelectedPlayerOrSelf();
+        Player *chr = handler->getSelectedPlayerOrSelf();
         if (chr == nullptr)
         {
             handler->SendSysMessage(LANG_NO_CHAR_SELECTED);
@@ -180,13 +179,13 @@ public:
         {
             handler->PSendSysMessage(LANG_YOU_SET_EXPLORE_ALL, chr->GetName().c_str());
             if (handler->needReportToTarget(chr))
-                ChatHandler(chr).PSendSysMessage(LANG_YOURS_EXPLORE_SET_ALL, handler->GetName().c_str());
+                ChatHandler(chr->GetSession()).PSendSysMessage(LANG_YOURS_EXPLORE_SET_ALL, handler->GetNameLink().c_str());
         }
         else
         {
             handler->PSendSysMessage(LANG_YOU_SET_EXPLORE_NOTHING, chr->GetName().c_str());
             if (handler->needReportToTarget(chr))
-                ChatHandler(chr).PSendSysMessage(LANG_YOURS_EXPLORE_SET_NOTHING, handler->GetName().c_str());
+                ChatHandler(chr->GetSession()).PSendSysMessage(LANG_YOURS_EXPLORE_SET_NOTHING, handler->GetNameLink().c_str());
         }
 
         for (uint8 i = 0; i < 128; i++)

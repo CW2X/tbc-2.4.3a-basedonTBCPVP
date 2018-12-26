@@ -641,7 +641,6 @@ class TC_GAME_API World
 
         void SetInitialWorldSettings();
         void LoadConfigSettings(bool reload = false);
-        void LoadMotdAndTwitter();
 
         void SendWorldText(int32 string_id, ...);
         void SendGlobalText(const char* text, WorldSession* self = nullptr);
@@ -758,8 +757,6 @@ class TC_GAME_API World
         uint32 GetCurrentQuestForPool(uint32 poolId);
         bool IsQuestInAPool(uint32 questId);
         bool IsQuestCurrentOfAPool(uint32 questId);
-        bool IsPhishing(std::string msg);
-        void LogPhishing(uint32 src, uint32 dst, std::string msg);
         void ResetDailyQuests();
         void LoadAutoAnnounce();
 
@@ -789,8 +786,6 @@ class TC_GAME_API World
         void LoadQuestPoolsData();
         void UpdateMonitoring(uint32 diff);
     private:
-
-        void UpdateArenaSeasonLogs();
 
         static std::atomic<bool> m_stopEvent;
         static uint8 m_ExitCode;
@@ -830,7 +825,6 @@ class TC_GAME_API World
         void LoadCustomFFAZones();
         std::set<uint32> configFFAZones;
 
-        void LoadFishingWords();
         std::list<std::string> fishingWords;
 
         // for max speed access

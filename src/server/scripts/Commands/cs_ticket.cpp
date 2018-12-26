@@ -106,7 +106,7 @@ public:
 
     static bool HandleGMTicketGetByIdCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
             uint64 tguid = atoi(args);
         GM_Ticket *ticket = sObjectMgr->GetGMTicket(tguid);
@@ -122,7 +122,7 @@ public:
 
     static bool HandleGMTicketGetByNameCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
             Player *plr = ObjectAccessor::FindConnectedPlayerByName(args);
         if (!plr)
@@ -144,7 +144,7 @@ public:
 
     static bool HandleGMTicketCloseByIdCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
         uint64 tguid = atoi(args);
         GM_Ticket *ticket = sObjectMgr->GetGMTicket(tguid);
@@ -176,7 +176,7 @@ public:
 
     static bool HandleGMTicketAssignToCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
             char* tguid = strtok((char*)args, " ");
         uint64 ticketGuid = atoi(tguid);
@@ -228,7 +228,7 @@ public:
 
     static bool HandleGMTicketUnAssignCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
             uint64 ticketGuid = atoi(args);
         Player* cplr = handler->GetSession()->GetPlayer();
@@ -255,7 +255,7 @@ public:
         }
 
         SendTicket(handler, ticket, 0, false, false, false, true, true);
-        std::string str = handler->GetTrinityStringVA(LANG_COMMAND_TICKETLISTUNASSIGNED, cplr->GetName().c_str());
+        std::string str = handler->GetTrinityString(LANG_COMMAND_TICKETLISTUNASSIGNED);
         handler->SendGlobalGMSysMessage(str.c_str());
 
         ticket->assignedToGM.Clear();
@@ -265,9 +265,7 @@ public:
 
     static bool HandleGMTicketCommentCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-            char* tguid = strtok((char*)args, " ");
+		char* tguid = strtok((char*)args, " ");
         uint64 ticketGuid = atoi(tguid);
         char* comment = strtok(nullptr, "\n");
 
@@ -299,7 +297,7 @@ public:
 
     static bool HandleGMTicketDeleteByIdCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
             uint64 ticketGuid = atoi(args);
         GM_Ticket *ticket = sObjectMgr->GetGMTicket(ticketGuid);
 

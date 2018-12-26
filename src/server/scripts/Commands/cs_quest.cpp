@@ -27,7 +27,7 @@ public:
 
     static bool HandleQuestAddCommand(ChatHandler* handler, char const* args)
     {
-        Player* player = handler->GetSelectedPlayerOrSelf();
+        Player* player = handler->getSelectedPlayerOrSelf();
         if (!player)
         {
             handler->SendSysMessage(LANG_NO_CHAR_SELECTED);
@@ -79,7 +79,7 @@ public:
 
     static bool HandleQuestRemoveCommand(ChatHandler* handler, char const* args)
     {
-        Player* player = handler->GetSelectedPlayerOrSelf();
+        Player* player = handler->getSelectedPlayerOrSelf();
         if (!player)
         {
             handler->SendSysMessage(LANG_NO_CHAR_SELECTED);
@@ -135,7 +135,7 @@ public:
 
     static bool HandleQuestCompleteCommand(ChatHandler* handler, char const* args)
     {
-        Player* player = handler->GetSelectedPlayerOrSelf();
+        Player* player = handler->getSelectedPlayerOrSelf();
         if (!player)
         {
             handler->SendSysMessage(LANG_NO_CHAR_SELECTED);
@@ -283,7 +283,7 @@ public:
         ObjectGuid targetGUID;
         if (!*args) //if no name provided, check if we have a player on target
         {
-            player = handler->GetSelectedPlayerOrSelf();
+            player = handler->getSelectedPlayerOrSelf();
             if (!player)
             {
                 handler->SendSysMessage(LANG_NO_CHAR_SELECTED);

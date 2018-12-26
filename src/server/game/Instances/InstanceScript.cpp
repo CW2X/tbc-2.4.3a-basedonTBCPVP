@@ -134,18 +134,6 @@ void InstanceScript::DoCastSpellOnPlayers(uint32 spell)
                 player->CastSpell(player, spell, true);
 }
 
-void InstanceScript::SendScriptInTestNoLootMessageToAll()
-{
-    Map::PlayerList const& players = instance->GetPlayers();
-
-    if (!players.isEmpty()) {
-        for (const auto & player : players) {
-            if (Player* plr = player.GetSource())
-                ChatHandler(plr).SendSysMessage(LANG_SCRIPT_IN_TEST_NO_LOOT);
-        }
-    }
-}
-
 void InstanceScript::LoadBossBoundaries(BossBoundaryData const& data)
 {
     for (BossBoundaryEntry const& entry : data)
@@ -370,12 +358,6 @@ bool InstanceScript::SetBossState(uint32 id, EncounterState state)
                             return false;
 
             bossInfo->state = state;
-            //sun: warn gms of state change
-            for (const auto & i : instance->GetPlayers())
-                if (Player* player = i.GetSource())
-                    if (WorldSession* session = player->GetSession())
-                        if(session->GetSecurity() > SEC_PLAYER)
-                            ChatHandler(player).PSendSysMessage("Boss state %u changed to %u", id, bossInfo->state);
             SaveToDB();
         }
 

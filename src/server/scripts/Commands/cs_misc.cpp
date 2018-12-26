@@ -1,7 +1,6 @@
 #include "Chat.h"
 #include "Language.h"
 #include "CharacterCache.h"
-#include "LogsDatabaseAccessor.h"
 #include "ChaseMovementGenerator.h"
 #include "FollowMovementGenerator.h"
 #include "BattlegroundMgr.h"
@@ -96,7 +95,7 @@ public:
 
         if(!kickName)
          {
-            Player* player = handler->GetSelectedPlayerOrSelf();
+            Player* player = handler->getSelectedPlayerOrSelf();
             if(!player)
             {
                 handler->SendSysMessage(LANG_NO_CHAR_SELECTED);
@@ -178,8 +177,6 @@ public:
     //move item to other slot
     static bool HandleItemMoveCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         uint8 srcslot, dstslot;
 
         char* pParam1 = strtok((char*)args, " ");
@@ -212,7 +209,7 @@ public:
 
     static bool HandleGUIDCommand(ChatHandler* handler, char const* /*args*/)
     {
-        Unit* selected = handler->GetSelectedUnit();
+        Unit* selected = handler->getSelectedUnit();
         if (!selected)
         {
             handler->SendSysMessage(LANG_NO_SELECTION);
@@ -227,8 +224,6 @@ public:
     //unmute player
     static bool HandleUnmuteCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         char *charname = strtok((char*)args, " ");
         if (!charname)
             return false;
@@ -285,10 +280,9 @@ public:
         }
 
         LoginDatabase.PExecute("UPDATE account SET mutetime = '0' WHERE id = '%u'", account_id );
-        LogsDatabaseAccessor::RemoveSanction(handler->GetSession(), account_id, 0, "", SANCTION_MUTE_ACCOUNT);
 
         if(chr)
-            ChatHandler(chr).PSendSysMessage(LANG_YOUR_CHAT_ENABLED);
+            ChatHandler(chr->GetSession()).PSendSysMessage(LANG_YOUR_CHAT_ENABLED);
 
         handler->PSendSysMessage(LANG_YOU_ENABLE_CHAT, cname.c_str());
         return true;
@@ -297,8 +291,6 @@ public:
     //mute player for some times
     static bool HandleMuteCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         char* charname = strtok((char*)args, " ");
         if (!charname)
             return false;
@@ -368,13 +360,10 @@ public:
             chr->GetSession()->m_muteTime = mutetime;
         
         // Prevent SQL injection
-        LogsDatabase.EscapeString(mutereasonstr);
         LoginDatabase.PExecute("UPDATE account SET mutetime = " UI64FMTD " WHERE id = '%u'", uint64(mutetime), account_id );
 
-        LogsDatabaseAccessor::Sanction(handler->GetSession(), account_id, 0, SANCTION_MUTE_ACCOUNT, duration, mutereasonstr);
-
         if(chr)
-            ChatHandler(chr).PSendSysMessage(LANG_YOUR_CHAT_DISABLED, notspeaktime, mutereasonstr.c_str());
+            ChatHandler(chr->GetSession()).PSendSysMessage(LANG_YOUR_CHAT_DISABLED, notspeaktime, mutereasonstr.c_str());
 
         handler->PSendSysMessage(LANG_YOU_DISABLE_CHAT, cname.c_str(), notspeaktime, mutereasonstr.c_str());
 
@@ -383,7 +372,7 @@ public:
 
     static bool HandleMaxSkillCommand(ChatHandler* handler, char const* /*args*/)
     {
-        Player* selectedPlayer = handler->GetSelectedPlayerOrSelf();
+        Player* selectedPlayer = handler->getSelectedPlayerOrSelf();
         // each skills that have max skill value dependent from level seted to current level max skill value
         selectedPlayer->UpdateSkillsToMaxSkillsForLevel();
         handler->SendSysMessage("Max skills set to target");
@@ -417,7 +406,7 @@ public:
         if (level == 0)
             level = 1;
 
-        Player * target = handler->GetSelectedPlayerOrSelf();
+        Player * target = handler->getSelectedPlayerOrSelf();
         if(!target)
         {
             handler->SendSysMessage(LANG_NO_CHAR_SELECTED);
@@ -454,7 +443,7 @@ public:
 
     static bool HandleCooldownCommand(ChatHandler* handler, char const* args)
     {
-        Player* target = handler->GetSelectedPlayerOrSelf();
+        Player* target = handler->getSelectedPlayerOrSelf();
 
         if (!*args)
         {
@@ -483,8 +472,6 @@ public:
 
     static bool HandleAddItemCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         uint32 itemId = 0;
 
         if(args[0]=='[')                                        // [name] manual form
@@ -526,7 +513,7 @@ public:
             count = 1;
 
         Player* pl = handler->GetSession()->GetPlayer();
-        Player* plTarget = handler->GetSelectedPlayerOrSelf();
+        Player* plTarget = handler->getSelectedPlayerOrSelf();
 
         TC_LOG_DEBUG("command",handler->GetTrinityString(LANG_ADDITEM), itemId, count);
 
@@ -585,8 +572,6 @@ public:
 
     static bool HandleAddItemSetCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         char* cId = handler->extractKeyFromLink((char*)args,"Hitemset"); // number or [name] Shift-click form |color|Hitemset:itemset_id|h[name]|h|r
         if (!cId)
             return false;
@@ -602,7 +587,7 @@ public:
         }
 
         Player* pl = handler->GetSession()->GetPlayer();
-        Player* plTarget = handler->GetSelectedPlayerOrSelf();
+        Player* plTarget = handler->getSelectedPlayerOrSelf();
 
         TC_LOG_DEBUG("command",handler->GetTrinityString(LANG_ADDITEMSET), itemsetId);
 
@@ -650,7 +635,7 @@ public:
 
     static bool HandleDieCommand(ChatHandler* handler, char const* /*args*/)
     {
-        Unit* target = handler->GetSelectedUnit();
+        Unit* target = handler->getSelectedUnit();
 
         if(!target || !handler->GetSession()->GetPlayer()->GetTarget())
         {
@@ -671,7 +656,7 @@ public:
 
     static bool HandleGetDistanceCommand(ChatHandler* handler, char const* /*args*/)
     {
-        Unit* pUnit = handler->GetSelectedUnit();
+        Unit* pUnit = handler->getSelectedUnit();
 
         if (!pUnit)
         {
@@ -688,9 +673,7 @@ public:
 
     static bool HandleDamageCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-        Unit* target = handler->GetSelectedUnit();
+        Unit* target = handler->getSelectedUnit();
 
         if(!target || !handler->GetSession()->GetPlayer()->GetTarget())
         {
@@ -773,7 +756,7 @@ public:
             SelectedPlayer = ObjectAccessor::FindConnectedPlayerByName(name.c_str());
         }
         else
-            SelectedPlayer = handler->GetSelectedPlayerOrSelf();
+            SelectedPlayer = handler->getSelectedPlayerOrSelf();
 
         if(!SelectedPlayer)
         {
@@ -794,7 +777,7 @@ public:
         if (!px)
             return false;
 
-        Unit *target = handler->GetSelectedUnit();
+        Unit *target = handler->getSelectedUnit();
         if(!target)
         {
             handler->SendSysMessage(LANG_SELECT_CHAR_OR_CREATURE);
@@ -823,7 +806,7 @@ public:
         if (!px)
             return false;
 
-        Unit *target = handler->GetSelectedUnit();
+        Unit *target = handler->getSelectedUnit();
         if(!target)
         {
             handler->SendSysMessage(LANG_SELECT_CHAR_OR_CREATURE);
@@ -846,8 +829,6 @@ public:
 
     static bool HandleLinkGraveCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         char* px = strtok((char*)args, " ");
         if (!px)
             return false;
@@ -1033,7 +1014,7 @@ public:
         }
         else                                                    // player by selection
         {
-            chr = handler->GetSelectedPlayerOrSelf();
+            chr = handler->getSelectedPlayerOrSelf();
 
             if (chr == nullptr)
             {
@@ -1061,13 +1042,13 @@ public:
             chr->SetUInt32Value(PLAYER_XP,0);
 
             if(oldlevel == newlevel)
-                ChatHandler(chr).SendSysMessage(LANG_YOURS_LEVEL_PROGRESS_RESET);
+                ChatHandler(chr->GetSession()).SendSysMessage(LANG_YOURS_LEVEL_PROGRESS_RESET);
             else
             if(oldlevel < newlevel)
-                ChatHandler(chr).PSendSysMessage(LANG_YOURS_LEVEL_UP,newlevel-oldlevel);
+                ChatHandler(chr->GetSession()).PSendSysMessage(LANG_YOURS_LEVEL_UP,newlevel-oldlevel);
             else
             if(oldlevel > newlevel)
-                ChatHandler(chr).PSendSysMessage(LANG_YOURS_LEVEL_DOWN,newlevel-oldlevel);
+                ChatHandler(chr->GetSession()).PSendSysMessage(LANG_YOURS_LEVEL_DOWN,newlevel-oldlevel);
         }
         else
         {
@@ -1084,11 +1065,9 @@ public:
 
     static bool HandleShowAreaCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         int area = atoi((char*)args);
 
-        Player *chr = handler->GetSelectedPlayerOrSelf();
+        Player *chr = handler->getSelectedPlayerOrSelf();
         if (chr == nullptr)
         {
             handler->SendSysMessage(LANG_NO_CHAR_SELECTED);
@@ -1115,11 +1094,9 @@ public:
 
     static bool HandleHideAreaCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         int area = atoi((char*)args);
 
-        Player *chr = handler->GetSelectedPlayerOrSelf();
+        Player *chr = handler->getSelectedPlayerOrSelf();
         if (chr == nullptr)
         {
             handler->SendSysMessage(LANG_NO_CHAR_SELECTED);
@@ -1153,8 +1130,6 @@ public:
 
     static bool HandleChangeWeather(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         //Weather is OFF
         if (!sWorld->getConfig(CONFIG_WEATHER))
         {
@@ -1197,7 +1172,7 @@ public:
         Player* player = handler->GetSession()->GetPlayer();
 
         // accept only explicitly selected target (not implicitly self targeting case)
-        Unit* target = handler->GetSelectedUnit();
+        Unit* target = handler->getSelectedUnit();
         if(player->GetTarget() && target)
         {
             if(target->GetTypeId()!=TYPEID_UNIT)
@@ -1233,7 +1208,7 @@ public:
 
     static bool HandleMovegensCommand(ChatHandler* handler, char const* /*args*/)
     {
-        Unit* unit = handler->GetSelectedUnit();
+        Unit* unit = handler->getSelectedUnit();
         if(!unit)
         {
             handler->SendSysMessage(LANG_SELECT_CHAR_OR_CREATURE);
@@ -1387,7 +1362,7 @@ public:
 
         uint32 newFlags = (uint32)strtoul(newFlagStr, nullptr, 0);
 
-        Creature* caster =  handler->GetSelectedCreature();
+        Creature* caster =  handler->getSelectedCreature();
         if(!caster)
         {
             handler->GetSession()->GetPlayer()->SetUnitMovementFlags(newFlags);
@@ -1412,8 +1387,6 @@ public:
 
     static bool HandlePlayAllCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         uint32 soundId = atoi((char*)args);
 
         if(!sSoundEntriesStore.LookupEntry(soundId))
@@ -1438,7 +1411,7 @@ public:
         char* TargetName = strtok((char*)args, " "); //get entered name
         if (!TargetName) //if no name entered use target
         {
-            player = handler->GetSelectedPlayer();
+            player = handler->getSelectedPlayer();
             if (player) //prevent crash with creature as target
             {
                 name = player->GetName();
@@ -1509,7 +1482,7 @@ public:
         char* TargetName = strtok((char*)args, " "); //get entered name
         if (!TargetName) //if no name entered use target
         {
-            player = handler->GetSelectedPlayer();
+            player = handler->getSelectedPlayer();
             if (player) //prevent crash with creature as target
             {
                 name = player->GetName();
@@ -1593,7 +1566,7 @@ public:
 
     static bool HandlePossessCommand(ChatHandler* handler, char const* args)
     {
-        Unit* pUnit = handler->GetSelectedUnit();
+        Unit* pUnit = handler->getSelectedUnit();
         if(!pUnit)
             return false;
 
@@ -1603,7 +1576,7 @@ public:
 
     static bool HandleUnPossessCommand(ChatHandler* handler, char const* args)
     {
-        Unit* pUnit = handler->GetSelectedUnit();
+        Unit* pUnit = handler->getSelectedUnit();
         if(!pUnit) pUnit = handler->GetSession()->GetPlayer();
 
         pUnit->RemoveAurasByType(SPELL_AURA_MOD_CHARM);
@@ -1615,7 +1588,7 @@ public:
 
     static bool HandleBindSightCommand(ChatHandler* handler, char const* args)
     {
-        Unit* pUnit = handler->GetSelectedUnit();
+        Unit* pUnit = handler->getSelectedUnit();
         if (!pUnit)
             return false;
 
@@ -1634,7 +1607,7 @@ public:
 
     static bool HandleGetMoveFlagsCommand(ChatHandler* handler, char const* args)
     {
-        Unit* target = handler->GetSelectedUnit();
+        Unit* target = handler->getSelectedUnit();
         if (!target)
             target = handler->GetSession()->GetPlayer();
 
@@ -1650,9 +1623,7 @@ public:
 
     static bool HandleSetMoveFlagsCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-        Unit* target = handler->GetSelectedUnit();
+        Unit* target = handler->getSelectedUnit();
         if (!target)
             target = handler->GetSession()->GetPlayer();
 
@@ -1695,12 +1666,10 @@ public:
 
     static bool HandleSetTitleCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         uint32 titleId = atoi(args);
 
         if(CharTitlesEntry const* titleEntry = sCharTitlesStore.LookupEntry(titleId)) {
-            if (Player* plr = handler->GetSelectedUnit()->ToPlayer())
+            if (Player* plr = handler->getSelectedUnit()->ToPlayer())
                 plr->SetTitle(titleEntry,true);
             else if (Player* _plr = handler->GetSession()->GetPlayer())
                 _plr->SetTitle(titleEntry,true);
@@ -1711,8 +1680,6 @@ public:
 
     static bool HandleRemoveTitleCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         uint32 titleId = atoi(args);
 
         if(CharTitlesEntry const* titleEntry = sCharTitlesStore.LookupEntry(titleId)) {
@@ -1733,8 +1700,6 @@ public:
 
     static bool HandleSpellInfoCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-    
         uint32 spellId = uint32(atoi(args));
         if (!spellId)
             return false;

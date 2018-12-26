@@ -1,19 +1,3 @@
-/*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 
 #ifndef TRINITY_CHATCOMMAND_H
 #define TRINITY_CHATCOMMAND_H
@@ -227,8 +211,8 @@ class TC_GAME_API ChatCommand
 
     public:
         template <typename TypedHandler>
-        ChatCommand(char const* name, uint32 securityLevel, bool allowConsole, TypedHandler handler, std::string help)
-            : Name(ASSERT_NOTNULL(name)), SecurityLevel(securityLevel), AllowConsole(allowConsole), Help(std::move(help)), ChildCommands({})
+        ChatCommand(char const* name, uint32 permission, bool allowConsole, TypedHandler handler, std::string help)
+            : Name(ASSERT_NOTNULL(name)), Permission(permission), AllowConsole(allowConsole), Help(std::move(help)), ChildCommands({})
         {
             _wrapper = [](void* handler, ChatHandler* chatHandler, char const* argsStr)
             {
@@ -250,8 +234,8 @@ class TC_GAME_API ChatCommand
             _handler = reinterpret_cast<void*>(handler);
         }
 
-        ChatCommand(char const* name, uint32 securityLevel, bool allowConsole, std::nullptr_t, std::string help, std::vector<ChatCommand> childCommands = {})
-            : Name(ASSERT_NOTNULL(name)), SecurityLevel(securityLevel), AllowConsole(allowConsole), Help(std::move(help)), ChildCommands(std::move(childCommands))
+        ChatCommand(char const* name, uint32 permission, bool allowConsole, std::nullptr_t, std::string help, std::vector<ChatCommand> childCommands = {})
+            : Name(ASSERT_NOTNULL(name)), Permission(permission), AllowConsole(allowConsole), Help(std::move(help)), ChildCommands(std::move(childCommands))
         {
             _wrapper = nullptr;
             _handler = nullptr;
@@ -266,8 +250,7 @@ class TC_GAME_API ChatCommand
         bool HasHandler() const { return !!_handler; }
 
         char const* Name;
-        //TC uint32 Permission;                   // function pointer required correct align (use uint32)
-        uint32 SecurityLevel;
+        uint32 Permission;                   // function pointer required correct align (use uint32)
         bool AllowConsole;
         std::string Help;
         std::vector<ChatCommand> ChildCommands;

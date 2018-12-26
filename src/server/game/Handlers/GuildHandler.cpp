@@ -10,7 +10,6 @@
 #include "MapManager.h"
 #include "GossipDef.h"
 #include "SocialMgr.h"
-#include "LogsDatabaseAccessor.h"
 #include "CharacterCache.h"
 #include "GuildMgr.h"
 

@@ -146,9 +146,8 @@ public:
     //spawn go
     static bool HandleGameObjectAddCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        char* pParam1 = strtok((char*)args, " ");
 
-            char* pParam1 = strtok((char*)args, " ");
         if (!pParam1)
             return false;
 
@@ -487,9 +486,8 @@ public:
 
     static bool HandleActivateObjectCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        char* cId = handler->extractKeyFromLink((char*)args, "Hgameobject");
 
-            char* cId = handler->extractKeyFromLink((char*)args, "Hgameobject");
         if (!cId)
             return false;
 
@@ -524,8 +522,8 @@ public:
     // add go, temp only
     static bool HandleTempGameObjectCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-            char* charID = strtok((char*)args, " ");
+        char* charID = strtok((char*)args, " ");
+
         if (!charID)
             return false;
 
@@ -650,9 +648,7 @@ public:
     /* Syntax : .gobject getvalue #guid #index [uint32/uint64/float]*/
     static bool HandleGobGetValueCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-            char* cGUID = strtok((char*)args, " ");
+        char* cGUID = strtok((char*)args, " ");
         char* cIndex = strtok(nullptr, " ");
         char* cType = strtok(nullptr, " ");
 
@@ -716,9 +712,7 @@ public:
     /* Syntax : .gobject setvalue #guid #index #value [uint32/uint64/float]*/
     static bool HandleGobSetValueCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-            char* cGUID = strtok((char*)args, " ");
+        char* cGUID = strtok((char*)args, " ");
         char* cIndex = strtok(nullptr, " ");
         char* cValue = strtok(nullptr, " ");
         char* cType = strtok(nullptr, " ");

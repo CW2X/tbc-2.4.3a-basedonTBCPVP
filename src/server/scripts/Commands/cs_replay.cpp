@@ -31,7 +31,7 @@ public:
             return false;
 
         WorldSession* sess = handler->GetSession();
-        if (Player* player = handler->GetSelectedPlayer())
+        if (Player* player = handler->getSelectedPlayer())
             sess = player->GetSession();
 
         std::string filename = "replays/";

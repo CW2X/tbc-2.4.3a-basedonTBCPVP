@@ -28,7 +28,7 @@ public:
 
     static bool HandleTeleAddCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
             Player *player = handler->GetSession()->GetPlayer();
         if (!player)
@@ -67,7 +67,7 @@ public:
 
     static bool HandleTeleDelCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
             std::string name = args;
 
@@ -85,7 +85,7 @@ public:
     // teleport player to given game_tele.entry
     static bool HandleTeleNameCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
             char* pName = strtok((char*)args, " ");
 
@@ -135,7 +135,7 @@ public:
 
             handler->PSendSysMessage(LANG_TELEPORTING_TO, chr->GetName().c_str(), "", tele->name.c_str());
             if (handler->needReportToTarget(chr))
-                ChatHandler(chr).PSendSysMessage(LANG_TELEPORTED_TO_BY, handler->GetName().c_str());
+                ChatHandler(chr->GetSession()).PSendSysMessage(LANG_TELEPORTED_TO_BY, handler->GetNameLink().c_str());
 
             // stop flight if need
             if (chr->IsInFlight())
@@ -166,7 +166,7 @@ public:
             return false;	           
         }
 
-        Player *player = handler->GetSelectedPlayerOrSelf();
+        Player *player = handler->getSelectedPlayerOrSelf();
         if (!player)
         {
             handler->SendSysMessage(LANG_NO_CHAR_SELECTED);
@@ -204,7 +204,7 @@ public:
 
             handler->PSendSysMessage(LANG_TELEPORTING_TO, pl->GetName().c_str(), "", tele->name.c_str());
             if (handler->needReportToTarget(pl))
-                ChatHandler(pl).PSendSysMessage(LANG_TELEPORTED_TO_BY, handler->GetName().c_str());
+                ChatHandler(pl->GetSession()).PSendSysMessage(LANG_TELEPORTED_TO_BY, handler->GetNameLink().c_str());
 
             // stop flight if need
             if (pl->IsInFlight())
@@ -222,7 +222,7 @@ public:
     //Summon group of player
     static bool HandleGroupgoCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
             std::string name = args;
 
@@ -293,7 +293,7 @@ public:
 
             handler->PSendSysMessage(LANG_SUMMONING, pl->GetName().c_str(), "");
             if (handler->needReportToTarget(pl))
-                ChatHandler(pl).PSendSysMessage(LANG_SUMMONED_BY, handler->GetName().c_str());
+                ChatHandler(pl->GetSession()).PSendSysMessage(LANG_SUMMONED_BY, handler->GetNameLink().c_str());
 
             // stop flight if need
             if (pl->IsInFlight())

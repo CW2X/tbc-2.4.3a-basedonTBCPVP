@@ -7716,7 +7716,7 @@ bool ObjectMgr::IsVendorItemValid( uint32 vendor_entry, ItemTemplate const *prot
     if(!cInfo)
     {
         if(pl)
-            ChatHandler(pl).SendSysMessage(LANG_COMMAND_VENDORSELECTION);
+            ChatHandler(pl->GetSession()).SendSysMessage(LANG_COMMAND_VENDORSELECTION);
         else
             TC_LOG_ERROR("sql.sql","Table `(game_event_)npc_vendor` have data for not existed creature template (Entry: %u), ignore", vendor_entry);
         return false;
@@ -7727,7 +7727,7 @@ bool ObjectMgr::IsVendorItemValid( uint32 vendor_entry, ItemTemplate const *prot
         if(!skip_vendors || skip_vendors->count(vendor_entry)==0)
         {
             if(pl)
-                ChatHandler(pl).SendSysMessage(LANG_COMMAND_VENDORSELECTION);
+                ChatHandler(pl->GetSession()).SendSysMessage(LANG_COMMAND_VENDORSELECTION);
             else
                 TC_LOG_ERROR("sql.sql","Table `(game_event_)npc_vendor` have data for not creature template (Entry: %u) without vendor flag, ignore", vendor_entry);
 
@@ -7740,7 +7740,7 @@ bool ObjectMgr::IsVendorItemValid( uint32 vendor_entry, ItemTemplate const *prot
     if(ExtendedCost && !GetItemExtendedCost(ExtendedCost))
     {
         if(pl)
-            ChatHandler(pl).PSendSysMessage(LANG_EXTENDED_COST_NOT_EXIST,ExtendedCost);
+            ChatHandler(pl->GetSession()).PSendSysMessage(LANG_EXTENDED_COST_NOT_EXIST,ExtendedCost);
         else
             TC_LOG_ERROR("sql.sql","Table `(game_event_)npc_vendor` have Item (Entry: %u) with wrong ExtendedCost (%u) for vendor (%u), ignore",proto->ItemId,ExtendedCost,vendor_entry);
         return false;
@@ -7749,7 +7749,7 @@ bool ObjectMgr::IsVendorItemValid( uint32 vendor_entry, ItemTemplate const *prot
     if(maxcount > 0 && incrtime == 0)
     {
         if(pl)
-            ChatHandler(pl).PSendSysMessage("MaxCount!=0 (%u) but IncrTime==0", maxcount);
+            ChatHandler(pl->GetSession()).PSendSysMessage("MaxCount!=0 (%u) but IncrTime==0", maxcount);
         else
             TC_LOG_ERROR( "sql.sql","Table `(game_event_)npc_vendor` has `maxcount` (%u) for item %u of vendor (Entry: %u) but `incrtime`=0, ignore", maxcount, proto->ItemId, vendor_entry);
         return false;
@@ -7757,7 +7757,7 @@ bool ObjectMgr::IsVendorItemValid( uint32 vendor_entry, ItemTemplate const *prot
     else if(maxcount==0 && incrtime > 0)
     {
         if(pl)
-            ChatHandler(pl).PSendSysMessage("MaxCount==0 but IncrTime<>=0");
+            ChatHandler(pl->GetSession()).PSendSysMessage("MaxCount==0 but IncrTime<>=0");
         else
             TC_LOG_ERROR( "FIXME","Table `(game_event_)npc_vendor` has `maxcount`=0 for item %u of vendor (Entry: %u) but `incrtime`<>0, ignore", proto->ItemId, vendor_entry);
         return false;
@@ -7770,7 +7770,7 @@ bool ObjectMgr::IsVendorItemValid( uint32 vendor_entry, ItemTemplate const *prot
     if(vItems->FindItem(proto->ItemId))
     {
         if(pl)
-            ChatHandler(pl).PSendSysMessage(LANG_ITEM_ALREADY_IN_LIST,proto->ItemId);
+            ChatHandler(pl->GetSession()).PSendSysMessage(LANG_ITEM_ALREADY_IN_LIST,proto->ItemId);
         else
             TC_LOG_ERROR("sql.sql", "Table `(game_event_)npc_vendor` has duplicate items %u for vendor (Entry: %u), ignore", proto->ItemId, vendor_entry);
         return false;
@@ -7779,7 +7779,7 @@ bool ObjectMgr::IsVendorItemValid( uint32 vendor_entry, ItemTemplate const *prot
     if(vItems->GetItemCount() >= MAX_VENDOR_ITEMS)
     {
         if(pl)
-            ChatHandler(pl).SendSysMessage(LANG_COMMAND_ADDVENDORITEMITEMS);
+            ChatHandler(pl->GetSession()).SendSysMessage(LANG_COMMAND_ADDVENDORITEMITEMS);
         else
             TC_LOG_ERROR("sql.sql", "Table `npc_vendor` has too many items (%u >= %i) for vendor (Entry: %u), ignore", vItems->GetItemCount(), MAX_VENDOR_ITEMS, vendor_entry);
         return false;

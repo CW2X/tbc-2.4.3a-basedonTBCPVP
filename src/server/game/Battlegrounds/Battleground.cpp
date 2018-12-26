@@ -12,7 +12,6 @@
 #include "World.h"
 #include "Util.h"
 #include "SpellMgr.h"
-#include "LogsDatabaseAccessor.h"
 #include "Mail.h"
 #include "Transport.h"
 #include "GameTime.h"
@@ -550,9 +549,6 @@ void Battleground::EndBattleground(uint32 winner)
         SetWinner(3);
     }
 
-    if (isBattleground())
-        LogsDatabaseAccessor::BattlegroundStats(GetMapId(), GetStartTimestamp(), time(nullptr), Team(winner), finalScoreAlliance, finalScoreHorde);
-
     SetStatus(STATUS_WAIT_LEAVE);
     //we must set it this way, because end time is sent in packet!
     m_EndTime = TIME_TO_AUTOREMOVE;
@@ -594,7 +590,6 @@ void Battleground::EndBattleground(uint32 winner)
             for (auto itr = GetPlayerScoresBegin();itr !=GetPlayerScoresEnd(); ++itr) {
                 if (Player* player = ObjectAccessor::FindPlayer(itr->first)) {
                     TC_LOG_DEBUG("arena","Statistics for %s (GUID: %u, Team Id: %d, IP: %s): %u damage, %u healing, %u killing blows", player->GetName().c_str(), itr->first.GetCounter(), player->GetArenaTeamId(m_ArenaType == 5 ? 2 : m_ArenaType == 3), player->GetSession()->GetRemoteAddress().c_str(), itr->second->DamageDone, itr->second->HealingDone, itr->second->KillingBlows);
-                    //LogsDatabase.PExecute("INSERT INTO arena_match_player (match_id, player_guid, player_name, team, ip, heal, damage, killing_blows) VALUES (%u, " UI64FMTD ", '%s', %u, '%s', %u, %u, %u)", matchId, itr->first, player->GetName(), player->GetArenaTeamId(m_ArenaType == 5 ? 2 : m_ArenaType == 3), player->GetSession()->GetRemoteAddress().c_str(), itr->second->DamageDone, itr->second->HealingDone, itr->second->KillingBlows);
                     uint32 team = GetPlayerTeam(itr->first);
                     if (team == ALLIANCE) {
                         auto itr2 = m_team1LogInfo.find(itr->first);
@@ -614,37 +609,6 @@ void Battleground::EndBattleground(uint32 winner)
                     }
                 }
             }
-            std::ostringstream ss;
-            ss << "INSERT INTO arena_match (`type`, team1, team1_member1, team1_member1_ip, team1_member1_heal, team1_member1_damage, team1_member1_kills, ";
-            ss << "team1_member2, team1_member2_ip, team1_member2_heal, team1_member2_damage, team1_member2_kills, ";
-            ss << "team1_member3, team1_member3_ip, team1_member3_heal, team1_member3_damage, team1_member3_kills, ";
-            ss << "team1_member4, team1_member4_ip, team1_member4_heal, team1_member4_damage, team1_member4_kills, ";
-            ss << "team1_member5, team1_member5_ip, team1_member5_heal, team1_member5_damage, team1_member5_kills, ";
-            ss << "team2, ";
-            ss << "team2_member1, team2_member1_ip, team2_member1_heal, team2_member1_damage, team2_member1_kills, ";
-            ss << "team2_member2, team2_member2_ip, team2_member2_heal, team2_member2_damage, team2_member2_kills, ";
-            ss << "team2_member3, team2_member3_ip, team2_member3_heal, team2_member3_damage, team2_member3_kills, ";
-            ss << "team2_member4, team2_member4_ip, team2_member4_heal, team2_member4_damage, team2_member4_kills, ";
-            ss << "team2_member5, team2_member5_ip, team2_member5_heal, team2_member5_damage, team2_member5_kills, ";
-            ss << "start_time, end_time, winner, rating_change, winner_rating, loser_rating, team1_name, team2_name) VALUES (";
-            ss << uint32(m_ArenaType) << ", " << _arenaTeamIds[TEAM_ALLIANCE] << ", ";
-            for (auto & itr : m_team1LogInfo)
-                ss << itr.second->guid << ", '" << itr.second->ip.c_str() << "', " << itr.second->heal << ", " << itr.second->damage << ", " << uint32(itr.second->kills) << ", ";
-            for (uint8 i = 0; i < (5 - m_team1LogInfo.size()); i++)
-                ss << "0, '', 0, 0, 0, ";
-            ss << _arenaTeamIds[TEAM_HORDE] << ", ";
-            for (auto & itr : m_team2LogInfo)
-                ss << itr.second->guid << ", '" << itr.second->ip.c_str() << "', " << itr.second->heal << ", " << itr.second->damage << ", " << uint32(itr.second->kills) << ", ";
-            for (uint8 i = 0; i < (5 - m_team2LogInfo.size()); i++)
-                ss << "0, '', 0, 0, 0, ";
-            ss << GetStartTimestamp() << ", " << time(nullptr) << ", " << winner_arena_team->GetId() << ", " << winner_change << ", ";
-            ss << final_winner_rating << ", " << final_loser_rating;
-            if (winner == ALLIANCE)
-                ss << ", '" << winner_arena_team->GetName() << "', '" << loser_arena_team->GetName() << "')";
-            else if (winner == HORDE)
-                ss << ", '" << loser_arena_team->GetName() << "', '" << winner_arena_team->GetName() << "')";
-            LogsDatabase.Execute(ss.str().c_str());
-            //LogsDatabase.PExecute("INSERT INTO arena_match (type, team1, team2, team1_members, team2_members, start_time, end_time, winner, rating_change) VALUES (%u, %u, %u, \"%s\", \"%s\", %u, %u, %u, %u)", m_ArenaType, _arenaTeamIds[TEAM_ALLIANCE], _arenaTeamIds[TEAM_HORDE], oss_team1Members.str().c_str(), oss_team2Members.str().c_str(), GetStartTimestamp(), time(NULL), winner_arena_team->GetId(), winner_change);
         }
         else
         {
@@ -845,19 +809,8 @@ uint32 Battleground::GetBattlemasterEntry() const
 }
 
 void Battleground::SetStatus(BattlegroundStatus Status)
-{ 
-    m_Status = Status; 
-
-    if (m_Status == STATUS_WAIT_JOIN && !IsArena() && sWorld->getConfig(CONFIG_BATTLEGROUND_QUEUE_ANNOUNCER_ENABLE))
-    {
-        if (sWorld->getConfig(CONFIG_BATTLEGROUND_QUEUE_ANNOUNCER_WORLDONLY))
-        {
-            std::ostringstream msg;
-            msg << "|cffffff00[BG Announcer] " << GetName() << "|r [" << GetMaxLevel() << "] " << "started.";
-            ChatHandler::SendMessageWithoutAuthor("world", msg.str().c_str());
-        } else
-            sWorld->SendWorldText(LANG_BG_STARTED_ANNOUNCE_WORLD, GetName().c_str(), /*GetMinLevel(),*/ GetMaxLevel()); //Min level system is wrong and not complete
-    }
+{
+	m_Status = Status;
 }
 
 void Battleground::RewardMark(Player* plr, uint32 count)

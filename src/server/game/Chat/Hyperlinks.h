@@ -1,19 +1,4 @@
-/*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- */
+
 
 #ifndef TRINITY_HYPERLINKS_H
 #define TRINITY_HYPERLINKS_H
@@ -35,25 +20,6 @@ namespace Trinity
 {
 namespace Hyperlinks
 {
-
-#ifdef LICH_KING
-struct AchievementLinkData
-{
-    AchievementEntry const* Achievement;
-    ObjectGuid::LowType CharacterId;
-    bool IsFinished;
-    uint16 Year;
-    uint8 Month;
-    uint8 Day;
-    uint32 Criteria[4];
-};
-
-struct GlyphLinkData
-{
-    GlyphPropertiesEntry const* Glyph;
-    GlyphSlotEntry const* Slot;
-};
-#endif
 struct ItemLinkData
 {
     ItemTemplate const* Item;
@@ -61,9 +27,6 @@ struct ItemLinkData
     uint32 GemEnchantId[3];
     int32 RandomPropertyId;
     int32 RandomPropertySeed;
-#ifdef LICH_KING
-    uint8 RenderLevel;
-#endif
 };
 
 struct QuestLinkData
@@ -71,23 +34,6 @@ struct QuestLinkData
     ::Quest const* Quest;
     uint8 QuestLevel;
 };
-
-#ifdef LICH_KING
-struct TalentLinkData
-{
-    TalentEntry const* Talent;
-    uint8 Rank;
-};
-
-struct TradeskillLinkData
-{
-    SpellInfo const* Spell;
-    uint16 CurValue;
-    uint16 MaxValue;
-    ObjectGuid Owner;
-    std::string KnownRecipes;
-};
-#endif
 
 namespace LinkTags {
 
@@ -151,29 +97,6 @@ namespace LinkTags {
     make_base_tag(title, uint32);
 #undef make_base_tag
 
-#ifdef LICH_KING
-    struct TC_GAME_API achievement
-    {
-        using value_type = AchievementLinkData const&;
-        static constexpr char const* tag() { return "achievement"; }
-        static bool StoreTo(AchievementLinkData& val, char const* pos, size_t len);
-    };
-
-    struct TC_GAME_API enchant
-    {
-        using value_type = SpellInfo const*;
-        static constexpr char const* tag() { return "enchant"; }
-        static bool StoreTo(SpellInfo const*& val, char const* pos, size_t len);
-    };
-
-    struct TC_GAME_API glyph
-    {
-        using value_type = GlyphLinkData const&;
-        static constexpr char const* tag() { return "glyph"; };
-        static bool StoreTo(GlyphLinkData& val, char const* pos, size_t len);
-    };
-#endif
-
     struct TC_GAME_API item
     {
         using value_type = ItemLinkData const&;
@@ -194,22 +117,6 @@ namespace LinkTags {
         static constexpr char const* tag() { return "spell"; }
         static bool StoreTo(SpellInfo const*& val, char const* pos, size_t len);
     };
-
-#ifdef LICH_KING
-    struct TC_GAME_API talent
-    {
-        using value_type = TalentLinkData const&;
-        static constexpr char const* tag() { return "talent"; }
-        static bool StoreTo(TalentLinkData& val, char const* pos, size_t len);
-    };
-
-    struct TC_GAME_API trade
-    {
-        using value_type = TradeskillLinkData const&;
-        static constexpr char const* tag() { return "trade"; }
-        static bool StoreTo(TradeskillLinkData& val, char const* pos, size_t len);
-    };
-#endif
 }
 
 struct HyperlinkColor

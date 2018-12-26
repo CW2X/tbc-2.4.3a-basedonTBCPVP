@@ -19,7 +19,6 @@
 #include "Language.h"
 #include "Util.h"
 #include "ScriptMgr.h"
-#include "LogsDatabaseAccessor.h"
 #include "GuildMgr.h"
 #include "GameTime.h"
 #include "utf8.h"
@@ -223,12 +222,6 @@ void WorldSession::HandleMessagechatOpcode( WorldPacket & recvData )
         {
             if (ChatHandler(this).ParseCommands(msg.c_str()))
                 return;
-
-            if (sWorld->IsPhishing(msg)) 
-            {
-                sWorld->LogPhishing(GetPlayer()->GetGUID().GetCounter(), 0, msg);
-                return;
-            }
         }
     }
 
@@ -556,8 +549,6 @@ void WorldSession::HandleMessagechatOpcode( WorldPacket & recvData )
             TC_LOG_ERROR("network.opcode","CHAT: unknown message type %u, lang: %u", type, lang);
             break;
     }
-
-    LogsDatabaseAccessor::CharacterChat(ChatMsg(type), Language(lang), _player, toPlayer, logChannelId, to, msg);
 }
 
 void WorldSession::HandleEmoteOpcode( WorldPacket & recvData )

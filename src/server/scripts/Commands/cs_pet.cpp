@@ -4,7 +4,7 @@
 
 inline Pet* GetSelectedPlayerPetOrOwn(ChatHandler* handler)
 {
-    if (Unit* target = handler->GetSelectedUnit())
+    if (Unit* target = handler->getSelectedUnit())
     {
         if (target->GetTypeId() == TYPEID_PLAYER)
             return target->ToPlayer()->GetPet();
@@ -42,7 +42,7 @@ public:
     static bool HandleCreatePetCommand(ChatHandler* handler, char const* args)
     {
         Player *player = handler->GetSession()->GetPlayer();
-        Creature *creatureTarget = handler->GetSelectedCreature();
+        Creature *creatureTarget = handler->getSelectedCreature();
 
         if (!creatureTarget || creatureTarget->IsPet() || creatureTarget->GetTypeId() == TYPEID_PLAYER)
         {
@@ -117,7 +117,7 @@ public:
 
     static bool HandlePetLearnCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
             Pet* pet = GetSelectedPlayerPetOrOwn(handler);
         if (!pet)
@@ -157,7 +157,7 @@ public:
 
     static bool HandlePetUnlearnCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
             Pet* pet = GetSelectedPlayerPetOrOwn(handler);
         if (!pet)
@@ -180,7 +180,7 @@ public:
 
     static bool HandlePetTpCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
             Pet* pet = GetSelectedPlayerPetOrOwn(handler);
         if (!pet)
@@ -216,7 +216,7 @@ public:
 
     static bool HandlePetRenameCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
             Pet* targetPet = GetSelectedPlayerPetOrOwn(handler);
         if (!targetPet)

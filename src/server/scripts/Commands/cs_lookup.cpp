@@ -41,9 +41,7 @@ public:
 
     static bool HandleLookupAreaCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-            std::string namepart = args;
+        std::string namepart = args;
         std::wstring wnamepart;
 
         if (!Utf8toWStr(namepart, wnamepart))
@@ -152,8 +150,6 @@ public:
 
     static bool HandleLookupCreatureCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         std::string namepart = args;
         std::wstring wnamepart;
 
@@ -215,8 +211,6 @@ public:
 
     static bool HandleLookupObjectCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         std::string namepart = args;
         std::wstring wnamepart;
 
@@ -279,10 +273,8 @@ public:
 
     static bool HandleLookupFactionCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         // Can be NULL at console call
-        Player* target = handler->GetSelectedPlayer();
+        Player* target = handler->getSelectedPlayer();
 
         std::string namepart = args;
         std::wstring wnamepart;
@@ -370,9 +362,7 @@ public:
 
     static bool HandleLookupItemCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-            std::string namepart = args;
+        std::string namepart = args;
         std::wstring wnamepart;
 
         // converting string that we try to find to lower case
@@ -437,9 +427,7 @@ public:
 
     static bool HandleLookupItemSetCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-            std::string namepart = args;
+        std::string namepart = args;
         std::wstring wnamepart;
 
         if (!Utf8toWStr(namepart, wnamepart))
@@ -496,10 +484,8 @@ public:
 
     static bool HandleLookupSkillCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-            // can be NULL in console call
-            Player* target = handler->GetSelectedPlayerOrSelf();
+        // can be NULL in console call
+        Player* target = handler->getSelectedPlayerOrSelf();
 
         std::string namepart = args;
         std::wstring wnamepart;
@@ -563,10 +549,8 @@ public:
 
     static bool HandleLookupQuestCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-            // can be NULL at console call
-            Player* target = handler->GetSelectedPlayerOrSelf();
+        // can be NULL at console call
+        Player* target = handler->getSelectedPlayerOrSelf();
 
         std::string namepart = args;
         std::wstring wnamepart;
@@ -665,10 +649,8 @@ public:
 
     static bool HandleGetSpellInfoCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-            // can be NULL at console call
-            Player* target = handler->GetSelectedPlayerOrSelf();
+        // can be NULL at console call
+        Player* target = handler->getSelectedPlayerOrSelf();
 
         std::string namepart = args;
         std::wstring wnamepart;
@@ -761,9 +743,7 @@ public:
 
     static bool HandleLookupPlayerIpCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-            std::string ip = strtok((char*)args, " ");
+        std::string ip = strtok((char*)args, " ");
         char* limit_str = strtok(nullptr, " ");
         int32 limit = limit_str ? atoi(limit_str) : -1;
 
@@ -776,9 +756,7 @@ public:
 
     static bool HandleLookupPlayerAccountCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-            std::string account = strtok((char*)args, " ");
+        std::string account = strtok((char*)args, " ");
         char* limit_str = strtok(nullptr, " ");
         int32 limit = limit_str ? atoi(limit_str) : -1;
 
@@ -794,9 +772,7 @@ public:
 
     static bool HandleLookupPlayerEmailCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-            std::string email = strtok((char*)args, " ");
+        std::string email = strtok((char*)args, " ");
         char* limit_str = strtok(nullptr, " ");
         int32 limit = limit_str ? atoi(limit_str) : -1;
 
@@ -809,9 +785,7 @@ public:
 
     static bool HandleLookupEventCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-            std::string namepart = args;
+        std::string namepart = args;
         std::wstring wnamepart;
 
         // converting string that we try to find to lower case

@@ -142,8 +142,6 @@ void WardenWin::HandleHashResult(ByteBuffer &buff)
     if (memcmp(buff.contents() + 1, validHash, sizeof(validHash)) != 0)
     {
         TC_LOG_TRACE("warden","Request hash reply: failed");
-        if (sWorld->getConfig(CONFIG_WARDEN_DB_LOG))
-            LogsDatabase.PQuery("INSERT INTO warden_fails (guid, account, check_id, comment, time) VALUES (%u, %u, 0, 'Hash reply failed', %u)", Client->GetPlayer() ? Client->GetPlayer()->GetGUID().GetCounter() : 0, Client->GetAccountId(), time(NULL));
 
         if (sWorld->getConfig(CONFIG_WARDEN_KICK))
             Client->KickPlayer();
@@ -298,9 +296,6 @@ void WardenWin::HandleData(ByteBuffer &buff)
     {
         buff.rpos(buff.wpos());
         
-        if (sWorld->getConfig(CONFIG_WARDEN_DB_LOG))
-            LogsDatabase.PQuery("INSERT INTO warden_fails (guid, account, check_id, comment, time) VALUES (%u, %u, 0, 'Invalid checksum', %u)", Client->GetPlayer() ? Client->GetPlayer()->GetGUID().GetCounter() : 0, Client->GetAccountId(), time(NULL));
-        
         if (sWorld->getConfig(CONFIG_WARDEN_KICK))
             Client->KickPlayer();
 
@@ -323,8 +318,6 @@ void WardenWin::HandleData(ByteBuffer &buff)
             //TC_LOG_DEBUG("warden","TIMING CHECK FAIL result 0x00");
             TC_LOG_DEBUG("warden","Warden: TIMING CHECK FAILED (result 0x00) for account %u, player %u (%s).", Client->GetAccountId(), Client->GetPlayer() ? Client->GetPlayer()->GetGUID().GetCounter() : 0, Client->GetPlayer() ? Client->GetPlayer()->GetName().c_str() : "<Not connected>");
             found = true;
-            if (sWorld->getConfig(CONFIG_WARDEN_DB_LOG))
-                LogsDatabase.PQuery("INSERT INTO warden_fails (guid, account, check_id, comment, time) VALUES (%u, %u, 0, 'Timing check', %u)", Client->GetPlayer() ? Client->GetPlayer()->GetGUID().GetCounter() : 0, Client->GetAccountId(), time(NULL));
         }
 
         uint32 newClientTicks;
@@ -363,9 +356,6 @@ void WardenWin::HandleData(ByteBuffer &buff)
                     //TC_LOG_DEBUG("warden","RESULT MEM_CHECK not 0x00, CheckId %u account Id %u", rd->id, Client->GetAccountId());
                     TC_LOG_DEBUG("warden","Warden: MEM CHECK not 0x00 at check %u (%s) for account %u, player %u (%s).", rd->id, rd->comment.c_str(), Client->GetAccountId(), Client->GetPlayer() ? Client->GetPlayer()->GetGUID().GetCounter() : 0, Client->GetPlayer() ? Client->GetPlayer()->GetName().c_str() : "<Not connected>");
                     found = true;
-
-                    if (rd->action & WA_ACT_LOG)
-                        LogsDatabase.PQuery("INSERT INTO warden_fails (guid, account, check_id, comment, time) VALUES (%u, %u, %u, '%s', %u)", Client->GetPlayer() ? Client->GetPlayer()->GetGUID().GetCounter() : 0, Client->GetAccountId(), rd->id, rd->comment.c_str(), time(NULL));
                     if (rd->action & WA_ACT_KICK)
                         kick = true;
                     if (rd->action & WA_ACT_BAN) {
@@ -381,8 +371,6 @@ void WardenWin::HandleData(ByteBuffer &buff)
                     //TC_LOG_DEBUG("warden","RESULT MEM_CHECK fail CheckId %u account Id %u", rd->id, Client->GetAccountId());
                     TC_LOG_DEBUG("warden","Warden: MEM CHECK FAILED at check %u (%s) for account %u, player %u (%s).", rd->id, rd->comment.c_str(), Client->GetAccountId(), Client->GetPlayer() ? Client->GetPlayer()->GetGUID().GetCounter() : 0, Client->GetPlayer() ? Client->GetPlayer()->GetName().c_str() : "<Not connected>");
                     
-                    if (rd->action & WA_ACT_LOG)
-                        LogsDatabase.PQuery("INSERT INTO warden_fails (guid, account, check_id, comment, time) VALUES (%u, %u, %u, '%s', %u)", Client->GetPlayer() ? Client->GetPlayer()->GetGUID().GetCounter() : 0, Client->GetAccountId(), rd->id, rd->comment.c_str(), time(NULL));
                     if (rd->action & WA_ACT_KICK)
                         kick = true;
                     if (rd->action & WA_ACT_BAN) {
@@ -411,8 +399,6 @@ void WardenWin::HandleData(ByteBuffer &buff)
                     if (type == PAGE_CHECK_A || type == PAGE_CHECK_B) {
                         //TC_LOG_DEBUG("warden","RESULT PAGE_CHECK fail, CheckId %u account Id %u", rd->id, Client->GetAccountId());
                         TC_LOG_DEBUG("warden","Warden: PAGE CHECK FAILED at check %u (%s) for account %u, player %u (%s).", rd->id, rd->comment.c_str(), Client->GetAccountId(), Client->GetPlayer() ? Client->GetPlayer()->GetGUID().GetCounter() : 0, Client->GetPlayer() ? Client->GetPlayer()->GetName().c_str() : "<Not connected>");
-                        if (rd->action & WA_ACT_LOG)
-                            LogsDatabase.PQuery("INSERT INTO warden_fails (guid, account, check_id, comment, time) VALUES (%u, %u, %u, '%s', %u)", Client->GetPlayer() ? Client->GetPlayer()->GetGUID().GetCounter() : 0, Client->GetAccountId(), rd->id, rd->comment.c_str(), time(NULL));
                         if (rd->action & WA_ACT_KICK)
                             kick = true;
                         if (rd->action & WA_ACT_BAN) {
@@ -424,8 +410,6 @@ void WardenWin::HandleData(ByteBuffer &buff)
                     if (type == MODULE_CHECK) {
                         //TC_LOG_DEBUG("warden","RESULT MODULE_CHECK fail, CheckId %u account Id %u", rd->id, Client->GetAccountId());
                         TC_LOG_DEBUG("warden","Warden: MODULE CHECK FAILED at check %u (%s) for account %u, player %u (%s).", rd->id, rd->comment.c_str(), Client->GetAccountId(), Client->GetPlayer() ? Client->GetPlayer()->GetGUID().GetCounter() : 0, Client->GetPlayer() ? Client->GetPlayer()->GetName().c_str() : "<Not connected>");
-                        if (rd->action & WA_ACT_LOG)
-                            LogsDatabase.PQuery("INSERT INTO warden_fails (guid, account, check_id, comment, time) VALUES (%u, %u, %u, '%s', %u)", Client->GetPlayer() ? Client->GetPlayer()->GetGUID().GetCounter() : 0, Client->GetAccountId(), rd->id, rd->comment.c_str(), time(NULL));
                         if (rd->action & WA_ACT_KICK)
                             kick = true;
                         if (rd->action & WA_ACT_BAN) {
@@ -437,8 +421,6 @@ void WardenWin::HandleData(ByteBuffer &buff)
                     if (type == DRIVER_CHECK) {
                         //TC_LOG_DEBUG("warden","RESULT DRIVER_CHECK fail, CheckId %u account Id %u", rd->id, Client->GetAccountId());
                         TC_LOG_DEBUG("warden","Warden: DRIVER_CHECK CHECK FAILED at check %u (%s) for account %u, player %u (%s).", rd->id, rd->comment.c_str(), Client->GetAccountId(), Client->GetPlayer() ? Client->GetPlayer()->GetGUID().GetCounter() : 0, Client->GetPlayer() ? Client->GetPlayer()->GetName().c_str() : "<Not connected>");
-                        if (rd->action & WA_ACT_LOG)
-                            LogsDatabase.PQuery("INSERT INTO warden_fails (guid, account, check_id, comment, time) VALUES (%u, %u, %u, '%s', %u)", Client->GetPlayer() ? Client->GetPlayer()->GetGUID().GetCounter() : 0, Client->GetAccountId(), rd->id, rd->comment.c_str(), time(NULL));
                         if (rd->action & WA_ACT_KICK)
                             kick = true;
                         if (rd->action & WA_ACT_BAN) {
@@ -472,8 +454,6 @@ void WardenWin::HandleData(ByteBuffer &buff)
                     //TC_LOG_DEBUG("warden","RESULT LUA_STR_CHECK fail, CheckId %u account Id %u", rd->id, Client->GetAccountId());
                     TC_LOG_DEBUG("warden","Warden: LUA STR CHECK FAILED at check %u (%s) for account %u, player %u (%s).", rd->id, rd->comment.c_str(), Client->GetAccountId(), Client->GetPlayer() ? Client->GetPlayer()->GetGUID().GetCounter() : 0, Client->GetPlayer() ? Client->GetPlayer()->GetName().c_str() : "<Not connected>");
                     found = true;
-                    if (rd->action & WA_ACT_LOG)
-                        LogsDatabase.PQuery("INSERT INTO warden_fails (guid, account, check_id, comment, time) VALUES (%u, %u, %u, '%s', %u)", Client->GetPlayer() ? Client->GetPlayer()->GetGUID().GetCounter() : 0, Client->GetAccountId(), rd->id, rd->comment.c_str(), time(NULL));
                     if (rd->action & WA_ACT_KICK)
                         kick = true;
                     if (rd->action & WA_ACT_BAN) {
@@ -507,8 +487,6 @@ void WardenWin::HandleData(ByteBuffer &buff)
                     //TC_LOG_DEBUG("warden","RESULT MPQ_CHECK not 0x00 account id %u", Client->GetAccountId());
                     TC_LOG_DEBUG("warden","Warden: MPQ CHECK NOT 0x00 for account %u, player %u (%s).", Client->GetAccountId(), Client->GetPlayer() ? Client->GetPlayer()->GetGUID().GetCounter() : 0, Client->GetPlayer() ? Client->GetPlayer()->GetName().c_str() : "<Not connected>");
                     found = true;
-                    if (rd->action & WA_ACT_LOG)
-                        LogsDatabase.PQuery("INSERT INTO warden_fails (guid, account, check_id, comment, time) VALUES (%u, %u, %u, '%s', %u)", Client->GetPlayer() ? Client->GetPlayer()->GetGUID().GetCounter() : 0, Client->GetAccountId(), rd->id, rd->comment.c_str(), time(NULL));
                     if (rd->action & WA_ACT_KICK)
                         kick = true;
                     if (rd->action & WA_ACT_BAN) {
@@ -523,8 +501,6 @@ void WardenWin::HandleData(ByteBuffer &buff)
                     //TC_LOG_DEBUG("warden","RESULT MPQ_CHECK fail, CheckId %u account Id %u", rd->id, Client->GetAccountId());
                     TC_LOG_DEBUG("warden","Warden: MPQ CHECK FAILED at check %u (%s) for account %u, player %u (%s).", rd->id, rd->comment.c_str(), Client->GetAccountId(), Client->GetPlayer() ? Client->GetPlayer()->GetGUID().GetCounter() : 0, Client->GetPlayer() ? Client->GetPlayer()->GetName().c_str() : "<Not connected>");
                     found = true;
-                    if (rd->action & WA_ACT_LOG)
-                        LogsDatabase.PQuery("INSERT INTO warden_fails (guid, account, check_id, comment, time) VALUES (%u, %u, %u, '%s', %u)", Client->GetPlayer() ? Client->GetPlayer()->GetGUID().GetCounter() : 0, Client->GetAccountId(), rd->id, rd->comment.c_str(), time(NULL));
                     if (rd->action & WA_ACT_KICK)
                         kick = true;
                     if (rd->action & WA_ACT_BAN) {

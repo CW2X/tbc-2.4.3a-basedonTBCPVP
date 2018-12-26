@@ -23,7 +23,6 @@
 #include "Chat.h"
 #include "Config.h"
 #include "ScriptMgr.h"
-#include "LogsDatabaseAccessor.h"
 #include "GitRevision.h"
 #include "CharacterCache.h"
 #include "GuildMgr.h"
@@ -612,8 +611,6 @@ void WorldSession::HandleCharDeleteOpcode( WorldPacket & recvData )
     fname.append(fpath);
     PlayerDumpWriter().WriteDump(fname, guid.GetCounter());
 
-    LogsDatabaseAccessor::CharacterDelete(this, guid.GetCounter(), name, level, GetRemoteAddress());
-
 #ifdef LICH_LING
     sCalendarMgr->RemoveAllPlayerEventsAndInvites(guid);
 #endif
@@ -650,12 +647,10 @@ void WorldSession::HandlePlayerLoginOpcode( WorldPacket & recvData )
 
 void WorldSession::_HandlePlayerLogin(Player* pCurrChar, LoginQueryHolder* holder)
 {
-    // for send server info and strings (config)
-    ChatHandler chH = ChatHandler(pCurrChar);
+	SetPlayer(pCurrChar);
 
-    //pCurrChar->GetMotionMaster()->Initialize(); sun: initialize motion before loading auras instead
-
-    SetPlayer(pCurrChar);
+	// for send server info and strings (config)
+	ChatHandler chH = ChatHandler(pCurrChar->GetSession());
 
     pCurrChar->SendDungeonDifficulty(false);
 
@@ -667,9 +662,6 @@ void WorldSession::_HandlePlayerLogin(Player* pCurrChar, LoginQueryHolder* holde
     data << pCurrChar->GetOrientation();
     SendPacket(&data);
 
-#ifdef LICH_KING //need db support
-    LoadAccountData(holder->GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_ACCOUNT_DATA), PER_CHARACTER_CACHE_MASK);
-#endif
     SendAccountDataTimes(GLOBAL_CACHE_MASK);
 
     data.Initialize(SMSG_FEATURE_SYSTEM_STATUS, 2);         // added in 2.2.0
@@ -1171,8 +1163,6 @@ void WorldSession::HandleCharRenameCallback(std::shared_ptr<CharacterRenameInfo>
     SendCharRename(RESPONSE_SUCCESS, renameInfo.get());
 
     sCharacterCache->UpdateCharacterData(guidLow, PLAYER_UPDATE_DATA_NAME, renameInfo->Name);
-
-    LogsDatabaseAccessor::CharacterRename(this, guidLow, oldname, renameInfo->Name, GetRemoteAddress());
 }
 
 void WorldSession::HandleSetPlayerDeclinedNames(WorldPacket& recvData)

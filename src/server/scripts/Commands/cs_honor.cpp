@@ -23,9 +23,7 @@ public:
 
     static bool HandleAddHonorCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-        Player *target = handler->GetSelectedPlayerOrSelf();
+        Player *target = handler->getSelectedPlayerOrSelf();
         if (!target)
         {
             handler->SendSysMessage(LANG_PLAYER_NOT_FOUND);
@@ -40,7 +38,7 @@ public:
 
     static bool HandleHonorAddKillCommand(ChatHandler* handler, char const* /*args*/)
     {
-        Unit *target = handler->GetSelectedUnit();
+        Unit *target = handler->getSelectedUnit();
         if (!target)
         {
             handler->SendSysMessage(LANG_PLAYER_NOT_FOUND);
@@ -54,7 +52,7 @@ public:
 
     static bool HandleUpdateHonorFieldsCommand(ChatHandler* handler, char const* /*args*/)
     {
-        Player *target = handler->GetSelectedPlayerOrSelf();
+        Player *target = handler->getSelectedPlayerOrSelf();
         if (!target)
         {
             handler->SendSysMessage(LANG_PLAYER_NOT_FOUND);

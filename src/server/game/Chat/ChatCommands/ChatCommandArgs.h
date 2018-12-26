@@ -23,9 +23,9 @@
 
 struct GameTele;
 
-namespace Trinity 
+namespace Trinity
 {
-namespace ChatCommands 
+namespace ChatCommands
 {
 
 /************************** ARGUMENT HANDLERS *******************************************\

@@ -196,7 +196,7 @@ extern int main(int argc, char **argv)
 		return 1;
 
     // Set server offline (not connectable)
-    RealmDatabase.DirectPExecute("UPDATE realmlist SET flag = flag | %u WHERE id = '%d'", REALM_FLAG_OFFLINE, realmID);
+    RealmDatabase.DirectPExecute("UPDATE realmlist SET flag = flag | %u WHERE id = '%d'", REALM_FLAG_OFFLINE, realm.Id.Realm);
 
     LoadRealmInfo(*ioContext);
 
@@ -280,10 +280,8 @@ extern int main(int argc, char **argv)
 
     //    sScriptMgr->OnNetworkStart();
 
-
-
     // Set server online (allow connecting now)
-    RealmDatabase.DirectPExecute("UPDATE realmlist SET flag = flag & ~%u, population = 0 WHERE id = '%u'", REALM_FLAG_OFFLINE, realmID);
+	RealmDatabase.DirectPExecute("UPDATE realmlist SET flag = flag & ~%u, population = 0 WHERE id = '%u'", REALM_FLAG_OFFLINE, realm.Id.Realm);
 	realm.PopulationLevel = 0.0f;
 	realm.Flags = RealmFlags(realm.Flags & ~uint32(REALM_FLAG_OFFLINE));
 
@@ -310,7 +308,7 @@ extern int main(int argc, char **argv)
     //sScriptMgr->OnShutdown();
 
     // set server offline
-    RealmDatabase.DirectPExecute("UPDATE realmlist SET flag = flag | %u WHERE id = '%d'", REALM_FLAG_OFFLINE, realmID);
+    RealmDatabase.DirectPExecute("UPDATE realmlist SET flag = flag | %u WHERE id = '%d'", REALM_FLAG_OFFLINE, realm.Id.Realm);
 
     TC_LOG_INFO("server.worldserver", "Halting process...");
 
@@ -396,8 +394,6 @@ bool StartDB()
         .AddDatabase(WorldDatabase, "World")
 		.AddDatabase(RealmDatabase, "Realm");
 
-    loader.AddDatabase(LogsDatabase, "Logs"); //Strange reference bug when I append this to the last command, so I kept this out
-
     if (!loader.Load())
         return false;
 
@@ -428,7 +424,6 @@ void StopDB()
     CharacterDatabase.Close();
     WorldDatabase.Close();
     LoginDatabase.Close();
-    LogsDatabase.Close();
 	RealmDatabase.Close();
 
     MySQL::Library_End();

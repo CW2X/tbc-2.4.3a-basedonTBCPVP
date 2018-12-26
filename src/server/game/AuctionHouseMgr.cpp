@@ -14,7 +14,6 @@
 #include "World.h"
 #include "WorldPacket.h"
 #include "WorldSession.h"
-#include "LogsDatabaseAccessor.h"
 #include "Mail.h"
 #include "Bag.h"
 #include "CharacterCache.h"
@@ -101,8 +100,6 @@ void AuctionHouseMgr::SendAuctionWonMail(AuctionEntry* auction, SQLTransaction& 
     {
         ObjectGuid ownerGuid = ObjectGuid(HighGuid::Player, auction->owner);
         uint32 owner_accid = sCharacterCache->GetCharacterAccountIdByGuid(ownerGuid);
-
-        LogsDatabaseAccessor::WonAuction(bidder_accId, auction->bidder, owner_accid, auction->owner, auction->itemGUIDLow, auction->itemEntry, pItem->GetCount());
     }
 
     

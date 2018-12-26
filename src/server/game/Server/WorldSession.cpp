@@ -1697,7 +1697,7 @@ bool WorldSession::StopReplaying()
 
     m_replayPlayer = nullptr;
     if (_player)
-        ChatHandler(_player).SendSysMessage("Replaying stopped");
+        ChatHandler(_player->GetSession()).SendSysMessage("Replaying stopped");
 
     return true;
 }

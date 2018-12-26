@@ -25,9 +25,7 @@ public:
 
     static bool HandleCastCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-        Unit* target = handler->GetSelectedUnit();
+        Unit* target = handler->getSelectedUnit();
 
         if (!target)
         {
@@ -70,7 +68,7 @@ public:
     /** args : <spellid> <count> */
     static bool HandleCastBatchCommand(ChatHandler* handler, char const* args)
     {
-        Unit* target = handler->GetSelectedUnit();
+        Unit* target = handler->getSelectedUnit();
 
         if (!target)
         {
@@ -102,7 +100,7 @@ public:
 
     static bool HandleCastBackCommand(ChatHandler* handler, char const* args)
     {
-        Unit* caster = handler->GetSelectedUnit();
+        Unit* caster = handler->getSelectedUnit();
 
         if (!caster)
         {
@@ -142,8 +140,6 @@ public:
 
     static bool HandleCastDistCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         // number or [name] Shift-click form |color|Hspell:spell_id|h[name]|h|r or Htalent form
         uint32 spell =  handler->extractSpellIdFromLink((char*)args);
         if (!spell)
@@ -185,7 +181,7 @@ public:
 
     static bool HandleCastTargetCommand(ChatHandler* handler, char const* args)
     {
-        Creature* caster = handler->GetSelectedCreature();
+        Creature* caster = handler->getSelectedCreature();
 
         if (!caster)
         {
@@ -231,9 +227,7 @@ public:
 
     static bool HandleCastSelfCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-        Unit* target = handler->GetSelectedUnit();
+        Unit* target = handler->getSelectedUnit();
 
         if (!target)
         {

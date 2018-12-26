@@ -134,33 +134,6 @@ bool DBUpdater<CharacterDatabaseConnection>::IsEnabled(uint32 const updateMask)
     return (updateMask & DatabaseLoader::DATABASE_CHARACTER) ? true : false;
 }
 
-// Logs Database
-template<>
-std::string DBUpdater<LogsDatabaseConnection>::GetConfigEntry()
-{
-    return "Updates.Logs";
-}
-
-template<>
-std::string DBUpdater<LogsDatabaseConnection>::GetTableName()
-{
-    return "Logs";
-}
-
-template<>
-std::string DBUpdater<LogsDatabaseConnection>::GetBaseFile()
-{
-    return BuiltInConfig::GetSourceDirectory() +
-        "/sql/base/logs_database.sql";
-}
-
-template<>
-bool DBUpdater<LogsDatabaseConnection>::IsEnabled(uint32 const updateMask)
-{
-    // This way silences warnings under msvc
-    return (updateMask & DatabaseLoader::DATABASE_LOGS) ? true : false;
-}
-
 // Realm Database
 template<>
 std::string DBUpdater<RealmDatabaseConnection>::GetConfigEntry()
@@ -431,5 +404,4 @@ void DBUpdater<T>::ApplyFile(DatabaseWorkerPool<T>& pool, std::string const& hos
 template class TC_DATABASE_API DBUpdater<LoginDatabaseConnection>;
 template class TC_DATABASE_API DBUpdater<WorldDatabaseConnection>;
 template class TC_DATABASE_API DBUpdater<CharacterDatabaseConnection>;
-template class TC_DATABASE_API DBUpdater<LogsDatabaseConnection>;
 template class TC_DATABASE_API DBUpdater<RealmDatabaseConnection>;

@@ -110,7 +110,7 @@ public:
             player = ObjectAccessor::FindPlayer(guid);
         }
         else
-            player = handler->GetSelectedPlayerOrSelf();
+            player = handler->getSelectedPlayerOrSelf();
 
         if (!player)
         {
@@ -145,7 +145,7 @@ public:
             player = ObjectAccessor::FindPlayer(guid);
         }
         else
-            player = handler->GetSelectedPlayerOrSelf();
+            player = handler->getSelectedPlayerOrSelf();
 
         if (!player)
         {
@@ -189,7 +189,7 @@ public:
             player = ObjectAccessor::FindPlayer(guid);
         }
         else
-            player = handler->GetSelectedPlayerOrSelf();
+            player = handler->getSelectedPlayerOrSelf();
 
         if (!player)
         {
@@ -229,7 +229,7 @@ public:
                 playerGUID = sCharacterCache->GetCharacterGuidByName(name.c_str());
         }
         else
-            player = handler->GetSelectedPlayerOrSelf();
+            player = handler->getSelectedPlayerOrSelf();
 
         if (!player && !playerGUID)
         {
@@ -242,7 +242,7 @@ public:
         {
             player->resetSpells();
 
-            ChatHandler(player).SendSysMessage(LANG_RESET_SPELLS);
+            ChatHandler(player->GetSession()).SendSysMessage(LANG_RESET_SPELLS);
 
             if (handler->GetSession()->GetPlayer() != player)
                 handler->PSendSysMessage(LANG_RESET_SPELLS_ONLINE, player->GetName().c_str());
@@ -276,7 +276,7 @@ public:
                 playerGUID = sCharacterCache->GetCharacterGuidByName(name.c_str());
         }
         else
-            player = handler->GetSelectedPlayerOrSelf();
+            player = handler->getSelectedPlayerOrSelf();
 
         if (!player && !playerGUID)
         {
@@ -289,7 +289,7 @@ public:
         {
             player->ResetTalents(true);
 
-            ChatHandler(player).SendSysMessage(LANG_RESET_TALENTS);
+            ChatHandler(player->GetSession()).SendSysMessage(LANG_RESET_TALENTS);
 
             if (handler->GetSession()->GetPlayer() != player)
                 handler->PSendSysMessage(LANG_RESET_TALENTS_ONLINE, player->GetName().c_str());
@@ -305,7 +305,7 @@ public:
 
     static bool HandleResetAllCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
             std::string casename = args;
 

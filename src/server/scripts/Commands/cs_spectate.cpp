@@ -31,7 +31,7 @@ public:
             return true;
         }
 
-        ARGS_CHECK
+        
 
             std::string version = args;
 

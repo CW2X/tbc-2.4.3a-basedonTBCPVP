@@ -3382,7 +3382,7 @@ void InstanceMap::HandleCrash()
             if (!tpResult) //just to be extra sure
                 plr->m_kickatnextupdate = true;
 
-            ChatHandler(plr).SendSysMessage(LANG_INSTANCE_CRASHED);
+            //ChatHandler(plr).SendSysMessage(LANG_INSTANCE_CRASHED);
         }
     }
 
@@ -3540,7 +3540,8 @@ void BattlegroundMap::HandleCrash()
         for (auto plr : players)
         {
             bool tpResult = plr->TeleportTo(plr->GetBattlegroundEntryPoint());
-            ChatHandler(plr).SendSysMessage(LANG_INSTANCE_CRASHED);
+            //ChatHandler(plr).SendSysMessage(LANG_INSTANCE_CRASHED);
+
             if (!tpResult)
                 plr->m_kickatnextupdate = true;
         }

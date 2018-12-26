@@ -3,7 +3,6 @@
 #include "CharacterCache.h"
 #include "WaypointManager.h"
 #include "ChannelMgr.h"
-#include "LogsDatabaseAccessor.h"
 #include "GridMap.h"
 #include "Battleground.h"
 #include "AccountMgr.h"
@@ -216,9 +215,7 @@ public:
 
     static bool HandlePasswordCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-            char *old_pass = strtok((char*)args, " ");
+        char *old_pass = strtok((char*)args, " ");
         char *new_pass = strtok(nullptr, " ");
         char *new_pass_c = strtok(nullptr, " ");
 
@@ -321,8 +318,6 @@ public:
     {
         Player* p = handler->GetSession()->GetPlayer();
         if (!p) return true;
-
-        ARGS_CHECK
 
         if (p->InBattleground() || p->GetMap()->Instanceable())
             return true;
@@ -450,7 +445,7 @@ public:
                 target->SetPhaseMask(_player->GetPhaseMask(), true);
                 handler->PSendSysMessage(LANG_SUMMONING, target->GetName().c_str(), "");
                 if (handler->needReportToTarget(target))
-                    ChatHandler(target).PSendSysMessage(LANG_SUMMONED_BY, handler->GetName().c_str());
+                    ChatHandler(target->GetSession()).PSendSysMessage(LANG_SUMMONED_BY, handler->GetNameLink().c_str());
             }
             else {
                 handler->PSendSysMessage("Teleport failed");
@@ -589,7 +584,7 @@ public:
                 _player->SetPhaseMask(target->GetPhaseMask(), true);
                 handler->PSendSysMessage(LANG_APPEARING_AT, target->GetName().c_str());
                 if (_player->IsVisibleGloballyFor(target))
-                    ChatHandler(target).PSendSysMessage(LANG_APPEARING_TO, _player->GetName().c_str());
+                    ChatHandler(target->GetSession()).PSendSysMessage(LANG_APPEARING_TO, _player->GetName().c_str());
             }
             else {
                 handler->PSendSysMessage("Teleportation failed");
@@ -633,7 +628,7 @@ public:
 
         if (!*args)
         {
-            chr = handler->GetSelectedPlayer();
+            chr = handler->getSelectedPlayer();
             if (!chr)
                 chr = handler->GetSession()->GetPlayer();
         }
@@ -675,27 +670,21 @@ public:
     // global announce
     static bool HandleAnnounceCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-            sWorld->SendWorldText(LANG_SYSTEMMESSAGE, args);
+		sWorld->SendWorldText(LANG_SYSTEMMESSAGE, args);
         return true;
     }
 
     // announce to logged in GMs
     static bool HandleGMAnnounceCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-            sWorld->SendGMText(LANG_GM_BROADCAST, args);
+        sWorld->SendGMText(LANG_GM_BROADCAST, args);
         return true;
     }
 
     //notification player at the screen
     static bool HandleNotifyCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-            std::string str = handler->GetTrinityString(LANG_GLOBAL_NOTIFY);
+        std::string str = handler->GetTrinityString(LANG_GLOBAL_NOTIFY);
         str += args;
 
         WorldPacket data(SMSG_NOTIFICATION, (str.size() + 1));
@@ -708,9 +697,7 @@ public:
     //notification GM at the screen
     static bool HandleGMNotifyCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-            std::string str = handler->GetTrinityString(LANG_GM_NOTIFY);
+        std::string str = handler->GetTrinityString(LANG_GM_NOTIFY);
         str += args;
 
         WorldPacket data(SMSG_NOTIFICATION, (str.size() + 1));
@@ -739,7 +726,7 @@ public:
         }
         else
         {
-            obj = handler->GetSelectedUnit();
+            obj = handler->getSelectedUnit();
 
             if (!obj)
             {
@@ -835,7 +822,7 @@ public:
         }
         else
         {
-            obj = handler->GetSelectedUnit();
+            obj = handler->getSelectedUnit();
 
             if (!obj)
             {
@@ -989,7 +976,7 @@ public:
 
         if (!target && !targetGUID)
         {
-            target = handler->GetSelectedPlayer();
+            target = handler->getSelectedPlayer();
         }
 
         if (!target && !targetGUID)
@@ -1086,8 +1073,6 @@ public:
 
     static bool HandleWpReloadCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         uint32 id = atoi(args);
 
         if (!id)
@@ -1136,7 +1121,7 @@ public:
 
         if (!target && !targetGUID)
         {
-            target = handler->GetSelectedPlayer();
+            target = handler->getSelectedPlayer();
         }
 
         if (!target && !targetGUID)
@@ -1249,7 +1234,7 @@ public:
         }
         else
         {
-            player = handler->GetSelectedPlayerOrSelf();
+            player = handler->getSelectedPlayerOrSelf();
         }
 
         player->CombatStop();
@@ -1258,7 +1243,7 @@ public:
 
     static bool HandleRepairitemsCommand(ChatHandler* handler, char const* /*args*/)
     {
-        Player *target = handler->GetSelectedPlayerOrSelf();
+        Player *target = handler->getSelectedPlayerOrSelf();
 
         if (!target)
         {
@@ -1272,15 +1257,13 @@ public:
 
         handler->PSendSysMessage(LANG_YOU_REPAIR_ITEMS, target->GetName().c_str());
         if (handler->needReportToTarget(target))
-            ChatHandler(target).PSendSysMessage(LANG_YOUR_ITEMS_REPAIRED, handler->GetName().c_str());
+            ChatHandler(target->GetSession()).PSendSysMessage(LANG_YOUR_ITEMS_REPAIRED, handler->GetNameLink().c_str());
         return true;
     }
 
     static bool HandleChanBan(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-            std::string channelNamestr = "world";
+        std::string channelNamestr = "world";
 
         char* charname = strtok((char*)args, " ");
         if (!charname)
@@ -1315,12 +1298,9 @@ public:
 
         reasonstr = reason;
 
-        LogsDatabase.EscapeString(reasonstr);
-
         uint32 durationSecs = TimeStringToSecs(duration);
 
         CharacterDatabase.PExecute("INSERT INTO channel_ban VALUES (%u, %lu, \"%s\", \"%s\")", accountid, time(nullptr) + durationSecs, channelNamestr.c_str(), reasonstr.c_str());
-        LogsDatabaseAccessor::Sanction(handler->GetSession(), accountid, 0, SANCTION_CHAN_BAN, durationSecs, reasonstr);
 
         handler->PSendSysMessage("You banned %s from World channed with the reason: %s.", charNamestr.c_str(), reasonstr.c_str());
 
@@ -1333,7 +1313,7 @@ public:
                 chn->Kick(handler->GetSession() ? handler->GetSession()->GetPlayer()->GetGUID() : ObjectGuid::Empty, player->GetName());
                 chn->AddNewGMBan(accountid, time(nullptr) + durationSecs);
                 //TODO translate
-                ChatHandler(player).PSendSysMessage("You have been banned from World channel with this reason: %s", reasonstr.c_str());
+                ChatHandler(player->GetSession()).PSendSysMessage("You have been banned from World channel with this reason: %s", reasonstr.c_str());
                 //ChatHandler(player).PSendSysMessage("Vous avez été banni du channel world avec la raison suivante : %s", reasonstr.c_str());
             }
         }
@@ -1343,9 +1323,7 @@ public:
 
     static bool HandleChanUnban(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-            std::string channelNamestr = "world";
+        std::string channelNamestr = "world";
 
         char* charname = strtok((char*)args, "");
         if (!charname)
@@ -1377,13 +1355,11 @@ public:
             }
         }
 
-        LogsDatabaseAccessor::RemoveSanction(handler->GetSession(), accountid, 0, "", SANCTION_CHAN_BAN);
-
         handler->PSendSysMessage("Player %s is unbanned.", charNamestr.c_str());
         if (Player *player = ObjectAccessor::FindConnectedPlayerByName(charNamestr.c_str()))
         {
             //TODO translate
-            ChatHandler(player).PSendSysMessage("You are now unbanned from the World channel.");
+            ChatHandler(player->GetSession()).PSendSysMessage("You are now unbanned from the World channel.");
             //ChatHandler(player).PSendSysMessage("Vous êtes maintenant débanni du channel world.");
         }
 
@@ -1392,9 +1368,7 @@ public:
 
     static bool HandleChanInfoBan(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-            std::string channelNamestr = "world";
+        std::string channelNamestr = "world";
 
         char* charname = strtok((char*)args, "");
         if (!charname)
@@ -1447,9 +1421,7 @@ public:
 
     static bool HandleCharacterDeleteCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-            char *character_name_str = strtok((char*)args, " ");
+        char *character_name_str = strtok((char*)args, " ");
         if (!character_name_str)
             return false;
 
@@ -1492,11 +1464,9 @@ public:
     //Visually copy stuff from player given to target player (fade off at disconnect like a normal morph)
     static bool HandleCopyStuffCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         std::string fromPlayerName = args;
         Player* fromPlayer = nullptr;
-        Player* toPlayer = handler->GetSelectedPlayerOrSelf();
+        Player* toPlayer = handler->getSelectedPlayerOrSelf();
 
         if (normalizePlayerName(fromPlayerName))
             fromPlayer = ObjectAccessor::FindConnectedPlayerByName(fromPlayerName.c_str());

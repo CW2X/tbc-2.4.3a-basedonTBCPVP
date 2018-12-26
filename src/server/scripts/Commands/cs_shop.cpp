@@ -53,7 +53,7 @@ public:
 
     static bool HandleBuyInShopCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
         Player *player = handler->GetSession()->GetPlayer();
         uint64 account_id = handler->GetSession()->GetAccountId();
@@ -380,7 +380,7 @@ public:
 
     static bool HandleReskinCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
         char* targetName = strtok((char*)args, "");
         std::string safeTargetName = targetName;
@@ -443,7 +443,7 @@ public:
 
     static bool HandleRaceOrFactionChange(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
         char* targetName = strtok((char*)args, " ");
         char* cForce = strtok(nullptr, " "); //skip same account check (for players that already have max characters count on their account)

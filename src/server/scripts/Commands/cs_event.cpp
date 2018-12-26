@@ -26,8 +26,6 @@ public:
 
     static bool HandleEventInfoCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         // id or [name] Shift-click form |color|Hgameevent:id|h[name]|h|r
         char* cId = handler->extractKeyFromLink((char*)args,"Hgameevent");
         if(!cId)
@@ -74,8 +72,6 @@ public:
 
     static bool HandleEventStartCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         // id or [name] Shift-click form |color|Hgameevent:id|h[name]|h|r
         char* cId = handler->extractKeyFromLink((char*)args,"Hgameevent");
         if(!cId)
@@ -113,8 +109,6 @@ public:
 
     static bool HandleEventStopCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         // id or [name] Shift-click form |color|Hgameevent:id|h[name]|h|r
         char* cId = handler->extractKeyFromLink((char*)args,"Hgameevent");
         if(!cId)
@@ -157,8 +151,6 @@ public:
     {
         //cause crash, fix me
         /*
-        ARGS_CHECK
-
         if(strcmp(args,"") == 0)
             return false;
 

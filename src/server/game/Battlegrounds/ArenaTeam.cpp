@@ -4,10 +4,11 @@
 #include "ArenaTeam.h"
 #include "Chat.h"
 #include "World.h"
-#include "LogsDatabaseAccessor.h"
 #include "CharacterCache.h"
 #include "BattlegroundMgr.h"
 #include "ArenaTeamMgr.h"
+#include "Player.h"
+#include "Log.h"
 
 ArenaTeam::ArenaTeam()
     : TeamId(0), Type(0), TeamName(), CaptainGuid(), BackgroundColor(0), EmblemStyle(0), EmblemColor(0),
@@ -68,8 +69,6 @@ bool ArenaTeam::Create(ObjectGuid captainGuid, uint8 type, std::string const tea
     std::string ip = "unknown";
     if (Player* captain = ObjectAccessor::FindPlayer(GetCaptain()))
         ip = captain->GetSession()->GetRemoteAddress();
-    LogsDatabase.PExecute("INSERT INTO arena_team_event (id, event, type, player, ip, time) VALUES (%u, %u, %u, %u, '%s', %u)",
-        GetId(), uint32(AT_EV_CREATE), GetType(), GetCaptain().GetCounter(), ip.c_str(), time(nullptr));
 
     // Add captain as member
     AddMember(CaptainGuid, trans);
@@ -251,8 +250,6 @@ void ArenaTeam::SetCaptain(ObjectGuid guid)
     {
         newcaptain->SetUInt32Value(PLAYER_FIELD_ARENA_TEAM_INFO_1_1 + 1 + (GetSlot() * 6), 0);
         TC_LOG_DEBUG("arena", "Player: %s [GUID: %u] promoted player : %s[GUID: %u] to leader of arena team[Id:%u][Type:%u].", oldcaptain ? oldcaptain->GetName().c_str() : "", oldcaptain ? oldcaptain->GetGUID().GetCounter() : 0, newcaptain->GetName().c_str(), newcaptain->GetGUID().GetCounter(), GetId(), GetType());
-        LogsDatabase.PExecute("INSERT INTO arena_team_event (id, event, type, player, ip, time) VALUES (%u, %u, %u, %u, '%s', %u)",
-            GetId(), uint32(AT_EV_PROMOTE), GetType(), guid.GetCounter(), newcaptain->GetSession()->GetRemoteAddress().c_str(), time(nullptr));
     }
 }
 
@@ -307,46 +304,21 @@ void ArenaTeam::DeleteMember(ObjectGuid guid, bool cleanDb)
             player->SetUInt32Value(PLAYER_FIELD_ARENA_TEAM_INFO_1_1 + (GetSlot() * 6) + i, 0);
         }
         TC_LOG_DEBUG("arena","Player: %s [GUID: %u] left arena team type: %u [Id: %u].", player->GetName().c_str(), player->GetGUID().GetCounter(), GetType(), GetId());
-        LogsDatabase.PExecute("INSERT INTO arena_team_event (id, event, type, player, ip, time) VALUES (%u, %u, %u, %u, '%s', %u)",
-            GetId(), uint32(AT_EV_LEAVE), GetType(), guid.GetCounter(), player->GetSession()->GetRemoteAddress().c_str(), time(nullptr));
     }
     if(cleanDb)
         CharacterDatabase.PExecute("DELETE FROM arena_team_member WHERE arenateamid = '%u' AND guid = '%u'", GetId(), guid.GetCounter());
 }
 
 void ArenaTeam::Disband(WorldSession* session)
-{
-    if (session)
-    {
-        if (Player *plr = session->GetPlayer()) 
-        {
-            if (plr->InArena()) 
-            {
-                ChatHandler chH = ChatHandler(plr);
-                //chH.PSendSysMessage("Vous ne pouvez pas détruire une équipe d'arène pendant un match d'arène."); //TODO TRanslate
-                chH.PSendSysMessage("Not while in arena.");
-                return;
-            }
-        }
-
-        // Broadcast update
-        WorldPacket data;
-        session->BuildArenaTeamEventPacket(&data, ERR_ARENA_TEAM_DISBANDED_S, 2, session->GetPlayerName(), GetName(), "");
-        BroadcastPacket(&data);
-    }
-    
+{   
     while (!Members.empty())
     {
         // Removing from Members is done in DeleteMember.
         DeleteMember(Members.front().Guid, false);
     }
 
-    Player* player = session ? session->GetPlayer() : nullptr;
-    if(player)
-        TC_LOG_DEBUG("arena","Player: %s [GUID: %u] disbanded arena team type: %u [Id: %u].", player->GetName().c_str(), player->GetGUID().GetCounter(), GetType(), GetId());
-  
-    LogsDatabase.PExecute("INSERT INTO arena_team_event (id, event, type, player, ip, time) VALUES (%u, %u, %u, %u, '%s', %u)",
-            GetId(), uint32(AT_EV_DISBAND), GetType(), (player ? player->GetGUID().GetCounter() : 0), session ? session->GetRemoteAddress().c_str() : "", time(nullptr));
+    if (Player* player = session->GetPlayer())
+		TC_LOG_DEBUG("arena","Player: %s [GUID: %u] disbanded arena team type: %u [Id: %u].", player->GetName().c_str(), player->GetGUID().GetCounter(), GetType(), GetId());
 
     SQLTransaction trans = CharacterDatabase.BeginTransaction();
 

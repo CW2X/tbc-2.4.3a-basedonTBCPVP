@@ -41,9 +41,7 @@ public:
 
     static bool HandleGoTicketCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-            char *cstrticket_id = strtok((char*)args, " ");
+        char *cstrticket_id = strtok((char*)args, " ");
 
         if (!cstrticket_id)
             return false;
@@ -79,9 +77,7 @@ public:
 
     static bool HandleGoObjectCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-            Player* _player = handler->GetSession()->GetPlayer();
+        Player* _player = handler->GetSession()->GetPlayer();
 
         char* cId = strtok((char*)args, " ");
         if (!cId)
@@ -152,9 +148,7 @@ public:
     //teleport to grid
     static bool HandleGoGridCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-            Player* _player = handler->GetSession()->GetPlayer();
+        Player* _player = handler->GetSession()->GetPlayer();
 
         char* px = strtok((char*)args, " ");
         char* py = strtok(nullptr, " ");
@@ -198,9 +192,7 @@ public:
     //teleport at coordinates
     static bool HandleGoXYCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-            Player* _player = handler->GetSession()->GetPlayer();
+        Player* _player = handler->GetSession()->GetPlayer();
 
         char* px = strtok((char*)args, " ");
         char* py = strtok(nullptr, " ");
@@ -241,9 +233,7 @@ public:
     //teleport at coordinates, including Z
     static bool HandleGoXYZCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-            Player* _player = handler->GetSession()->GetPlayer();
+        Player* _player = handler->GetSession()->GetPlayer();
 
         char* px = strtok((char*)args, " ");
         char* py = strtok(nullptr, " ");
@@ -283,9 +273,7 @@ public:
 
     static bool HandleGoXYZOCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-            Player* _player = handler->GetSession()->GetPlayer();
+        Player* _player = handler->GetSession()->GetPlayer();
 
         char* px = strtok((char*)args, " ");
         char* py = strtok(nullptr, " ");
@@ -328,9 +316,7 @@ public:
     //teleport at coordinates
     static bool HandleGoZoneXYCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-            Player* _player = handler->GetSession()->GetPlayer();
+        Player* _player = handler->GetSession()->GetPlayer();
 
         char* px = strtok((char*)args, " ");
         char* py = strtok(nullptr, " ");
@@ -390,9 +376,7 @@ public:
 
     static bool HandleGoTriggerCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
-            Player* _player = handler->GetSession()->GetPlayer();
+        Player* _player = handler->GetSession()->GetPlayer();
 
         char *atId = strtok((char*)args, " ");
         if (!atId)
@@ -534,9 +518,8 @@ public:
 
     static bool HandleGoATCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        Player* plr = handler->GetSession()->GetPlayer();
 
-            Player* plr = handler->GetSession()->GetPlayer();
         if (!plr)
             return false;
 

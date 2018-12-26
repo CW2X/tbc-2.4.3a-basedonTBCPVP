@@ -25,7 +25,6 @@
 #include "Implementation/LoginDatabase.h"
 #include "Implementation/CharacterDatabase.h"
 #include "Implementation/WorldDatabase.h"
-#include "Implementation/LogsDatabase.h"
 #include "Implementation/RealmDatabase.h"
 
 #include "Field.h"
@@ -40,8 +39,6 @@ TC_DATABASE_API extern DatabaseWorkerPool<WorldDatabaseConnection> WorldDatabase
 TC_DATABASE_API extern DatabaseWorkerPool<CharacterDatabaseConnection> CharacterDatabase;
 /// Accessor to the login database
 TC_DATABASE_API extern DatabaseWorkerPool<LoginDatabaseConnection> LoginDatabase;
-/// Accessor to the logs database
-TC_DATABASE_API extern DatabaseWorkerPool<LogsDatabaseConnection> LogsDatabase;
 /// Accessor to the realm database
 TC_DATABASE_API extern DatabaseWorkerPool<RealmDatabaseConnection> RealmDatabase;
 

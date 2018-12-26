@@ -177,7 +177,7 @@ public:
             player = ObjectAccessor::FindConnectedPlayerByName(name.c_str());
         }
         else
-            player = handler->GetSelectedPlayerOrSelf();
+            player = handler->getSelectedPlayerOrSelf();
 
         if(!player)
         {
@@ -195,7 +195,7 @@ public:
 
     static bool HandleLearnCommand(ChatHandler* handler, char const* args)
     {
-        Player* targetPlayer = handler->GetSelectedPlayerOrSelf();
+        Player* targetPlayer = handler->getSelectedPlayerOrSelf();
         if(!targetPlayer)
         {
             handler->SendSysMessage(LANG_PLAYER_NOT_FOUND);
@@ -233,12 +233,10 @@ public:
 
     static bool HandleLearnAllRecipesCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         //  Learns all recipes of specified profession and sets skill to max
         //  Example: .learn all_recipes enchanting
 
-        Player* target = handler->GetSelectedPlayerOrSelf();
+        Player* target = handler->getSelectedPlayerOrSelf();
         if( !target )
         {
             handler->SendSysMessage(LANG_PLAYER_NOT_FOUND);
@@ -351,8 +349,6 @@ public:
 
     static bool HandleUnLearnCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         // number or [name] Shift-click form |color|Hspell:spell_id|h[name]|h|r
         uint32 min_id =  handler->extractSpellIdFromLink((char*)args);
         if(!min_id)
@@ -376,7 +372,7 @@ public:
             max_id=max_id+1;
         }
 
-        Player* target = handler->GetSelectedPlayerOrSelf();
+        Player* target = handler->getSelectedPlayerOrSelf();
         if(!target)
         {
             handler->SendSysMessage(LANG_NO_CHAR_SELECTED);

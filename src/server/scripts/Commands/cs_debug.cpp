@@ -95,7 +95,7 @@ public:
 
     static bool HandleWaterWalkCheatCommand(ChatHandler* handler, char const* args)
     {
-        Unit* unit = handler->GetSelectedUnit();
+        Unit* unit = handler->getSelectedUnit();
         if (unit == nullptr)
             unit = handler->GetSession()->GetPlayer();
         if (unit == nullptr)
@@ -120,7 +120,7 @@ public:
 
     static bool HandleDisableGravityCheatCommand(ChatHandler* handler, const char* args)
     {
-        Unit* unit = handler->GetSelectedUnit();
+        Unit* unit = handler->getSelectedUnit();
         if (unit == nullptr)
             unit = handler->GetSession()->GetPlayer();
         if (unit == nullptr)
@@ -145,7 +145,7 @@ public:
 
     static bool HandleRootCheatCommand(ChatHandler* handler, const char* args)
     {
-        Unit* unit = handler->GetSelectedUnit();
+        Unit* unit = handler->getSelectedUnit();
         if (unit == nullptr)
             unit = handler->GetSession()->GetPlayer();
         if (unit == nullptr)
@@ -170,7 +170,7 @@ public:
 
     static bool HandleHoverCheatCommand(ChatHandler* handler, const char* args)
     {
-        Unit* unit = handler->GetSelectedUnit();
+        Unit* unit = handler->getSelectedUnit();
         if (unit == nullptr)
             unit = handler->GetSession()->GetPlayer();
         if (unit == nullptr)
@@ -193,36 +193,9 @@ public:
         return false;
     }
 
-#ifdef LICH_KING
-    static bool HandleCanTransitionBetweenSwimAndFlyCheatCommand(ChatHandler* handler, const char* args)
-    {
-        Unit* unit = handler->GetSelectedUnit();
-        if (unit == nullptr)
-            unit = handler->GetSession()->GetPlayer();
-        if (unit == nullptr)
-            return false;
-        std::string argstr = (char*)args;
-        if (!*args)
-            argstr = unit->CanTransitionBetweenSwimAndFly() ? "off" : "on";
-        if (argstr == "off")
-        {
-            unit->SetCanTransitionBetweenSwimAndFly(false);
-            handler->SendSysMessage("CanTransitionBetweenSwimAndFly is OFF on the selected unit (or self if no target).");
-            return true;
-        }
-        else if (argstr == "on")
-        {
-            unit->SetCanTransitionBetweenSwimAndFly(true);
-            handler->SendSysMessage("CanTransitionBetweenSwimAndFly is ON on the selected unit (or self if no target).");
-            return true;
-        }
-        return false;
-    }
-#endif
-
     static bool HandleCanFlyCheatCommand(ChatHandler* handler, const char* args)
     {
-        Unit* unit = handler->GetSelectedUnit();
+        Unit* unit = handler->getSelectedUnit();
         if (unit == nullptr)
             unit = handler->GetSession()->GetPlayer();
         if (unit == nullptr)
@@ -247,7 +220,7 @@ public:
 
     static bool HandleFeatherFallCheatCommand(ChatHandler* handler, const char* args)
     {
-        Unit* unit = handler->GetSelectedUnit();
+        Unit* unit = handler->getSelectedUnit();
         if (unit == nullptr)
             unit = handler->GetSession()->GetPlayer();
         if (unit == nullptr)
@@ -322,7 +295,7 @@ public:
 
     static bool HandleDebugInArcCommand(ChatHandler* handler, char const* /*args*/)
     {
-        Object *obj = handler->GetSelectedUnit();
+        Object *obj = handler->getSelectedUnit();
 
         if(!obj)
         {
@@ -354,7 +327,7 @@ public:
     static bool HandleDebugSetPoiCommand(ChatHandler* handler, char const* args)
     {
         Player *pPlayer = handler->GetSession()->GetPlayer();
-        Unit* target = handler->GetSelectedUnit();
+        Unit* target = handler->getSelectedUnit();
         if(!target)
         {
             handler->SendSysMessage(LANG_SELECT_CHAR_OR_CREATURE);
@@ -411,7 +384,7 @@ public:
 
     static bool HandleDebugSendOpcodeCommand(ChatHandler* handler, char const* /*args*/)
     {
-        Unit *unit = handler->GetSelectedUnit();
+        Unit *unit = handler->getSelectedUnit();
         Player *player = nullptr;
         if (!unit || (unit->GetTypeId() != TYPEID_PLAYER))
             player = handler->GetSession()->GetPlayer();
@@ -568,7 +541,7 @@ public:
         else if (state_str == "check_all") check_all = true;
         else return false;
 
-        Player* player = handler->GetSelectedPlayer();
+        Player* player = handler->getSelectedPlayer();
         if (!player) player = handler->GetSession()->GetPlayer();
 
         if (!list_queue && !check_all)
@@ -829,7 +802,7 @@ public:
 
     static bool HandleDebugThreatListCommand(ChatHandler* handler, char const* args)
     {
-        Unit* target = handler->GetSelectedUnit();
+        Unit* target = handler->getSelectedUnit();
         if (!target)
             target = handler->GetSession()->GetPlayer();
 
@@ -912,7 +885,7 @@ public:
 
     static bool HandleDebugCombatListCommand(ChatHandler* handler, char const* args)
     {
-        Unit* target = handler->GetSelectedUnit();
+        Unit* target = handler->getSelectedUnit();
         if (!target)
             target = handler->GetSession()->GetPlayer();
 
@@ -933,7 +906,7 @@ public:
 
     static bool HandleDebugThreatInfoCommand(ChatHandler* handler, char const* args)
     {
-        Unit* target = handler->GetSelectedUnit();
+        Unit* target = handler->getSelectedUnit();
         if (!target)
         {
             handler->SendSysMessage(LANG_SELECT_CHAR_OR_CREATURE);
@@ -1007,8 +980,6 @@ public:
 
     static bool HandleDebugCinematic(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         WorldPacket data(SMSG_TRIGGER_CINEMATIC, 4);
         data << uint32(atoi(args));
         handler->GetSession()->GetPlayer()->SendDirectMessage(&data);
@@ -1017,8 +988,6 @@ public:
 
     static bool HandleDebugItemByPos(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-        
         uint32 pos = uint32(atoi(args));
         Item* item = handler->GetSession()->GetPlayer()->GetItemByPos(pos);
         if (!item) {
@@ -1067,8 +1036,6 @@ public:
     /* Syntax : .debug setvalue #index #value [uint32/uint64/float]*/
     static bool HandleDebugSetValueCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         char* cIndex = strtok((char*)args, " ");
         char* cValue = strtok(nullptr, " ");
         char* cType = strtok(nullptr, " ");
@@ -1076,7 +1043,7 @@ public:
         if (!cIndex || !cValue)
             return false;
 
-        Unit* target = handler->GetSelectedUnit();
+        Unit* target = handler->getSelectedUnit();
         if(!target)
         {
             handler->SendSysMessage(LANG_SELECT_CHAR_OR_CREATURE);
@@ -1136,14 +1103,12 @@ public:
     /* Syntax : .debug getvalue #index */
     static bool HandleDebugGetValueCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         char* cIndex = strtok((char*)args, " ");
 
         if (!cIndex)
             return false;
 
-        Unit* target = handler->GetSelectedUnit();
+        Unit* target = handler->getSelectedUnit();
         if (!target)
         {
             handler->SendSysMessage(LANG_SELECT_CHAR_OR_CREATURE);
@@ -1268,7 +1233,7 @@ public:
     /* Syntax: .debug setarmor #armorValue */
     static bool HandleDebugSetArmorCommand(ChatHandler* handler, char const* args)
     {
-        Unit* target = handler->GetSelectedUnit();
+        Unit* target = handler->getSelectedUnit();
         if (!target)
         {
             handler->SendSysMessage(LANG_SELECT_CHAR_OR_CREATURE);
@@ -1292,8 +1257,6 @@ public:
     //show animation
     static bool HandleDebugAnimCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         uint32 anim_id = atoi((char*)args);
         handler->GetSession()->GetPlayer()->HandleEmoteCommand(anim_id);
         return true;
@@ -1301,7 +1264,7 @@ public:
 
     static bool HandleDebugGetLootRecipient(ChatHandler* handler, char const* /*args*/)
     {
-        Creature* target =  handler->GetSelectedCreature();
+        Creature* target =  handler->getSelectedCreature();
         if(!target)
             return false;
 
@@ -1311,7 +1274,7 @@ public:
 
     static bool HandleDebugStealthLevel(ChatHandler* handler, char const* args)
     {
-        Unit *target = handler->GetSelectedUnit();
+        Unit *target = handler->getSelectedUnit();
         if (!target)
             target = handler->GetSession()->GetPlayer();
         
@@ -1325,7 +1288,7 @@ public:
 
     static bool HandleDebugAttackDistance(ChatHandler* handler, char const* args)
     {
-        Unit *target = handler->GetSelectedUnit();
+        Unit *target = handler->getSelectedUnit();
         if (!target || !target->ToCreature())
             return false;
         
@@ -1335,8 +1298,6 @@ public:
 
     static bool HandleDebugPvPAnnounce(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-        
         char *msg = strtok((char *)args, " ");
         if (!msg)
             return false;
@@ -1373,7 +1334,7 @@ public:
 
     static bool HandleDebugShowAttackers(ChatHandler* handler, char const* args)
     {
-        Unit* target = handler->GetSelectedUnit();
+        Unit* target = handler->getSelectedUnit();
         if (!target)
             return false;
         
@@ -1408,7 +1369,7 @@ public:
 
     static bool HandleDebugLoSCommand(ChatHandler* handler, char const* args)
     {
-        if (Unit* unit = handler->GetSelectedUnit())
+        if (Unit* unit = handler->getSelectedUnit())
             handler->PSendSysMessage("Unit %s (GuidLow: %u) is %sin LoS", unit->GetName().c_str(), unit->GetGUID().GetCounter(), handler->GetSession()->GetPlayer()->IsWithinLOSInMap(unit) ? "" : "not ");
         
         return true;
@@ -1416,8 +1377,6 @@ public:
 
     static bool HandleDebugPlayerFlags(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-        
         int flags = atoi(args);
         if (!flags)
             return true;
@@ -1463,7 +1422,7 @@ public:
     {
         uint32 emote = atoi(args);
 
-        Unit* target = handler->GetSelectedUnit();
+        Unit* target = handler->getSelectedUnit();
         if(!target)
         {
             handler->SendSysMessage(LANG_SELECT_CHAR_OR_CREATURE);
@@ -1499,7 +1458,7 @@ public:
         ObjectGuid tGuid;
         uint32 tGuidLow = 0;
         PackedGuid tPackGuid;
-        if(Unit const* t = handler->GetSelectedUnit())
+        if(Unit const* t = handler->getSelectedUnit())
         {
             tGuid = t->GetGUID();
             tGuidLow = t->GetGUID().GetCounter();
@@ -1663,7 +1622,7 @@ public:
         if (!cArg)
             return false;
 
-        WorldObject* target = handler->GetSelectedUnit();
+        WorldObject* target = handler->getSelectedUnit();
         if (!target)
         {
             handler->SendSysMessage(LANG_SELECT_CHAR_OR_CREATURE);
@@ -1679,8 +1638,6 @@ public:
     static bool HandleDebugUnloadGrid(ChatHandler* handler, char const* args)
     {
         /*
-        ARGS_CHECK
-
         char* mapidstr = strtok((char*)args, " ");
         if (!mapidstr || !*mapidstr)
             return false;
@@ -1725,7 +1682,7 @@ public:
         Player* player = handler->GetSession()->GetPlayer();
         if (!player)
             return false;
-        Creature* target =  handler->GetSelectedCreature();
+        Creature* target =  handler->getSelectedCreature();
         if (!target || !target->IsAIEnabled())
         {
             return false;
@@ -1794,7 +1751,6 @@ public:
             bool _init = false; //true if successfully initialized
         };
 
-        ARGS_CHECK
         Tokenizer tokens(args, ' ');
         if (tokens.size() < 1)
             return false;

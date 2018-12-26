@@ -186,6 +186,4 @@ DatabaseLoader& DatabaseLoader::AddDatabase<CharacterDatabaseConnection>(Databas
 template TC_DATABASE_API
 DatabaseLoader& DatabaseLoader::AddDatabase<WorldDatabaseConnection>(DatabaseWorkerPool<WorldDatabaseConnection>&, std::string const&);
 template TC_DATABASE_API
-DatabaseLoader& DatabaseLoader::AddDatabase<LogsDatabaseConnection>(DatabaseWorkerPool<LogsDatabaseConnection>&, std::string const&);
-template TC_DATABASE_API
 DatabaseLoader& DatabaseLoader::AddDatabase<RealmDatabaseConnection>(DatabaseWorkerPool<RealmDatabaseConnection>&, std::string const&);

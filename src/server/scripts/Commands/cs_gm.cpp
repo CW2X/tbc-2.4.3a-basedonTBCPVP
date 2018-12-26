@@ -117,7 +117,7 @@ public:
 
     static bool HandleGMFlyModeCommand(ChatHandler* handler, char const* args)
     {
-        Unit *unit = handler->GetSelectedUnit();
+        Unit *unit = handler->getSelectedUnit();
         if (!unit || (unit->GetTypeId() != TYPEID_PLAYER))
             unit = handler->GetSession()->GetPlayer();
 

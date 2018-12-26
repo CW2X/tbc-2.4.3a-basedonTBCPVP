@@ -36,43 +36,12 @@ public:
             chatHandler.PSendSysMessage("Active sanction on this account. Unban time: %s", TimeToTimestampStr(unmuteTime));
         }
 
-        chatHandler.PSendSysMessage("Detailed mute list :");
-        //PrepareStatement(LOGS_SEL_SANCTION_MUTE_ACCOUNT, "SELECT author_account, author_guid, target_account, duration, time, reason, IP FROM gm_sanction WHERE target_account = ? AND type = 5", CONNECTION_SYNCH); //5 is SANCTION_MUTE_ACCOUNT
-        PreparedStatement* stmt = LogsDatabase.GetPreparedStatement(LOGS_SEL_SANCTION_MUTE_ACCOUNT);
-        stmt->setUInt32(0, accountid);
-        PreparedQueryResult result2 = LogsDatabase.Query(stmt);
-
-        if (!result2) {
-            chatHandler.PSendSysMessage("No sanction logged on this account.");
-            return true;
-        }
-
-        do {
-            Field* fields = result2->Fetch();
-
-            uint32 authorAccount = fields[0].GetUInt32();
-            ObjectGuid::LowType authorGUID = fields[1].GetUInt32();
-    //        uint32 targetAccount = fields[2].GetUInt32();
-            uint32 duration = fields[3].GetUInt32();
-            uint64 muteTime = fields[4].GetUInt32();
-            std::string reason = fields[5].GetString();
-            std::string authorIP = fields[6].GetString();
-            uint64 unbantimestamp = muteTime + (duration * MINUTE);
-            std::string authorname;
-            std::string displayName;
-            bool nameResult = sCharacterCache->GetCharacterNameByGuid(ObjectGuid(HighGuid::Player, authorGUID), displayName);
-            if (!nameResult)
-                authorname = "<Unknown>";
-
-            chatHandler.PSendSysMessage("Account %u: Mute %s for %s by %s (account %u) at %s (%s).", accountid, secsToTimeString(duration).c_str(), reason.c_str(), authorname.c_str(), authorAccount, TimeToTimestampStr(muteTime), (unbantimestamp > uint64(time(nullptr))) ? " (actif)" : "");
-        } while (result2->NextRow());
-
         return true;
     }
 
     static bool HandleMuteInfoAccountCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
         
         char* cname = strtok((char*)args, "");
         if(!cname)

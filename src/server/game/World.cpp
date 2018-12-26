@@ -28,7 +28,6 @@
 #include "Language.h"
 #include "Monitor.h"
 #include "Log.h"
-#include "LogsDatabaseAccessor.h"
 #include "LootMgr.h"
 #include "LootItemStorage.h"
 #include "M2Stores.h"
@@ -334,7 +333,7 @@ World::AddSession_(WorldSession* s)
         float popu = GetActiveSessionCount (); //updated number of users on the server
         popu /= pLimit;
         popu *= 2;
-        LoginDatabase.AsyncPQuery("UPDATE realmlist SET population = '%f' WHERE id = '%d'", popu, realm.Id.Realm);
+        RealmDatabase.AsyncPQuery("UPDATE realmlist SET population = '%f' WHERE id = '%d'", popu, realm.Id.Realm);
     }
 }
 
@@ -1354,7 +1353,6 @@ void World::LoadConfigSettings(bool reload)
         m_configs[CONFIG_GUILD_BANK_EVENT_LOG_COUNT] = GUILD_BANKLOG_MAX_RECORDS;
 
     LoadCustomFFAZones();
-    LoadFishingWords();
 
     // call ScriptMgr if we're reloading the configuration
    /* if (reload)
@@ -1427,9 +1425,6 @@ void World::SetInitialWorldSettings()
     ///- Initialize config settings
     LoadConfigSettings();
 
-    ///- Initialize motd and twitter
-    LoadMotdAndTwitter();
-
     ///- Init highest guids before any table loading to prevent using not initialized guids in some code.
     sObjectMgr->SetHighestGuids();
 
@@ -1462,7 +1457,7 @@ void World::SetInitialWorldSettings()
     // not send custom type REALM_FFA_PVP to realm list
     uint32 server_type = IsFFAPvPRealm() ? REALM_TYPE_PVP : getConfig(CONFIG_GAME_TYPE);
     uint32 realm_zone = getConfig(CONFIG_REALM_ZONE);
-    LoginDatabase.PExecute("UPDATE realmlist SET icon = %u, timezone = %u WHERE id = '%d'", server_type, realm_zone, realm.Id.Realm);
+    RealmDatabase.PExecute("UPDATE realmlist SET icon = %u, timezone = %u WHERE id = '%d'", server_type, realm_zone, realm.Id.Realm);
 
     ///- Load the DBC files
     TC_LOG_INFO("server.loading","Initialize data stores...");
@@ -1864,7 +1859,7 @@ void World::SetInitialWorldSettings()
     sprintf( isoDate, "%04d-%02d-%02d %02d:%02d:%02d",
         local.tm_year+1900, local.tm_mon+1, local.tm_mday, local.tm_hour, local.tm_min, local.tm_sec);
 
-    LoginDatabase.PExecute("INSERT INTO uptime (realmid, starttime, uptime, revision, maxplayers) VALUES('%u', " UI64FMTD ", 0, '%s', 0)",
+    RealmDatabase.PExecute("INSERT INTO uptime (realmid, starttime, uptime, revision, maxplayers) VALUES('%u', " UI64FMTD ", 0, '%s', 0)",
         realm.Id.Realm, uint64(GameTime::GetStartTime()), isoDate, GitRevision::GetFullVersion());
 
     m_timers[WUPDATE_WEATHERS].SetInterval(1*IN_MILLISECONDS);
@@ -1944,20 +1939,8 @@ void World::SetInitialWorldSettings()
     TC_LOG_INFO("server.loading","Loading automatic announces...");
     LoadAutoAnnounce();
 
-    TC_LOG_INFO("server.loading","Cleaning up old logs...");
-    if(m_configs[CONFIG_MONITORING_ENABLED])
-        sLogsDatabaseAccessor->CleanupOldMonitorLogs();
-
-    sLogsDatabaseAccessor->CleanupOldLogs();
-
     // Playerbot
     sPlayerbotAIConfig.Initialize();
-
-    TC_LOG_INFO("server.loading", "");
-    TC_LOG_INFO("server.loading", "==========================================================");
-    TC_LOG_INFO("server.loading", "Current content is set to %s.", GetPatchName().c_str());
-    TC_LOG_INFO("server.loading", "==========================================================");
-    TC_LOG_INFO("server.loading", "");
 
     uint32 serverStartedTime = GetMSTimeDiffToNow(serverStartingTime);
     TC_LOG_INFO("server.loading","World initialized in %u.%u seconds.", (serverStartedTime / 1000), (serverStartedTime % 1000));
@@ -2165,7 +2148,7 @@ void World::Update(time_t diff)
         uint32 maxClientsNum = GetMaxActiveSessionCount();
 
         m_timers[WUPDATE_UPTIME].Reset();
-        LoginDatabase.PExecute("UPDATE uptime SET uptime = %u, maxplayers = %u WHERE realmid = %u AND starttime = " UI64FMTD, tmpDiff, maxClientsNum, realm.Id.Realm, uint64(m_startTime));
+        RealmDatabase.PExecute("UPDATE uptime SET uptime = %u, maxplayers = %u WHERE realmid = %u AND starttime = " UI64FMTD, tmpDiff, maxClientsNum, realm.Id.Realm, uint64(m_startTime));
     }
 
     ///- Update objects (maps, transport, creatures,...)
@@ -2200,8 +2183,6 @@ void World::Update(time_t diff)
     if (m_timers[WUPDATE_ARENASEASONLOG].Passed())
     {
         m_timers[WUPDATE_ARENASEASONLOG].Reset();
-
-        UpdateArenaSeasonLogs();
     }
 
     // execute callbacks from sql queries that were queued recently
@@ -2242,7 +2223,6 @@ void World::Update(time_t diff)
         CharacterDatabase.KeepAlive();
         LoginDatabase.KeepAlive();
         WorldDatabase.KeepAlive();
-        LogsDatabase.KeepAlive();
 		RealmDatabase.KeepAlive();
     }
 
@@ -2583,16 +2563,11 @@ BanReturn World::BanAccount(SanctionType mode, std::string const& _nameOrIP, uin
         //also reset mail change
         LoginDatabase.AsyncPQuery("UPDATE account SET newMail = '', newMailTS = 0 WHERE id = %u",account);
 
-        if(mode!= SANCTION_BAN_IP)
+        if (mode != SANCTION_BAN_IP)
         {
             //No SQL injection as strings are escaped
             LoginDatabase.AsyncPQuery("INSERT INTO account_banned VALUES ('%u', UNIX_TIMESTAMP(), UNIX_TIMESTAMP()+%u, '%s', '%s', '1')",
                 account,duration_secs,safe_author.c_str(),reason.c_str());
-            LogsDatabaseAccessor::Sanction(author_session, account, 0, SANCTION_BAN_ACCOUNT, duration_secs, reason);
-        }
-        else {
-            // Log ip ban for each account on that IP
-            LogsDatabaseAccessor::Sanction(author_session, account, 0, SANCTION_BAN_IP, duration_secs, reason);
         }
 
         if (WorldSession* sess = FindSession(account))
@@ -2619,8 +2594,6 @@ bool World::RemoveBanAccount(SanctionType mode, std::string nameOrIP, WorldSessi
     {
         LoginDatabase.EscapeString(nameOrIP);
         LoginDatabase.AsyncPQuery("DELETE FROM ip_banned WHERE ip = '%s'",nameOrIP.c_str());
-
-        LogsDatabaseAccessor::RemoveSanction(unbanAuthor, 0, 0, nameOrIP, SANCTION_BAN_IP);
     }
     else
     {
@@ -2635,7 +2608,6 @@ bool World::RemoveBanAccount(SanctionType mode, std::string nameOrIP, WorldSessi
 
         //NO SQL injection as account is uint32
         LoginDatabase.AsyncPQuery("UPDATE account_banned SET active = '0' WHERE id = '%u'",account);
-        LogsDatabaseAccessor::RemoveSanction(unbanAuthor, account, 0, "", mode);
     }
     return true;
 }
@@ -2934,7 +2906,7 @@ void World::InitDailyQuestResetTime(bool loading)
 
 void World::UpdateAllowedSecurity()
 {
-     QueryResult result = LoginDatabase.PQuery("SELECT allowedSecurityLevel from realmlist WHERE id = '%d'", realm.Id.Realm);
+     QueryResult result = RealmDatabase.PQuery("SELECT allowedSecurityLevel from realmlist WHERE id = '%d'", realm.Id.Realm);
      if (result)
      {
         m_allowedSecurityLevel = AccountTypes(result->Fetch()->GetUInt16());
@@ -3072,53 +3044,6 @@ bool World::IsZoneFFA(uint32 zoneid) const
     return itr != configFFAZones.end();
 }
 
-void World::LoadFishingWords()
-{
-    fishingWords.clear();
-
-    std::string badstr = sConfigMgr->GetStringDefault("PhishingWords", "");
-    std::vector<std::string>::iterator itr;
-    std::string tempstr;
-    int cutAt;
-
-    if (badstr.length() == 0)
-        return;
-
-    tempstr = badstr;
-    while ((cutAt = tempstr.find_first_of(",")) != tempstr.npos)
-    {
-        if (cutAt > 0)
-            fishingWords.push_back(tempstr.substr(0, cutAt));
-
-        tempstr = tempstr.substr(cutAt + 1);
-    }
-
-    if (tempstr.length() > 1)
-        fishingWords.push_back(tempstr);
-}
-
-bool World::IsPhishing(std::string msg)
-{
-    for (auto itr : fishingWords) {
-        if (msg.find(itr) != msg.npos)
-            return true;
-    }
-
-    return false;
-}
-
-void World::LogPhishing(uint32 src, uint32 dst, std::string msg)
-{
-    std::string msgsafe = msg;
-    LogsDatabase.EscapeString(msgsafe);
-    LogsDatabase.AsyncPQuery("INSERT INTO phishing (srcguid, dstguid, time, data) VALUES ('%u', '%u', UNIX_TIMESTAMP(), '%s')", src, dst, msgsafe.c_str());
-}
-
-void World::LoadMotdAndTwitter()
-{
-    SetMotd(sConfigMgr->GetStringDefault("Motd", "Welcome to Sunstrider!") + std::string("\n") + std::string(GetPatchName()) + std::string(" is now live!"));
-}
-
 void World::LoadAutoAnnounce()
 {
     QueryResult result = WorldDatabase.Query("SELECT id, message, hour, minute FROM auto_ann_by_time");
@@ -3185,29 +3110,6 @@ CharTitlesEntry const* World::getArenaLeaderTitle(uint8 rank)
     }
 
     return sCharTitlesStore.LookupEntry(id);
-}
-
-/*
-Update arena_season_stats. This table keeps count of how much time a team kept a rank.
-This should be called every minute.
-
-Table structure :
-teamid, time1, time2, time3
-*/
-void World::UpdateArenaSeasonLogs()
-{
-    for(uint8 i = 1; i <= 3; i++)
-    {
-        if(firstArenaTeams.size() < i)
-            break;
-
-        if (QueryResult result = LogsDatabase.PQuery("SELECT null FROM arena_season_stats WHERE teamid = %u;",firstArenaTeams[i-1]->GetId()))
-        { //entry already exist
-            LogsDatabase.PQuery("UPDATE arena_season_stats SET time%u = time%u + 1 WHERE teamid = %u;",i,i,firstArenaTeams[i-1]->GetId());
-        } else { //else create a new one
-            LogsDatabase.PQuery("REPLACE INTO arena_season_stats (teamid,time%u) VALUES (%u,1);",i,firstArenaTeams[i-1]->GetId());
-        }
-    }
 }
 
 void World::ProcessQueryCallbacks()

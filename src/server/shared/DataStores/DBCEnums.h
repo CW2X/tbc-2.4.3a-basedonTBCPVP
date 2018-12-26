@@ -1,3 +1,4 @@
+
 #ifndef DBCENUMS_H
 #define DBCENUMS_H
 
@@ -13,11 +14,7 @@ enum LevelLimit
     // Client expected level limitation, like as used in DBC item max levels for "until max player level"
     // use as default max player level, must be fit max level for used client
     // also see MAX_LEVEL and STRONG_MAX_LEVEL define
-#ifdef LICH_KING
-    DEFAULT_MAX_LEVEL = 80,
-#else
-    DEFAULT_MAX_LEVEL = 70,
-#endif
+	DEFAULT_MAX_LEVEL = 70,
 
     // client supported max level for player/pets/etc. Avoid overflow or client stability affected.
     // also see GT_MAX_LEVEL define
@@ -27,10 +24,6 @@ enum LevelLimit
     // also see MAX_LEVEL and GT_MAX_LEVEL define
     STRONG_MAX_LEVEL = 255,
 };
-
-// Server side limitation. Base at used code requirements.
-// also see MAX_LEVEL and GT_MAX_LEVEL define
-#define STRONG_MAX_LEVEL 255
 
 enum BattlegroundBracketId                                  // bracketId for level ranges
 {

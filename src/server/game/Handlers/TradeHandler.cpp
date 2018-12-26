@@ -10,7 +10,6 @@
 #include "Item.h"
 #include "SocialMgr.h"
 #include "Language.h"
-#include "LogsDatabaseAccessor.h"
 #include "TradeData.h"
 #include "Spell.h"
 #include "RBAC.h"
@@ -508,8 +507,6 @@ void WorldSession::HandleAcceptTradeOpcode(WorldPacket& /*recvPacket*/)
         info.Status = TRADE_STATUS_TRADE_COMPLETE;
         trader->GetSession()->SendTradeStatus(info);
         SendTradeStatus(info);
-
-        sLogsDatabaseAccessor->CharacterTrade(_player, trader, myItems, hisItems, my_trade->GetMoney(), his_trade->GetMoney());
     }
     else
     {

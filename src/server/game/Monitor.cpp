@@ -145,81 +145,6 @@ void Monitor::UpdateGeneralInfosIfExpired(uint32 diff)
 void Monitor::UpdateGeneralInfos(uint32 diff)
 {
     time_t now = time(nullptr);
-
-    SQLTransaction trans = LogsDatabase.BeginTransaction();
-
-    /* players */
-    trans->PAppend("INSERT INTO mon_players (time, active, queued) VALUES (%u, %u, %u)", (uint32)now, sWorld->GetActiveSessionCount(), sWorld->GetQueuedSessionCount());
-
-    /* time diff */
-    uint32 _smoothTD = GetSmoothTimeDiff();
-    if(_smoothTD) //it may be not available yet
-        trans->PAppend("INSERT INTO mon_timediff (time, diff) VALUES (%u, %u)", (uint32)now, GetSmoothTimeDiff());
-
-    /* maps */
-    std::string maps = "eastern kalimdor outland karazhan hyjal ssc blacktemple tempestkeep zulaman warsong arathi eye alterac arenas sunwell";
-    std::stringstream cnts;
-    int arena_cnt = 0;
-    arena_cnt += sMapMgr->GetNumPlayersInMap(562); /* nagrand */
-    arena_cnt += sMapMgr->GetNumPlayersInMap(559); /* blade's edge */
-    arena_cnt += sMapMgr->GetNumPlayersInMap(572); /* lordaeron */
-
-    int mapIds[14] = { 0, 1, 530, 532, 534, 548, 564, 550, 568, 489, 529, 566, 30, 580 };
-    for (int & mapId : mapIds)
-        trans->PAppend("INSERT INTO mon_maps (time, map, players) VALUES (%u, %u, %u)", (uint32)now, mapId, sMapMgr->GetNumPlayersInMap(mapId));
-    // arenas
-    trans->PAppend("INSERT INTO mon_maps (time, map, players) VALUES (%u, 559, %u)", (uint32)now, arena_cnt); // Nagrand!
-
-    /* battleground queue time */
-    std::string bgs = "alterac warsong arathi eye 2v2 3v3 5v5";
-    std::stringstream bgs_wait;
-
-    bgs_wait << sBattlegroundMgr->GetAverageQueueWaitTimeForMaxLevels(BATTLEGROUND_QUEUE_AV) << " ";
-    bgs_wait << sBattlegroundMgr->GetAverageQueueWaitTimeForMaxLevels(BATTLEGROUND_QUEUE_WS) << " ";
-    bgs_wait << sBattlegroundMgr->GetAverageQueueWaitTimeForMaxLevels(BATTLEGROUND_QUEUE_AB) << " ";
-    bgs_wait << sBattlegroundMgr->GetAverageQueueWaitTimeForMaxLevels(BATTLEGROUND_QUEUE_EY) << " ";
-    bgs_wait << sBattlegroundMgr->GetAverageQueueWaitTimeForMaxLevels(BATTLEGROUND_QUEUE_2v2) << " ";
-    bgs_wait << sBattlegroundMgr->GetAverageQueueWaitTimeForMaxLevels(BATTLEGROUND_QUEUE_3v3) << " ";
-    bgs_wait << sBattlegroundMgr->GetAverageQueueWaitTimeForMaxLevels(BATTLEGROUND_QUEUE_5v5) << " ";
-
-    /* races && classes */
-    std::string races = "human orc dwarf nightelf undead tauren gnome troll bloodelf draenei";
-    std::stringstream ssraces;
-
-    std::string classes = "warrior paladin hunter rogue priest shaman mage warlock druid";
-    std::stringstream ssclasses;
-
-    uint32 racesCount[12] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-    uint32 classesCount[12] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-    auto lock = HashMapHolder<Player>::GetLock();
-    lock->lock();
-    HashMapHolder<Player>::MapType const & m = ObjectAccessor::GetPlayers();
-    for (auto & itr : m) {
-        racesCount[itr.second->GetRace()]++;
-        classesCount[itr.second->GetClass()]++;
-    }
-    lock->unlock();
-
-    ssraces << racesCount[1] << " " << racesCount[2] << " " << racesCount[3] << " ";
-    ssraces << racesCount[4] << " " << racesCount[5] << " " << racesCount[6] << " ";
-    ssraces << racesCount[7] << " " << racesCount[8] << " " << racesCount[10] << " ";
-    ssraces << racesCount[11];
-
-    ssclasses << classesCount[1] << " " << classesCount[2] << " " << classesCount[3] << " ";
-    ssclasses << classesCount[4] << " " << classesCount[5] << " " << classesCount[7] << " ";
-    ssclasses << classesCount[8] << " " << classesCount[9] << " " << classesCount[11] << " ";
-
-    for (int i = 1; i < 12; i++) {
-        if (i != 9)
-            trans->PAppend("INSERT INTO mon_races (time, race, players) VALUES (%u, %u, %u)", (uint32)now, i, racesCount[i]);
-    }
-
-    for (int i = 1; i < 12; i++) {
-        if (i != 6 && i != 10)
-            trans->PAppend("INSERT INTO mon_classes (time, `class`, players) VALUES (%u, %u, %u)", (uint32)now, i, classesCount[i]);
-    }
-
-    LogsDatabase.CommitTransaction(trans);
 }
 
 uint32 Monitor::GetAverageWorldDiff(uint32 searchCount)
@@ -381,6 +306,6 @@ void MonitorAlert::UpdateForWorld(uint32 diff)
     if (avgTD < abnormalDiff)
         return; //all okay
 
-    std::string msg = "/!\\ World updates have been slow for the last " + std::to_string(searchCount) + " updates with an average of " + std::to_string(avgTD);
-    ChatHandler::SendGlobalGMSysMessage(msg.c_str());
+    //std::string msg = "/!\\ World updates have been slow for the last " + std::to_string(searchCount) + " updates with an average of " + std::to_string(avgTD);
+    //ChatHandler::SendGlobalGMSysMessage(msg.c_str());
 }

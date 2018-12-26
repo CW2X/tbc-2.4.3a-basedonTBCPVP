@@ -45,7 +45,7 @@ public:
 
         if(!szExp)
         {
-            Player* player = handler->GetSelectedPlayerOrSelf();
+            Player* player = handler->getSelectedPlayerOrSelf();
             if(!player)
                 return false;
 
@@ -93,8 +93,6 @@ public:
     /// Create an account
     static bool HandleAccountCreateCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         std::string email;
 
         ///- %Parse the command line arguments
@@ -145,8 +143,6 @@ public:
     /// \todo This function has to be enhanced to respect the login/realm split (delete char, delete account chars in realm, delete account chars in realm then delete account
     static bool HandleAccountDeleteCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         ///- Get the account name from the command line
         char *account_name_str=strtok ((char*)args," ");
         if (!account_name_str)
@@ -207,8 +203,6 @@ public:
     //Set a new mail and check if a change is pending
     static bool HandleAccountMailChangeCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         char* sAccount = strtok((char*)args, " ");
         char* mail = strtok(nullptr, " ");
 
@@ -240,8 +234,6 @@ public:
     /// Set password for account
     static bool HandleAccountSetPasswordCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
-
         ///- Get the command line arguments
         char *szAccount = strtok ((char*)args," ");
         char *szPassword1 =  strtok (nullptr," ");
@@ -322,7 +314,7 @@ public:
 
         if (!arg3)
         {
-            if (!handler->GetSelectedPlayer())
+            if (!handler->getSelectedPlayer())
                 return false;
             isAccountNameGiven = false;
         }
@@ -353,7 +345,7 @@ public:
         }
 
         // handler->getSession() == NULL only for console
-        targetAccountId = (isAccountNameGiven) ? AccountMgr::GetId(targetAccountName) : handler->GetSelectedPlayer()->GetSession()->GetAccountId();
+        targetAccountId = (isAccountNameGiven) ? AccountMgr::GetId(targetAccountName) : handler->getSelectedPlayer()->GetSession()->GetAccountId();
         int32 gmRealmID = (isAccountNameGiven) ? atoi(arg3) : atoi(arg2);
         uint32 playerSecurity;
         if (handler->GetSession())

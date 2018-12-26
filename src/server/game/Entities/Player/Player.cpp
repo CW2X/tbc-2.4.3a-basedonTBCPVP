@@ -54,7 +54,6 @@
 #include "ConditionMgr.h"
 #include "SpectatorAddon.h"
 #include "ScriptMgr.h"
-#include "LogsDatabaseAccessor.h"
 #include "Mail.h"
 #include "Bag.h"
 #include "CharacterCache.h"
@@ -6629,13 +6628,13 @@ bool Player::RewardHonor(Unit *uVictim, uint32 groupsize, float honor, bool pvpt
             if( count == 0 || dest.empty()) // can't add any
             {
                 // -- TODO: Send to mailbox if no space
-                ChatHandler(this).PSendSysMessage("You don't have any space in your bags for a token.");
+                ChatHandler(GetSession()).PSendSysMessage("You don't have any space in your bags for a token.");
                 return true;
             }
 
             Item* item = StoreNewItem( dest, itemId, true, Item::GenerateItemRandomPropertyId(itemId));
             SendNewItem(item,count,true,false);
-            ChatHandler(this).PSendSysMessage("You have been awarded a token for slaying another player.");
+            ChatHandler(GetSession()).PSendSysMessage("You have been awarded a token for slaying another player.");
         }
     }
 
@@ -16828,9 +16827,9 @@ bool Player::Satisfy(AccessRequirement const *ar, uint32 target_map, bool report
                 else if(missingKey)
                     SendTransferAborted(target_map, TRANSFER_ABORT_DIFFICULTY2);
                 else if(missingHeroicQuest)
-                    ChatHandler(this).SendSysMessage(ar->heroicQuestFailedText);
+                    ChatHandler(GetSession()).SendSysMessage(ar->heroicQuestFailedText);
                 else if(missingQuest)
-                    ChatHandler(this).SendSysMessage(ar->questFailedText);
+                    ChatHandler(GetSession()).SendSysMessage(ar->questFailedText);
                 else if(LevelMin)
                     GetSession()->SendAreaTriggerMessage(GetSession()->GetTrinityString(LANG_LEVEL_MINREQUIRED), LevelMin);
             }
@@ -17457,7 +17456,7 @@ void Player::_SaveInventory(SQLTransaction trans)
     if (error)
     {
         TC_LOG_ERROR("entities.player","Player::_SaveInventory - one or more errors occurred save aborted!");
-        ChatHandler(this).SendSysMessage(LANG_ITEM_SAVE_FAILED);
+        ChatHandler(GetSession()).SendSysMessage(LANG_ITEM_SAVE_FAILED);
         m_itemUpdateQueue.clear();
         return;
     }
@@ -18465,18 +18464,18 @@ void Player::Whisper(std::string const& text, Language language, Player* target,
     else
     {
         // announce to player that player he is whispering to is dnd and cannot receive his message
-        ChatHandler(this).PSendSysMessage(LANG_PLAYER_DND, target->GetName().c_str(), target->dndMsg.c_str());
+        ChatHandler(GetSession()).PSendSysMessage(LANG_PLAYER_DND, target->GetName().c_str(), target->dndMsg.c_str());
     }
 
     if(!IsAcceptWhispers() && !IsGameMaster() && !target->IsGameMaster())
     {
         SetAcceptWhispers(true);
-        ChatHandler(this).SendSysMessage(LANG_COMMAND_WHISPERON);
+        ChatHandler(GetSession()).SendSysMessage(LANG_COMMAND_WHISPERON);
     }
 
     // announce to player that player he is whispering to is afk
     if(target->IsAFK() && language != LANG_ADDON)
-        ChatHandler(this).PSendSysMessage(LANG_PLAYER_AFK, target->GetName().c_str(), target->afkMsg.c_str());
+        ChatHandler(GetSession()).PSendSysMessage(LANG_PLAYER_AFK, target->GetName().c_str(), target->afkMsg.c_str());
 
     // if player whisper someone, auto turn of dnd to be able to receive an answer
     if(IsDND() && !target->IsGameMaster())
@@ -19324,8 +19323,6 @@ bool Player::BuyItemFromVendorSlot(ObjectGuid vendorguid, uint32 /*vendorslot*/,
             SendDirectMessage(&data);
 
             SendNewItem(it, pProto->BuyCount*count, true, false, false);
-
-            LogsDatabaseAccessor::BuyOrSellItemToVendor(LogsDatabaseAccessor::TRANSACTION_BUY, this, it, pCreature);
         }
     }
     else if( IsEquipmentPos( bag, slot ) )
@@ -19371,8 +19368,6 @@ bool Player::BuyItemFromVendorSlot(ObjectGuid vendorguid, uint32 /*vendorslot*/,
             SendDirectMessage(&data);
 
             SendNewItem(it, pProto->BuyCount*count, true, false, false);
-
-            LogsDatabaseAccessor::BuyOrSellItemToVendor(LogsDatabaseAccessor::TRANSACTION_BUY, this, it, pCreature);
 
             AutoUnequipOffhandIfNeed();
         }

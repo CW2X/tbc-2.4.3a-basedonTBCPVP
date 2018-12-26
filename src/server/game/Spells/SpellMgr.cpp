@@ -2539,7 +2539,7 @@ bool SpellMgr::IsSpellValid(SpellInfo const* spellInfo, Player* pl, bool msg)
                     if(msg)
                     {
                         if(pl)
-                            ChatHandler(pl).PSendSysMessage("Craft spell %u create not-exist in DB item (Entry: %u) and then...",spellInfo->Id,Effect.ItemType);
+                            ChatHandler(pl->GetSession()).PSendSysMessage("Craft spell %u create not-exist in DB item (Entry: %u) and then...",spellInfo->Id,Effect.ItemType);
                         else
                             TC_LOG_ERROR("sql.sql","Craft spell %u create not-exist in DB item (Entry: %u) and then...",spellInfo->Id,Effect.ItemType);
                     }
@@ -2557,7 +2557,7 @@ bool SpellMgr::IsSpellValid(SpellInfo const* spellInfo, Player* pl, bool msg)
                     if(msg)
                     {
                         if(pl)
-                            ChatHandler(pl).PSendSysMessage("Spell %u learn to broken spell %u, and then...",spellInfo->Id,Effect.TriggerSpell);
+                            ChatHandler(pl->GetSession()).PSendSysMessage("Spell %u learn to broken spell %u, and then...",spellInfo->Id,Effect.TriggerSpell);
                         else
                             TC_LOG_ERROR("sql.sql","Spell %u learn to invalid spell %u, and then...",spellInfo->Id,Effect.TriggerSpell);
                     }
@@ -2577,7 +2577,7 @@ bool SpellMgr::IsSpellValid(SpellInfo const* spellInfo, Player* pl, bool msg)
                 if(msg)
                 {
                     if(pl)
-                        ChatHandler(pl).PSendSysMessage("Craft spell %u have not-exist reagent in DB item (Entry: %u) and then...",spellInfo->Id,j);
+                        ChatHandler(pl->GetSession()).PSendSysMessage("Craft spell %u have not-exist reagent in DB item (Entry: %u) and then...",spellInfo->Id,j);
                     else
                         TC_LOG_ERROR("sql.sql","Craft spell %u have not-exist reagent in DB item (Entry: %u) and then...",spellInfo->Id,j);
                 }

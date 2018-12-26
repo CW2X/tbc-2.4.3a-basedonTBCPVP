@@ -88,7 +88,7 @@ public:
 
         {
             uint16 dbPort = 0;
-            if (QueryResult res = LoginDatabase.PQuery("SELECT port FROM realmlist WHERE id = %u", realm.Id.Realm))
+            if (QueryResult res = RealmDatabase.PQuery("SELECT port FROM realmlist WHERE id = %u", realm.Id.Realm))
                 dbPort = (*res)[0].GetUInt16();
 
             if (dbPort)
@@ -261,7 +261,7 @@ public:
 
     static bool HandleServerShutDownCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
         char* time_str = strtok((char*)args, " ");
         char* reason = strtok(nullptr, "");
@@ -298,7 +298,7 @@ public:
 
     static bool HandleServerRestartCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
         char* time_str = strtok((char*)args, " ");
         char* reason = strtok(nullptr, "");
@@ -319,7 +319,7 @@ public:
 
     static bool HandleServerIdleRestartCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
         char* time_str = strtok((char*)args, " ");
         char* reason = strtok(nullptr, "");
@@ -340,7 +340,7 @@ public:
 
     static bool HandleServerIdleShutDownCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
         char* time_str = strtok((char*)args, " ");
         char* reason = strtok(nullptr, "");
@@ -369,7 +369,7 @@ public:
 
     static bool HandleServerSetConfigCommand(ChatHandler* handler, char const* args)
     {
-        ARGS_CHECK
+        
 
         char* cConfigIndex = strtok((char*)args, " ");
         char* cConfigValue = strtok(nullptr, " ");

@@ -62,9 +62,6 @@ void WorldSession::_HandleBattlegroundJoin(BattlegroundTypeId bgTypeId, uint32 i
 
     // can do this, since it's battleground, not arena
     BattlegroundQueueTypeId bgQueueTypeId = BattlegroundMgr::BGQueueTypeId(bgTypeId, 0);
-#ifdef LICH_KING
-    BattlegroundQueueTypeId bgQueueTypeIdRandom = BattlegroundMgr::BGQueueTypeId(BATTLEGROUND_RB, 0);
-#endif
 
     // ignore if player is already in BG
     if(_player->InBattleground())
@@ -90,37 +87,8 @@ void WorldSession::_HandleBattlegroundJoin(BattlegroundTypeId bgTypeId, uint32 i
         return;
 
     // check queueing conditions
-    if(!joinAsGroup)
+    if (!joinAsGroup)
     {
-#ifdef LICH_KING
-        if (GetPlayer()->isUsingLfg())
-        {
-            // player is using dungeon finder or raid finder
-            WorldPacket data;
-            sBattlegroundMgr->BuildGroupJoinedBattlegroundPacket(&data, ERR_LFG_CANT_USE_BATTLEGROUND);
-            GetPlayer()->SendDirectMessage(&data);
-            return;
-        }
-
-        if (_player->GetBattlegroundQueueIndex(bgQueueTypeIdRandom) < PLAYER_MAX_BATTLEGROUND_QUEUES)
-        {
-            // player is already in random queue
-            WorldPacket data;
-            sBattlegroundMgr->BuildGroupJoinedBattlegroundPacket(&data, ERR_IN_RANDOM_BG);
-            _player->SendDirectMessage(&data);
-            return;
-        }
-
-        if (_player->InBattlegroundQueue(true) && bgTypeId == BATTLEGROUND_RB)
-        {
-            // player is already in queue, can't start random queue
-            WorldPacket data;
-            sBattlegroundMgr->BuildGroupJoinedBattlegroundPacket(&data, ERR_IN_NON_RANDOM_BG);
-            _player->SendDirectMessage(&data);
-            return;
-        }
-#endif
-
         // check Deserter debuff
         if( !_player->CanJoinToBattleground(bg) )
         {
@@ -129,17 +97,6 @@ void WorldSession::_HandleBattlegroundJoin(BattlegroundTypeId bgTypeId, uint32 i
             _player->SendDirectMessage(&data);
             return;
         }
-
-#ifdef LICH_KING
-        if (_player->isUsingLfg())
-        {
-            // player is using dungeon finder or raid finder
-            WorldPacket data;
-            sBattlegroundMgr->BuildGroupJoinedBattlegroundPacket(&data, ERR_LFG_CANT_USE_BATTLEGROUND);
-            _player->SendDirectMessage(&data);
-            return;
-        }
-#endif
 
         // check if already in queue
         if (_player->GetBattlegroundQueueIndex(bgQueueTypeId) < PLAYER_MAX_BATTLEGROUND_QUEUES)
@@ -297,13 +254,14 @@ void WorldSession::HandleBattlegroundPlayerPositionsOpcode( WorldPacket & /*recv
         data << guid << posx << posy;
     */
     data << flagCarrierCount;
-    if(allianceFlagCarrier)
+    if (allianceFlagCarrier)
     {
         data << (uint64)allianceFlagCarrier->GetGUID();
         data << (float)allianceFlagCarrier->GetPositionX();
         data << (float)allianceFlagCarrier->GetPositionY();
     }
-    if(hordeFlagCarrier)
+
+    if (hordeFlagCarrier)
     {
         data << (uint64)hordeFlagCarrier->GetGUID();
         data << (float)hordeFlagCarrier->GetPositionX();
@@ -333,13 +291,7 @@ void WorldSession::HandleBattlefieldListOpcode( WorldPacket &recvData )
     uint32 bgTypeId;
     recvData >> bgTypeId;                                  // id from DBC
 
-    uint8 fromWhere = 0;
-#ifdef LICH_KING
-    recvData >> fromWhere;                                 // 0 - battlemaster (lua: ShowBattlefieldList), 1 - UI (lua: RequestBattlegroundInstanceInfo)
-
-    uint8 canGainXP;
-    recvData >> canGainXP;                                 // players with locked xp have their own bg queue on retail
-#endif
+	uint8 fromWhere = 0;
 
     if(bgTypeId >= MAX_BATTLEGROUND_TYPE_ID)
     {
@@ -384,7 +336,7 @@ void WorldSession::HandleBattleFieldPortOpcode( WorldPacket &recvData )
     }
 
     BattlegroundTypeId bgTypeId = BattlegroundTypeId(bgTypeId_);
-    if(bgTypeId >= MAX_BATTLEGROUND_TYPE_ID)
+    if (bgTypeId >= MAX_BATTLEGROUND_TYPE_ID)
     {
         //this code block may or may not be needed... this is an old hack
         /*
@@ -808,6 +760,7 @@ void WorldSession::HandleBattlefieldStatusOpcode( WorldPacket & /*recvData*/ )
         GroupQueueInfo ginfo;
         if (!bgQueue.GetPlayerGroupInfoData(_player->GetGUID(), &ginfo))
             continue;
+
         if (ginfo.IsInvitedToBGInstanceGUID)
         {
             bg = sBattlegroundMgr->GetBattleground(ginfo.IsInvitedToBGInstanceGUID, bgTypeId);
@@ -896,47 +849,6 @@ void WorldSession::HandleBattlemasterJoinArena( WorldPacket & recvData )
     if (!unit)
         return;
 
-    if (isRated && !sWorld->getConfig(CONFIG_BATTLEGROUND_ARENA_RATED_ENABLE)) {
-        ChatHandler(GetPlayer()).PSendSysMessage(LANG_RATED_ARENA_DISABLED);
-        return;
-    }
-    
-    if(!_player->IsGameMaster())
-    {
-        // Close rated arena during the night to block wintraders
-        bool closeAtNight = sWorld->getConfig(CONFIG_BATTLEGROUND_ARENA_CLOSE_AT_NIGHT_MASK) & 1;
-        bool alsoCloseSkirmish = sWorld->getConfig(CONFIG_BATTLEGROUND_ARENA_CLOSE_AT_NIGHT_MASK) & 2;
-        time_t curTime = time(nullptr);
-        tm localTm = *localtime(&curTime);
-        if (closeAtNight && (isRated || alsoCloseSkirmish))
-        {
-            if (localTm.tm_wday == 0 || localTm.tm_wday == 6) { // Saturday (6) or Sunday (0)
-                if (localTm.tm_hour > 3 && localTm.tm_hour < 7) {
-                    ChatHandler(GetPlayer()).PSendSysMessage(LANG_RATED_ARENA_CLOSED_DURING_NIGHT);
-                    return;
-                }
-            }
-            else {
-                if (localTm.tm_hour > 2 && localTm.tm_hour < 8) {
-                    ChatHandler(GetPlayer()).PSendSysMessage(LANG_RATED_ARENA_CLOSED_DURING_NIGHT);
-                    return;
-                }
-            }
-        }
-        //Arena server (WM Tournoi) is open wedsnesday, saturday & sunday from 14 to 22 pm
-        if(sWorld->getConfig(CONFIG_ARENASERVER_ENABLED) && sWorld->getConfig(CONFIG_ARENASERVER_USE_CLOSESCHEDULE)) 
-        { 
-            if ( (localTm.tm_wday != 3 && localTm.tm_wday != 6 && localTm.tm_wday != 0)
-                 || localTm.tm_hour < 14 
-                 || localTm.tm_hour > 22
-                ) 
-            {
-                ChatHandler(GetPlayer()).PSendSysMessage(LANG_ARENASERVER_CLOSED);
-                return;
-            }
-        }
-    }
-
     uint8 arenatype = 0;
     uint32 arenaRating = 0;
     uint32 matchmakerRating = 0;
@@ -959,7 +871,7 @@ void WorldSession::HandleBattlemasterJoinArena( WorldPacket & recvData )
 
     if(!_player->IsGameMaster() && sWorld->getConfig(CONFIG_ARENASERVER_ENABLED) && arenatype != ARENA_TYPE_3v3)
     {
-        ChatHandler(GetPlayer()).PSendSysMessage(LANG_ARENASERVER_ONLY_3V3);
+        ChatHandler(this).PSendSysMessage(LANG_ARENASERVER_ONLY_3V3);
         return;
     }
 
@@ -1004,16 +916,8 @@ void WorldSession::HandleBattlemasterJoinArena( WorldPacket & recvData )
 
     uint32 ateamId = 0;
 
-    if(isRated)
+    if (isRated)
     {
-#ifndef LICH_KING
-        //LK allow tagging alone in rated?
-        if (!grp)
-        { 
-            TC_LOG_ERROR("network.opcode", "WorldSession::HandleBattlemasterJoinArena received isRated option without asGroup option from player %s. This guy is probably playing with packets.", _player->GetName().c_str());
-            return;
-        }
-#endif
         ateamId = _player->GetArenaTeamId(arenaslot);
         // check real arenateam existence only here (if it was moved to group->CanJoin .. () then we would have to get it twice)
         ArenaTeam * at = sArenaTeamMgr->GetArenaTeamById(ateamId); //sArenaTeamMgr->GetArenaTeamById(ateamId);
@@ -1029,42 +933,6 @@ void WorldSession::HandleBattlemasterJoinArena( WorldPacket & recvData )
 
         if (arenaRating <= 0)
             arenaRating = 1;
-
-        if(sWorld->getConfig(CONFIG_BATTLEGROUND_ARENA_ANNOUNCE))
-        {
-            // Announce arena tags on a dedicated channel
-            std::ostringstream msg;
-            std::string channel;
-            std::string pvpchannel = "pvp";
-            std::string ttype;
-            switch (arenatype) {
-                case 2: ttype = "2v2"; channel = "2v2"; break;
-                case 3: ttype = "3v3"; channel = "3v3"; break;
-                case 5: ttype = "5v5"; channel = "5v5"; break;
-                default: 
-                    ttype = "?";
-                    TC_LOG_ERROR("bg.battleground","Invalid arena type.");
-                    break;
-            }
-
-            //print rank approximation
-            //msg << "TAG: [" << ttype << "] (" << arenaRating/50*50 << " - " << ((arenaRating/50)+1)*50 << ")";
-
-            if (matchmakerRating >= 2200)
-                msg << "TAG: [" << ttype << "] (2200+)";
-            else if (matchmakerRating >= 1900)
-                msg << "TAG: [" << ttype << "] (1900+)";
-            else if (matchmakerRating >= 1500)
-                msg << "TAG: [" << ttype << "] (1500+)";
-            else
-                msg << "Tag: [" << ttype << "] (1500-)";
-
-            if(!channel.empty())
-                ChatHandler::SendMessageWithoutAuthor(channel.c_str(), msg.str().c_str());
-
-            ChatHandler::SendMessageWithoutAuthor(pvpchannel.c_str(), msg.str().c_str());
-        }
-
     }
 
     BattlegroundQueue &bgQueue = sBattlegroundMgr->GetBattlegroundQueue(bgQueueTypeId);
@@ -1125,6 +993,7 @@ void WorldSession::HandleBattlemasterJoinArena( WorldPacket & recvData )
         SendPacket(&data);
         TC_LOG_DEBUG("bg.battleground", "Battleground: player joined queue for arena, skirmish, bg queue type %u bg type %u: GUID %u, NAME %s", bgQueueTypeId, bgTypeId, _player->GetGUID().GetCounter(), _player->GetName().c_str());
     }
+
     sBattlegroundMgr->ScheduleQueueUpdate(matchmakerRating, arenatype, bgQueueTypeId, bgTypeId, bracketEntry->GetBracketId());
 }
 
@@ -1134,9 +1003,9 @@ void WorldSession::HandleReportPvPAFK( WorldPacket & recvData )
     recvData >> playerGuid;
     Player *reportedPlayer = ObjectAccessor::FindPlayer(playerGuid);
 
-    if(!reportedPlayer)
+    if (!reportedPlayer)
     {
-        TC_LOG_ERROR("bg.battleground","WorldSession::HandleReportPvPAFK: player reported by %s not found.",_player->GetName().c_str());
+        TC_LOG_ERROR("bg.battleground","WorldSession::HandleReportPvPAFK: player reported by %s not found.", _player->GetName().c_str());
         return;
     }
 

@@ -44,7 +44,6 @@
 #include "ScriptMgr.h"
 #include "GameObjectAI.h"
 #include "InstanceScript.h"
-#include "LogsDatabaseAccessor.h"
 
 void Spell::EffectSummonType(uint32 effIndex)
 {
