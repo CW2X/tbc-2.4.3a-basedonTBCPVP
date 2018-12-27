@@ -1,26 +1,35 @@
+/*
+ * Copyright (C) 2018 Konno Productions Project
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 
-#include "Common.h"
-#include "WorldPacket.h"
 #include "WorldSession.h"
-#include "World.h"
-#include "ObjectMgr.h"
-#include "Log.h"
-#include "Opcodes.h"
+#include "Common.h"
 #include "Guild.h"
-#include "MapManager.h"
-#include "GossipDef.h"
-#include "SocialMgr.h"
-#include "CharacterCache.h"
 #include "GuildMgr.h"
+#include "Log.h"
+#include "ObjectMgr.h"
+#include "Player.h"
+#include "WorldPacket.h"
 
 void WorldSession::HandleGuildQueryOpcode(WorldPacket& recvPacket)
 {
     uint32 guildId;
-
-    //TC_LOG_DEBUG("network.opcode","WORLD: Received CMSG_GUILD_QUERY");
-
     recvPacket >> guildId;
 
+    TC_LOG_DEBUG("guild", "CMSG_GUILD_QUERY [%s]: Guild: %u", GetPlayerInfo().c_str(), guildId);
     if (!guildId)
         return;
 
@@ -164,7 +173,7 @@ void WorldSession::HandleGuildSetPublicNoteOpcode(WorldPacket& recvPacket)
     recvPacket >> playerName >> note;
 
     TC_LOG_DEBUG("guild", "CMSG_GUILD_SET_PUBLIC_NOTE [%s]: Target: %s, Note: %s",
-        GetPlayerInfo().c_str(), playerName.c_str(), note.c_str());
+         GetPlayerInfo().c_str(), playerName.c_str(), note.c_str());
 
     if (normalizePlayerName(playerName))
         if (Guild* guild = GetPlayer()->GetGuild())
@@ -178,7 +187,7 @@ void WorldSession::HandleGuildSetOfficerNoteOpcode(WorldPacket& recvPacket)
     recvPacket >> playerName >> note;
 
     TC_LOG_DEBUG("guild", "CMSG_GUILD_SET_OFFICER_NOTE [%s]: Target: %s, Note: %s",
-        GetPlayerInfo().c_str(), playerName.c_str(), note.c_str());
+         GetPlayerInfo().c_str(), playerName.c_str(), note.c_str());
 
     if (normalizePlayerName(playerName))
         if (Guild* guild = GetPlayer()->GetGuild())
@@ -290,9 +299,7 @@ void WorldSession::HandleGuildEventLogQueryOpcode(WorldPacket& /* recvPacket */)
         guild->SendEventLog(this);
 }
 
-/******  GUILD BANK  *******/
-
-void WorldSession::HandleGuildBankMoneyWithdrawn( WorldPacket & /* recvData */ )
+void WorldSession::HandleGuildBankMoneyWithdrawn(WorldPacket & /* recvData */)
 {
     TC_LOG_DEBUG("guild", "MSG_GUILD_BANK_MONEY_WITHDRAWN [%s]", GetPlayerInfo().c_str());
 
@@ -300,7 +307,7 @@ void WorldSession::HandleGuildBankMoneyWithdrawn( WorldPacket & /* recvData */ )
         guild->SendMoneyInfo(this);
 }
 
-void WorldSession::HandleGuildPermissions( WorldPacket& /* recvData */ )
+void WorldSession::HandleGuildPermissions(WorldPacket& /* recvData */)
 {
     TC_LOG_DEBUG("guild", "MSG_GUILD_PERMISSIONS [%s]", GetPlayerInfo().c_str());
 
@@ -308,8 +315,8 @@ void WorldSession::HandleGuildPermissions( WorldPacket& /* recvData */ )
         guild->SendPermissions(this);
 }
 
-/* Called when clicking on Guild bank gameobject */
-void WorldSession::HandleGuildBankerActivate( WorldPacket & recvData )
+// Called when clicking on Guild bank gameobject
+void WorldSession::HandleGuildBankerActivate(WorldPacket& recvData)
 {
     ObjectGuid guid;
     bool sendAllSlots;
@@ -328,8 +335,8 @@ void WorldSession::HandleGuildBankerActivate( WorldPacket & recvData )
     guild->SendBankTabsInfo(this, sendAllSlots);
 }
 
-/* Called when opening guild bank tab only (first one) */
-void WorldSession::HandleGuildBankQueryTab( WorldPacket & recvData )
+// Called when opening guild bank tab only (first one)
+void WorldSession::HandleGuildBankQueryTab(WorldPacket& recvData)
 {
     ObjectGuid guid;
     uint8 tabId;
@@ -345,7 +352,7 @@ void WorldSession::HandleGuildBankQueryTab( WorldPacket & recvData )
             guild->SendBankTabData(this, tabId);
 }
 
-void WorldSession::HandleGuildBankDepositMoney( WorldPacket & recvData )
+void WorldSession::HandleGuildBankDepositMoney(WorldPacket& recvData)
 {
     ObjectGuid guid;
     uint32 money;
@@ -360,7 +367,7 @@ void WorldSession::HandleGuildBankDepositMoney( WorldPacket & recvData )
                 guild->HandleMemberDepositMoney(this, money);
 }
 
-void WorldSession::HandleGuildBankWithdrawMoney( WorldPacket & recvData )
+void WorldSession::HandleGuildBankWithdrawMoney(WorldPacket& recvData)
 {
     ObjectGuid guid;
     uint32 money;
@@ -374,7 +381,7 @@ void WorldSession::HandleGuildBankWithdrawMoney( WorldPacket & recvData )
             guild->HandleMemberWithdrawMoney(this, money);
 }
 
-void WorldSession::HandleGuildBankSwapItems( WorldPacket & recvData )
+void WorldSession::HandleGuildBankSwapItems(WorldPacket& recvData)
 {
     TC_LOG_DEBUG("guild", "CMSG_GUILD_BANK_SWAP_ITEMS [%s]", GetPlayerInfo().c_str());
 
@@ -400,11 +407,7 @@ void WorldSession::HandleGuildBankSwapItems( WorldPacket & recvData )
     uint8 tabId;
     uint8 slotId;
     uint32 itemEntry;
-#ifdef LICH_KING
-    uint32 splitedAmount = 0;
-#else
     uint8 splitedAmount = 0;
-#endif
 
     if (bankToBank)
     {
@@ -438,15 +441,9 @@ void WorldSession::HandleGuildBankSwapItems( WorldPacket & recvData )
         recvData >> autoStore;
         if (autoStore)
         {
-#ifdef LICH_KING
-            recvData.read_skip<uint32>();                  // autoStoreCount
-            recvData.read_skip<uint8>();                   // ToChar (?), always and expected to be 1 (autostore only triggered in Bank -> Char)
-            recvData.read_skip<uint32>();                  // Always 0
-#else
-            recvData.read_skip<uint8>();                  // autoStoreCount
-            recvData >> playerBag;
-            recvData >> playerSlotId;
-#endif
+			recvData.read_skip<uint8>();                  // autoStoreCount
+			recvData >> playerBag;
+			recvData >> playerSlotId;
         }
         else
         {
@@ -465,7 +462,7 @@ void WorldSession::HandleGuildBankSwapItems( WorldPacket & recvData )
     }
 }
 
-void WorldSession::HandleGuildBankBuyTab( WorldPacket & recvData )
+void WorldSession::HandleGuildBankBuyTab(WorldPacket& recvData)
 {
     ObjectGuid guid;
     uint8 tabId;
@@ -480,7 +477,7 @@ void WorldSession::HandleGuildBankBuyTab( WorldPacket & recvData )
             guild->HandleBuyBankTab(this, tabId);
 }
 
-void WorldSession::HandleGuildBankUpdateTab( WorldPacket & recvData )
+void WorldSession::HandleGuildBankUpdateTab(WorldPacket& recvData)
 {
     ObjectGuid guid;
     uint8 tabId;
@@ -497,7 +494,7 @@ void WorldSession::HandleGuildBankUpdateTab( WorldPacket & recvData )
                 guild->HandleSetBankTabInfo(this, tabId, name, icon);
 }
 
-void WorldSession::HandleGuildBankLogQuery( WorldPacket & recvData )
+void WorldSession::HandleGuildBankLogQuery(WorldPacket& recvData)
 {
     uint8 tabId;
     recvData >> tabId;
@@ -530,4 +527,3 @@ void WorldSession::HandleGuildBankSetTabText(WorldPacket &recvData)
     if (Guild* guild = GetPlayer()->GetGuild())
         guild->SetBankTabText(tabId, text);
 }
-

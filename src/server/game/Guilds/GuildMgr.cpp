@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2018 Konno Productions Project
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -349,46 +349,38 @@ void GuildMgr::LoadGuilds()
     }
 
     // 8. Fill all guild bank tabs
-    // Delete orphan guild bank items
-    CharacterDatabase.DirectExecute("DELETE gbi FROM guild_bank_item gbi LEFT JOIN guild g ON gbi.guildId = g.guildId WHERE g.guildId IS NULL");
+    TC_LOG_INFO("guild", "Filling bank tabs with items...");
+    {
+        uint32 oldMSTime = GetMSTime();
 
-    //Sun: moved to async, loaded when any member connects
-    //TC_LOG_INFO("guild", "Filling bank tabs with items...");
-    //{
-    //    uint32 oldMSTime = GetMSTime();
- 
-    //    // Delete orphan guild bank items
-    //    CharacterDatabase.DirectExecute("DELETE gbi FROM guild_bank_item gbi LEFT JOIN guild g ON gbi.guildId = g.guildId WHERE g.guildId IS NULL");
+        // Delete orphan guild bank items
+        CharacterDatabase.DirectExecute("DELETE gbi FROM guild_bank_item gbi LEFT JOIN guild g ON gbi.guildId = g.guildId WHERE g.guildId IS NULL");
 
-    //    PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_GUILDBANK_ITEMS);
-    //    PreparedQueryResult result = CharacterDatabase.Query(stmt);
+                                                     //          0            1                2      3         4        5      6             7                 8           9           10
+        QueryResult result = CharacterDatabase.Query("SELECT guildid, TabId, SlotId, item_guid, itemEntry FROM guild_bank_item gbi INNER JOIN item_instance ii ON gbi.item_guid = ii.guid");
 
-    //    //                       47        48     49      50         51
-    //    //  (usual item fields), "guildid, TabId, SlotId, item_guid, itemEntry FROM guild_bank_item gbi INNER JOIN item_instance ii ON gbi.item_guid = ii.guid");
+        if (!result)
+        {
+            TC_LOG_INFO("server.loading", ">> Loaded 0 guild bank tab items. DB table `guild_bank_item` or `item_instance` is empty.");
+        }
+        else
+        {
+            uint32 count = 0;
+            do
+            {
+                Field* fields = result->Fetch();
+                uint32 guildId = fields[11].GetUInt32();
 
-    //    if (!result)
-    //    {
-    //        TC_LOG_INFO("server.loading", ">> Loaded 0 guild bank tab items. DB table `guild_bank_item` or `item_instance` is empty.");
-    //    }
-    //    else
-    //    {
-    //        uint32 count = 0;
-    //        do
-    //        {
-    //            Field* fields = result->Fetch();
-    //            uint32 startIndex = CHAR_SEL_ITEM_INSTANCE_FIELDS_COUNT;
-    //            uint32 guildId = fields[startIndex].GetUInt32();
+                if (Guild* guild = GetGuildById(guildId))
+                    guild->LoadBankItemFromDB(fields);
 
-    //            if (Guild* guild = GetGuildById(guildId))
-    //                guild->LoadBankItemFromDB(fields);
+                ++count;
+            }
+            while (result->NextRow());
 
-    //            ++count;
-    //        }
-    //        while (result->NextRow());
-
-    //        TC_LOG_INFO("server.loading", ">> Loaded %u guild bank tab items in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
-    //    }
-    //}
+            TC_LOG_INFO("server.loading", ">> Loaded %u guild bank tab items in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
+        }
+    }
 
     // 9. Validate loaded guild data
     TC_LOG_INFO("guild", "Validating data of loaded guilds...");
@@ -414,62 +406,4 @@ void GuildMgr::ResetTimes()
             guild->ResetTimes();
 
     CharacterDatabase.DirectExecute("TRUNCATE guild_member_withdraw");
-}
-
-void GuildMgr::UnloadGuildBank(uint32 guildId)
-{
-    if (Guild* guild = GetGuildById(guildId))
-    {
-        guild->_UnloadGuildBank();
-        guild->SetBankLoaded(false);
-        _guildBankLoadStates[guildId] = UNLOADED;
-    }
-
-}
-
-void GuildMgr::LoadGuildBank(uint32 guildId)
-{
-    auto itr = _guildBankLoadStates.find(guildId);
-    if (itr != _guildBankLoadStates.end())
-    {
-        GuildBankLoadState state = itr->second;
-        if (state == LOADING || state == LOADED)
-            return;
-    }
-
-    _guildBankLoadStates[guildId] = LOADING;
-
-    PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_GUILDBANK_ITEMS);
-    stmt->setUInt32(0, guildId);
-
-    _queryProcessor.AddQuery(CharacterDatabase.AsyncQuery(stmt)
-        .WithChainingPreparedCallback([this, guildId](QueryCallback& queryCallback, PreparedQueryResult result)
-    {
-        if (result)
-        {
-            do
-            {
-                Field* fields = result->Fetch();
-
-                if (Guild* guild = GetGuildById(guildId))
-                {
-                    guild->LoadBankItemFromDB(fields);
-                    guild->SetBankLoaded(true);
-                }
-
-            } while (result->NextRow());
-        }
-
-        _guildBankLoadStates[guildId] = LOADED;
-    }));
-}
-
-void GuildMgr::Update()
-{
-    ProcessQueryCallbacks();
-}
-
-void GuildMgr::ProcessQueryCallbacks()
-{
-    _queryProcessor.ProcessReadyQueries();
 }

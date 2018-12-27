@@ -32,7 +32,7 @@ Corpse::Corpse(CorpseType type) : WorldObject(type != CORPSE_BONES)
 
     m_type = type;
 
-    m_time = WorldGameTime::GetGameTime();
+    m_time = GameTime::GetGameTime();
 
     lootRecipient = nullptr;
 }

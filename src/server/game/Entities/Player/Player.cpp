@@ -243,7 +243,7 @@ Player::Player(WorldSession *session) :
     }
     m_bgTeam = 0;
 
-    m_logintime = WorldGameTime::GetGameTime();
+    m_logintime = GameTime::GetGameTime();
     m_Last_tick = m_logintime;
     m_WeaponProficiency = 0;
     m_ArmorProficiency = 0;
@@ -307,7 +307,7 @@ Player::Player(WorldSession *session) :
     }
 
     // Honor System
-    m_lastHonorUpdateTime = WorldGameTime::GetGameTime();
+    m_lastHonorUpdateTime = GameTime::GetGameTime();
 
     // Player summoning
     m_summon_expire = 0;
@@ -566,7 +566,7 @@ bool Player::Create(ObjectGuid::LowType guidlow, const std::string& name, uint8 
     }
 
     // Played time
-    m_Last_tick = WorldGameTime::GetGameTime();
+    m_Last_tick = GameTime::GetGameTime();
     m_Played_time[0] = 0;
     m_Played_time[1] = 0;
 
@@ -1166,7 +1166,7 @@ void Player::Update( uint32 p_time )
     }
 
     // undelivered mail
-    if(m_nextMailDelivereTime && m_nextMailDelivereTime <= WorldGameTime::GetGameTime())
+    if(m_nextMailDelivereTime && m_nextMailDelivereTime <= GameTime::GetGameTime())
     {
         SendNewMail();
         ++unReadMails;
@@ -1305,7 +1305,7 @@ void Player::Update( uint32 p_time )
     {
         if(roll_chance_i(3) && GetTimeInnEnter() > 0)       //freeze update
         {
-            time_t currTime = WorldGameTime::GetGameTime();
+            time_t currTime = GameTime::GetGameTime();
             int time_inn = currTime - GetTimeInnEnter();
             if (time_inn >= 10)                             //freeze update
             {
@@ -3141,7 +3141,7 @@ void Player::UpdateNextMailTimeAndUnreads()
 {
     // calculate next delivery time (min. from non-delivered mails
     // and recalculate unReadMail
-    time_t cTime = WorldGameTime::GetGameTime();
+    time_t cTime = GameTime::GetGameTime();
     m_nextMailDelivereTime = 0;
     unReadMails = 0;
     for(auto & itr : m_mail)
@@ -3158,7 +3158,7 @@ void Player::UpdateNextMailTimeAndUnreads()
 
 void Player::AddNewMailDeliverTime(time_t deliver_time)
 {
-    if(deliver_time <= WorldGameTime::GetGameTime())                          // ready now
+    if(deliver_time <= GameTime::GetGameTime())                          // ready now
     {
         ++unReadMails;
         SendNewMail();
@@ -3740,7 +3740,7 @@ uint32 Player::ResetTalentsCost() const
         return 10*GOLD;
     else
     {
-        uint32 months = (WorldGameTime::GetGameTime() - m_resetTalentsTime)/MONTH;
+        uint32 months = (GameTime::GetGameTime() - m_resetTalentsTime)/MONTH;
         if(months > 0)
         {
             // This cost will be reduced by a rate of 5 gold per month
@@ -3843,7 +3843,7 @@ bool Player::ResetTalents(bool no_cost)
         ModifyMoney(-(int32)cost);
 
         m_resetTalentsCost = cost;
-        m_resetTalentsTime = WorldGameTime::GetGameTime();
+        m_resetTalentsTime = GameTime::GetGameTime();
     }
 
     //FIXME: remove pet before or after unlearn spells? for now after unlearn to allow removing of talent related, pet affecting auras
@@ -4047,7 +4047,7 @@ void Player::DeleteOldCharacters()
     TC_LOG_INFO("entities.player", "Player::DeleteOldCharacters: Deleting all characters which have been deleted %u days before...", keepDays);
 
     PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHAR_OLD_CHARS);
-    stmt->setUInt32(0, uint32(WorldGameTime::GetGameTime() - time_t(keepDays * DAY)));
+    stmt->setUInt32(0, uint32(GameTime::GetGameTime() - time_t(keepDays * DAY)));
     PreparedQueryResult result = CharacterDatabase.Query(stmt);
 
     if (result)
@@ -6431,8 +6431,8 @@ void Player::UpdateArenaFields()
 void Player::UpdateHonorFields()
 {
     /// called when rewarding honor and at each save
-    uint64 now = WorldGameTime::GetGameTime();
-    uint64 today = uint64(WorldGameTime::GetGameTime() / DAY) * DAY;
+    uint64 now = GameTime::GetGameTime();
+    uint64 today = uint64(GameTime::GetGameTime() / DAY) * DAY;
 
     if(m_lastHonorUpdateTime < today)
     {
@@ -6787,7 +6787,7 @@ void Player::UpdatePvPState(bool onlyFFA)
     else                                                    // in friendly area
     {
         if (IsPvP() && !HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_IN_PVP) && !pvpInfo.endTimer)
-            pvpInfo.endTimer = WorldGameTime::GetGameTime();                  // start toggle-off
+            pvpInfo.endTimer = GameTime::GetGameTime();                  // start toggle-off
     }
 }
 
@@ -6916,7 +6916,7 @@ void Player::UpdateZone(uint32 newZone, uint32 newArea)
             SetRestType(REST_TYPE_IN_CITY);
 
         SetFlag(PLAYER_FLAGS, PLAYER_FLAGS_RESTING);
-        InnEnter(WorldGameTime::GetGameTime(), GetMapId(), 0, 0, 0);
+        InnEnter(GameTime::GetGameTime(), GetMapId(), 0, 0, 0);
 
         pvpInfo.IsInNoPvPArea = true;
     }
@@ -8147,7 +8147,7 @@ void Player::SendLoot(ObjectGuid guid, LootType loot_type)
 
         // loot was generated and respawntime has passed since then, allow to recreate loot
         // to avoid bugs, this rule covers spawned gameobjects only
-        if (go->isSpawnedByDefault() && go->getLootState() == GO_ACTIVATED && !go->loot.isLooted() && go->GetLootGenerationTime() + go->GetRespawnDelay() < WorldGameTime::GetGameTime())
+        if (go->isSpawnedByDefault() && go->getLootState() == GO_ACTIVATED && !go->loot.isLooted() && go->GetLootGenerationTime() + go->GetRespawnDelay() < GameTime::GetGameTime())
             go->SetLootState(GO_READY);
 
         if(go->getLootState() == GO_READY)
@@ -12122,7 +12122,7 @@ void Player::AddItemToBuyBackSlot(Item *pItem)
         RemoveItemFromBuyBackSlot(slot, true);
 
         m_items[slot] = pItem;
-        time_t base = WorldGameTime::GetGameTime();
+        time_t base = GameTime::GetGameTime();
         uint32 etime = uint32(base - m_logintime + (30 * 3600));
         uint32 eslot = slot - BUYBACK_SLOT_START;
 
@@ -13275,7 +13275,7 @@ void Player::AddQuest(Quest const* quest, Object* questGiver)
 
         AddTimedQuest(quest_id);
         questStatusData.Timer = timeAllowed * IN_MILLISECONDS;
-        qtime = static_cast<uint32>(WorldGameTime::GetGameTime()) + timeAllowed;
+        qtime = static_cast<uint32>(GameTime::GetGameTime()) + timeAllowed;
     }
     else
         questStatusData.Timer = 0;
@@ -16349,10 +16349,10 @@ void Player::_LoadQuestStatus(PreparedQueryResult result)
                 {
                     AddTimedQuest(quest_id);
 
-                    if (quest_time <= WorldGameTime::GetGameTime())
+                    if (quest_time <= GameTime::GetGameTime())
                         questStatusData.Timer = 1;
                     else
-                        questStatusData.Timer = (quest_time - WorldGameTime::GetGameTime()) * IN_MILLISECONDS;
+                        questStatusData.Timer = (quest_time - GameTime::GetGameTime()) * IN_MILLISECONDS;
                 }
                 else
                     quest_time = 0;
@@ -16699,7 +16699,7 @@ void Player::SendRaidInfo()
 
     data << counter;
 
-    time_t now = WorldGameTime::GetGameTime();
+    time_t now = GameTime::GetGameTime();
 
     for(i = 0; i < MAX_DIFFICULTY; i++)
     {
@@ -17023,7 +17023,7 @@ void Player::SaveToDB(bool create /*=false*/)
         stmt->setUInt32(index++, m_Played_time[PLAYED_TIME_TOTAL]);
         stmt->setUInt32(index++, m_Played_time[PLAYED_TIME_LEVEL]);
         stmt->setFloat(index++, finiteAlways(m_rest_bonus));
-        stmt->setUInt32(index++, uint32(WorldGameTime::GetGameTime()));
+        stmt->setUInt32(index++, uint32(GameTime::GetGameTime()));
         stmt->setUInt8(index++, (HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_RESTING) ? 1 : 0));
         //save, far from tavern/city
         //save, but in tavern/city
@@ -17156,7 +17156,7 @@ void Player::SaveToDB(bool create /*=false*/)
         stmt->setUInt32(index++, m_Played_time[PLAYED_TIME_TOTAL]);
         stmt->setUInt32(index++, m_Played_time[PLAYED_TIME_LEVEL]);
         stmt->setFloat(index++, finiteAlways(m_rest_bonus));
-        stmt->setUInt32(index++, uint32(WorldGameTime::GetGameTime()));
+        stmt->setUInt32(index++, uint32(GameTime::GetGameTime()));
         stmt->setUInt8(index++, (HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_RESTING) ? 1 : 0));
         //save, far from tavern/city
         //save, but in tavern/city
@@ -17589,7 +17589,7 @@ void Player::_SaveQuestStatus(SQLTransaction& trans)
                 stmt->setUInt32(index++, statusItr->first);
                 stmt->setUInt8(index++, uint8(statusItr->second.Status));
                 stmt->setBool(index++, statusItr->second.Explored);
-                stmt->setUInt32(index++, uint32(statusItr->second.Timer / IN_MILLISECONDS + WorldGameTime::GetGameTime()));
+                stmt->setUInt32(index++, uint32(statusItr->second.Timer / IN_MILLISECONDS + GameTime::GetGameTime()));
 
                 for (uint8 i = 0; i < QUEST_OBJECTIVES_COUNT; i++)
                     stmt->setUInt16(index++, statusItr->second.CreatureOrGOCount[i]);
@@ -19452,7 +19452,7 @@ void Player::UpdatePvP(bool state, bool ovrride)
     else
     {
         if(pvpInfo.endTimer != 0)
-            pvpInfo.endTimer = WorldGameTime::GetGameTime();
+            pvpInfo.endTimer = GameTime::GetGameTime();
         else
         {
             SetPvP(state);
@@ -20344,7 +20344,7 @@ void Player::ApplyEquipCooldown( Item * pItem )
     if (pItem->GetTemplate()->Flags & ITEM_FLAG_NO_EQUIP_COOLDOWN)
         return;
 
-    std::chrono::steady_clock::time_point now = WorldGameTime::GetGameTimeSteadyPoint();
+    std::chrono::steady_clock::time_point now = GameTime::GetGameTimeSteadyPoint();
     for(const auto & spellData : pItem->GetTemplate()->Spells)
     {
         // no spell
@@ -21064,7 +21064,7 @@ void Player::SetDailyQuestStatus( uint32 quest_id )
         if(!GetUInt32Value(PLAYER_FIELD_DAILY_QUESTS_1+quest_daily_idx))
         {
             SetUInt32Value(PLAYER_FIELD_DAILY_QUESTS_1+quest_daily_idx,quest_id);
-            m_lastDailyQuestTime = WorldGameTime::GetGameTime();              // last daily quest time
+            m_lastDailyQuestTime = GameTime::GetGameTime();              // last daily quest time
             m_DailyQuestChanged = true;
             break;
         }
@@ -21396,7 +21396,7 @@ void Player::UpdateForQuestWorldObjects()
 
 void Player::SetSummonPoint(uint32 mapid, float x, float y, float z)
 {
-    m_summon_expire = WorldGameTime::GetGameTime() + MAX_PLAYER_SUMMON_DELAY;
+    m_summon_expire = GameTime::GetGameTime() + MAX_PLAYER_SUMMON_DELAY;
     m_summon_mapid = mapid;
     m_summon_x = x;
     m_summon_y = y;
@@ -21407,7 +21407,7 @@ void Player::SetSummonPoint(uint32 mapid, float x, float y, float z)
 void Player::SummonIfPossible(bool agree)
 {
     // expire and auto declined
-    if(m_summon_expire < WorldGameTime::GetGameTime())
+    if(m_summon_expire < GameTime::GetGameTime())
         return;
 
     if(!agree)
@@ -21431,7 +21431,7 @@ void Player::SummonIfPossible(bool agree)
 
 void Player::UpdateSummonExpireTime() 
 { 
-    m_summon_expire = WorldGameTime::GetGameTime() + MAX_PLAYER_SUMMON_DELAY; 
+    m_summon_expire = GameTime::GetGameTime() + MAX_PLAYER_SUMMON_DELAY; 
 }
 
 void Player::RemoveItemDurations( Item *item )

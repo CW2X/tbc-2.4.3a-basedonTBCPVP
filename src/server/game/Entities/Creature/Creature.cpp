@@ -2999,7 +2999,7 @@ uint32 Creature::GetVendorItemCurrentCount(VendorItem const* vItem)
 
     VendorItemCount* vCount = &*itr;
 
-    time_t ptime = WorldGameTime::GetGameTime();
+    time_t ptime = GameTime::GetGameTime();
 
     if( vCount->lastIncrementTime + vItem->incrtime <= ptime )
     {
@@ -3038,7 +3038,7 @@ uint32 Creature::UpdateVendorItemCurrentCount(VendorItem const* vItem, uint32 us
 
     VendorItemCount* vCount = &*itr;
 
-    time_t ptime = WorldGameTime::GetGameTime();
+    time_t ptime = GameTime::GetGameTime();
 
     if( vCount->lastIncrementTime + vItem->incrtime <= ptime )
         if (ItemTemplate const* pProto = sObjectMgr->GetItemTemplate(vItem->item))
@@ -3673,5 +3673,5 @@ bool Creature::IsEscortNPC(bool onlyIfActive)
 VendorItemCount::VendorItemCount(uint32 _item, uint32 _count) : 
     itemId(_item), 
     count(_count), 
-    lastIncrementTime(WorldGameTime::GetGameTime())
+    lastIncrementTime(GameTime::GetGameTime())
 {}

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2018 Konno Productions Project
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -49,27 +49,10 @@ public:
     void SetNextGuildId(ObjectGuid::LowType Id) { NextGuildId = Id; }
 
     void ResetTimes();
-
-    enum GuildBankLoadState
-    {
-        UNLOADED,
-        LOADING,
-        LOADED,
-    };
-    void LoadGuildBank(uint32 guildId);
-    void UnloadGuildBank(uint32 guildId);
-
-
-    void Update();
-    void ProcessQueryCallbacks();
-    QueryCallbackProcessor _queryProcessor;
-
 protected:
     typedef std::unordered_map<ObjectGuid::LowType, Guild*> GuildContainer;
     ObjectGuid::LowType NextGuildId;
     GuildContainer GuildStore;
-
-    std::unordered_map<ObjectGuid::LowType, GuildBankLoadState> _guildBankLoadStates;
 };
 
 #define sGuildMgr GuildMgr::instance()

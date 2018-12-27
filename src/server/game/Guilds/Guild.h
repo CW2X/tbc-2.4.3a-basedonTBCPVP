@@ -1,6 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2018 Konno Productions Project
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -31,7 +30,6 @@ class WorldSession;
 struct ItemPosCount;
 enum InventoryResult : uint8;
 enum LocaleConstant : uint8;
-class GuildMgr;
 
 enum GuildMisc
 {
@@ -304,6 +302,7 @@ class TC_GAME_API Guild
                 std::string GetOfficerNote() const { return m_officerNote; }
                 uint8 GetClass() const { return m_class; }
                 uint8 GetLevel() const { return m_level; }
+                uint8 GetGender() const { return m_gender; }
                 uint8 GetFlags() const { return m_flags; }
                 uint32 GetZoneId() const { return m_zoneId; }
                 bool IsOnline() const { return (m_flags & GUILDMEMBER_STATUS_ONLINE); }
@@ -689,10 +688,6 @@ class TC_GAME_API Guild
         void BroadcastPacketToRank(WorldPacket* packet, uint8 rankId) const;
         void BroadcastPacket(WorldPacket* packet) const;
 
-#ifdef LICH_KING
-        void MassInviteToEvent(WorldSession* session, uint32 minLevel, uint32 maxLevel, uint32 minRank);
-#endif
-
         template<class Do>
         void BroadcastWorker(Do& _do, Player* except = nullptr)
         {
@@ -714,10 +709,9 @@ class TC_GAME_API Guild
 
         // Bank tabs
         void SetBankTabText(uint8 tabId, std::string const& text);
-        void SetBankLoaded(bool loaded) { m_bankloaded = loaded; }
 
         void ResetTimes();
-        
+
     protected:
         ObjectGuid::LowType m_id;
         std::string m_name;
@@ -800,10 +794,6 @@ class TC_GAME_API Guild
         int32 _GetMemberRemainingMoney(Member const* member) const;
         void _UpdateMemberWithdrawSlots(SQLTransaction& trans, ObjectGuid guid, uint8 tabId);
         bool _MemberHasTabRights(ObjectGuid guid, uint8 tabId, uint32 rights) const;
-
-        friend class GuildMgr;
-        void _UnloadGuildBank();
-        bool m_bankloaded;
 
         void _LogEvent(GuildEventLogTypes eventType, ObjectGuid::LowType playerGuid1, ObjectGuid::LowType playerGuid2 = 0, uint8 newRank = 0);
         void _LogBankEvent(SQLTransaction& trans, GuildBankEventLogTypes eventType, uint8 tabId, ObjectGuid::LowType playerGuid, uint32 itemOrMoney, uint16 itemStackCount = 0, uint8 destTabId = 0);

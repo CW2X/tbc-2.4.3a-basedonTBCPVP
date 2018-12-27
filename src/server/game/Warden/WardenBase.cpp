@@ -106,7 +106,7 @@ void WardenBase::Update()
 {
     if (m_initialized)
     {
-        uint32 ticks = WorldGameTime::GetGameTimeMS();
+        uint32 ticks = GameTime::GetGameTimeMS();
         uint32 diff = ticks - _wardenTimer;
         _wardenTimer = ticks;
         if (_wardenDataSent)

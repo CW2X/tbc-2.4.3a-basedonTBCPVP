@@ -203,7 +203,7 @@ Map::Map(MapType type, uint32 id, time_t expiry, uint32 InstanceId, uint8 SpawnM
    _transportsUpdateIter(_transports.end()),
    _defaultLight(GetDefaultMapLight(id)),
    i_mapType(type), i_gridExpiry(expiry), _respawnCheckTimer(0),
-   i_scriptLock(false), m_disableMapObjects(false), GameTime(WorldGameTime::GetGameTime()), GameMSTime(WorldGameTime::GetGameTimeMS())
+   i_scriptLock(false), m_disableMapObjects(false), GameTime(GameTime::GetGameTime()), GameMSTime(GameTime::GetGameTimeMS())
 {
     m_parentMap = (_parent ? _parent : this);
     for(uint32 idx=0; idx < MAX_NUMBER_OF_GRIDS; ++idx)

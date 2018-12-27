@@ -286,7 +286,7 @@ bool Pet::LoadPetFromDB(Player* owner, uint32 petentry, uint32 petnumber, bool c
 #ifndef LICH_KING
     SetByteValue(UNIT_FIELD_BYTES_2, UNIT_BYTES_2_OFFSET_BUFF_LIMIT, UNIT_BYTE2_PLAYER_CONTROLLED_BUFF_LIMIT);
 #endif
-    SetUInt32Value(UNIT_FIELD_PET_NAME_TIMESTAMP, uint32(WorldGameTime::GetGameTime()));
+    SetUInt32Value(UNIT_FIELD_PET_NAME_TIMESTAMP, uint32(GameTime::GetGameTime()));
     SetCreatorGUID(owner->GetGUID());
 
     InitStatsForLevel(petlevel);

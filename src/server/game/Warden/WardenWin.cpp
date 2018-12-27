@@ -161,7 +161,7 @@ void WardenWin::HandleHashResult(ByteBuffer &buff)
     iCrypto.Init(InputKey);
     oCrypto.Init(OutputKey);
     m_initialized = true;
-    _wardenTimer = WorldGameTime::GetGameTimeMS();
+    _wardenTimer = GameTime::GetGameTimeMS();
 }
 
 void WardenWin::RequestData()
@@ -169,7 +169,7 @@ void WardenWin::RequestData()
     if (MemCheck.empty())
         MemCheck.assign(WardenDataStorage.MemCheckIds.begin(), WardenDataStorage.MemCheckIds.end());
 
-    ServerTicks = WorldGameTime::GetGameTimeMS();
+    ServerTicks = GameTime::GetGameTimeMS();
     //uint32 maxid = WardenDataStorage.InternalDataID;
     uint32 id;
     uint8 type;
@@ -324,7 +324,7 @@ void WardenWin::HandleData(ByteBuffer &buff)
         buff >> newClientTicks;
 
         /*
-         uint32 ticksNow = WorldGameTime::GetGameTimeMS();
+         uint32 ticksNow = GameTime::GetGameTimeMS();
         uint32 ourTicks = newClientTicks + (ticksNow - _serverTicks);
 
         TC_LOG_DEBUG("warden", "ServerTicks %u", ticksNow);         // Now

@@ -179,7 +179,7 @@ bool LoginQueryHolder::Initialize()
 
     stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHARACTER_MAILCOUNT);
     stmt->setUInt32(0, lowGuid);
-    stmt->setUInt64(1, uint64(WorldGameTime::GetGameTime()));
+    stmt->setUInt64(1, uint64(GameTime::GetGameTime()));
     res &= SetPreparedQuery(PLAYER_LOGIN_QUERY_LOAD_MAIL_COUNT, stmt);
 
     stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHARACTER_MAILDATE);
@@ -758,21 +758,17 @@ void WorldSession::_HandlePlayerLogin(Player* pCurrChar, LoginQueryHolder* holde
         }
     }
 
-    if (pCurrChar->GetGuildId() != 0)
-    {
-        Guild* guild = sGuildMgr->GetGuildById(pCurrChar->GetGuildId());
-        if (guild)
-        {
-            guild->SendLoginInfo(this);
-            sGuildMgr->LoadGuildBank(pCurrChar->GetGuildId());
-        }
-        else
-        {
-            // remove wrong guild data
-            TC_LOG_ERROR("network", "Player %s (GUID: %u) marked as member not existed guild (id: %u), removing guild membership for player.", pCurrChar->GetName().c_str(), pCurrChar->GetGUID().GetCounter(), pCurrChar->GetGuildId());
-            pCurrChar->SetInGuild(0);
-        }
-    }
+	if (pCurrChar->GetGuildId() != 0)
+	{
+		if (Guild* guild = sGuildMgr->GetGuildById(pCurrChar->GetGuildId()))
+			guild->SendLoginInfo(this);
+		else
+		{
+			// remove wrong guild data
+			TC_LOG_ERROR("network", "Player %s (GUID: %u) marked as member of not existing guild (id: %u), removing guild membership for player.", pCurrChar->GetName().c_str(), pCurrChar->GetGUID().GetCounter(), pCurrChar->GetGuildId());
+			pCurrChar->SetInGuild(0);
+		}
+	}
 
 #ifdef LICH_KING
     data.Initialize(SMSG_LEARNED_DANCE_MOVES 0x455, 4 + 4);
