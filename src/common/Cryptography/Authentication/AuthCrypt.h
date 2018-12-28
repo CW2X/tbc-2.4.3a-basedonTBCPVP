@@ -20,29 +20,11 @@
 #define _AUTHCRYPT_H
 
 #include "Cryptography/ARC4.h"
+#include <vector>
 
 class BigNumber;
 enum ClientBuild : uint32;
 
-#ifdef LICH_KING
-class TC_COMMON_API AuthCrypt
-{
-    public:
-        AuthCrypt();
-
-        void Init(BigNumber* K);
-        void DecryptRecv(uint8 *, size_t);
-        void EncryptSend(uint8 *, size_t);
-
-        bool IsInitialized() const { return _initialized; }
-
-    private:
-        ARC4 _clientDecrypt;
-        ARC4 _serverEncrypt;
-        bool _initialized;
-};
-#else
-#include <vector>
 class TC_COMMON_API AuthCrypt
 {
     public:
@@ -71,5 +53,4 @@ class TC_COMMON_API AuthCrypt
         std::vector<uint8> _key;
         uint8 _send_i, _send_j, _recv_i, _recv_j;
 };
-#endif
 #endif

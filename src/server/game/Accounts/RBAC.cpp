@@ -1,8 +1,25 @@
+/*
+ * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #include "RBAC.h"
 #include "AccountMgr.h"
 #include "DatabaseEnv.h"
 #include "Log.h"
+#include <sstream>
 
 namespace rbac
 {
@@ -164,7 +181,24 @@ void RBACData::LoadFromDB()
     stmt->setUInt32(0, GetId());
     stmt->setInt32(1, GetRealmId());
 
-    PreparedQueryResult result = LoginDatabase.Query(stmt);
+    LoadFromDBCallback(LoginDatabase.Query(stmt));
+}
+
+QueryCallback RBACData::LoadFromDBAsync()
+{
+    ClearData();
+
+    TC_LOG_DEBUG("rbac", "RBACData::LoadFromDB [Id: %u Name: %s]: Loading permissions", GetId(), GetName().c_str());
+    // Load account permissions (granted and denied) that affect current realm
+    PreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_RBAC_ACCOUNT_PERMISSIONS);
+    stmt->setUInt32(0, GetId());
+    stmt->setInt32(1, GetRealmId());
+
+    return LoginDatabase.AsyncQuery(stmt);
+}
+
+void RBACData::LoadFromDBCallback(PreparedQueryResult result)
+{
     if (result)
     {
         do
@@ -174,8 +208,7 @@ void RBACData::LoadFromDB()
                 GrantPermission(fields[0].GetUInt32());
             else
                 DenyPermission(fields[0].GetUInt32());
-        }
-        while (result->NextRow());
+        } while (result->NextRow());
     }
 
     // Add default permissions
@@ -205,10 +238,10 @@ void RBACData::AddPermissions(RBACPermissionContainer const& permsFrom, RBACPerm
         permsTo.insert(*itr);
 }
 
-void RBACData::RemovePermissions(RBACPermissionContainer const& permsFrom, RBACPermissionContainer& permsTo)
+void RBACData::RemovePermissions(RBACPermissionContainer& permsFrom, RBACPermissionContainer const& permsToRemove)
 {
-    for (RBACPermissionContainer::const_iterator itr = permsFrom.begin(); itr != permsFrom.end(); ++itr)
-        permsTo.erase(*itr);
+    for (RBACPermissionContainer::const_iterator itr = permsToRemove.begin(); itr != permsToRemove.end(); ++itr)
+        permsFrom.erase(*itr);
 }
 
 void RBACData::ExpandPermissions(RBACPermissionContainer& permissions)
@@ -246,4 +279,4 @@ void RBACData::ClearData()
     _globalPerms.clear();
 }
 
-} // namespace rbac
+}

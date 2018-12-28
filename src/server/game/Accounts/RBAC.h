@@ -40,10 +40,10 @@ enum RBACPermissions
     RBAC_PERM_JOIN_RANDOM_BG                                 = 4,
     RBAC_PERM_JOIN_ARENAS                                    = 5,
     RBAC_PERM_JOIN_DUNGEON_FINDER                            = 6,
-    //  7 - reuse
+    RBAC_PERM_IGNORE_IDLE_CONNECTION                         = 7,
     //  8 - reuse
-    //  9 - reuse
-    // 10 - reuse
+    RBAC_PERM_ALLOW_USE_OF_MAIL_BOX                          = 9,
+    RBAC_PERM_ALLOW_USE_OF_AUCTION_HOUSE                     = 10,
     RBAC_PERM_LOG_GM_TRADE                                   = 11,
     // 12 - reuse
     RBAC_PERM_SKIP_CHECK_INSTANCE_REQUIRED_BOSSES            = 13,
@@ -51,7 +51,7 @@ enum RBACPermissions
     RBAC_PERM_SKIP_CHECK_CHARACTER_CREATION_CLASSMASK        = 15,
     RBAC_PERM_SKIP_CHECK_CHARACTER_CREATION_RACEMASK         = 16,
     RBAC_PERM_SKIP_CHECK_CHARACTER_CREATION_RESERVEDNAME     = 17,
-    RBAC_PERM_SKIP_CHECK_CHARACTER_CREATION_HEROIC_CHARACTER = 18,
+    RBAC_PERM_SKIP_CHECK_CHARACTER_CREATION_DEATH_KNIGHT     = 18,
     RBAC_PERM_SKIP_CHECK_CHAT_CHANNEL_REQ                    = 19,
     RBAC_PERM_SKIP_CHECK_DISABLE_MAP                         = 20,
     RBAC_PERM_SKIP_CHECK_MORE_TALENTS_THAN_ALLOWED           = 21,
@@ -84,6 +84,8 @@ enum RBACPermissions
     RBAC_PERM_COMMANDS_PINFO_CHECK_PERSONAL_DATA             = 48,
     RBAC_PERM_EMAIL_CONFIRM_FOR_PASS_CHANGE                  = 49,
     RBAC_PERM_MAY_CHECK_OWN_EMAIL                            = 50,
+    RBAC_PERM_ALLOW_TWO_SIDE_TRADE                           = 51,
+    RBAC_PERM_SUSPEND_USE_OF_MAIL_BOX                        = 52,
 
     // Free space for core permissions (till 149)
     // Roles (Permissions with delegated permissions) use 199 and descending
@@ -196,7 +198,7 @@ enum RBACPermissions
     RBAC_PERM_COMMAND_DEBUG_GETITEMSTATE                     = 306,
     RBAC_PERM_COMMAND_DEBUG_GETITEMVALUE                     = 307,
     RBAC_PERM_COMMAND_DEBUG_GETVALUE                         = 308,
-    RBAC_PERM_COMMAND_DEBUG_HOSTIL                           = 309,
+    RBAC_PERM_COMMAND_DEBUG_COMBAT                           = 309,
     RBAC_PERM_COMMAND_DEBUG_ITEMEXPIRE                       = 310,
     RBAC_PERM_COMMAND_DEBUG_LOOTRECIPIENT                    = 311,
     RBAC_PERM_COMMAND_DEBUG_LOS                              = 312,
@@ -226,7 +228,7 @@ enum RBACPermissions
     RBAC_PERM_COMMAND_DEBUG_SPAWNVEHICLE                     = 336,
     RBAC_PERM_COMMAND_DEBUG_THREAT                           = 337,
     RBAC_PERM_COMMAND_DEBUG_UPDATE                           = 338,
-    RBAC_PERM_COMMAND_DEBUG_UWS                              = 339,
+    RBAC_PERM_COMMAND_DEBUG_WORLDSTATE                       = 339,
     RBAC_PERM_COMMAND_WPGPS                                  = 340,
     RBAC_PERM_COMMAND_DESERTER                               = 341,
     RBAC_PERM_COMMAND_DESERTER_BG                            = 342,
@@ -265,15 +267,7 @@ enum RBACPermissions
     RBAC_PERM_COMMAND_GM_LIST                                = 375,
     RBAC_PERM_COMMAND_GM_VISIBLE                             = 376,
     RBAC_PERM_COMMAND_GO                                     = 377,
-    RBAC_PERM_COMMAND_GO_CREATURE                            = 378,
-    RBAC_PERM_COMMAND_GO_GRAVEYARD                           = 379,
-    RBAC_PERM_COMMAND_GO_GRID                                = 380,
-    RBAC_PERM_COMMAND_GO_OBJECT                              = 381,
-    RBAC_PERM_COMMAND_GO_TAXINODE                            = 382,
-    RBAC_PERM_COMMAND_GO_TICKET                              = 383,
-    RBAC_PERM_COMMAND_GO_TRIGGER                             = 384,
-    RBAC_PERM_COMMAND_GO_XYZ                                 = 385,
-    RBAC_PERM_COMMAND_GO_ZONEXY                              = 386,
+    // unused 378-386
     RBAC_PERM_COMMAND_GOBJECT                                = 387,
     RBAC_PERM_COMMAND_GOBJECT_ACTIVATE                       = 388,
     RBAC_PERM_COMMAND_GOBJECT_ADD                            = 389,
@@ -519,7 +513,7 @@ enum RBACPermissions
     RBAC_PERM_COMMAND_RELOAD_CONDITIONS                      = 629,
     RBAC_PERM_COMMAND_RELOAD_CONFIG                          = 630,
     RBAC_PERM_COMMAND_RELOAD_BATTLEGROUND_TEMPLATE           = 631,
-    RBAC_PERM_UNUSED_632                                     = 632, // unused
+    RBAC_PERM_COMMAND_MUTEHISTORY                            = 632,
     RBAC_PERM_COMMAND_RELOAD_CREATURE_LINKED_RESPAWN         = 633,
     RBAC_PERM_COMMAND_RELOAD_CREATURE_LOOT_TEMPLATE          = 634,
     RBAC_PERM_COMMAND_RELOAD_CREATURE_ONKILL_REPUTATION      = 635,
@@ -532,7 +526,7 @@ enum RBACPermissions
     RBAC_PERM_COMMAND_RELOAD_DISENCHANT_LOOT_TEMPLATE        = 642,
     RBAC_PERM_COMMAND_RELOAD_EVENT_SCRIPTS                   = 643,
     RBAC_PERM_COMMAND_RELOAD_FISHING_LOOT_TEMPLATE           = 644,
-    RBAC_PERM_COMMAND_RELOAD_GAME_GRAVEYARD_ZONE             = 645,
+    RBAC_PERM_COMMAND_RELOAD_GRAVEYARD_ZONE                  = 645,
     RBAC_PERM_COMMAND_RELOAD_GAME_TELE                       = 646,
     RBAC_PERM_COMMAND_RELOAD_GAMEOBJECT_QUESTENDER           = 647,
     RBAC_PERM_COMMAND_RELOAD_GAMEOBJECT_QUEST_LOOT_TEMPLATE  = 648,
@@ -544,17 +538,17 @@ enum RBACPermissions
     RBAC_PERM_COMMAND_RELOAD_ITEM_LOOT_TEMPLATE              = 654,
     RBAC_PERM_COMMAND_RELOAD_ITEM_SET_NAMES                  = 655,
     RBAC_PERM_COMMAND_RELOAD_LFG_DUNGEON_REWARDS             = 656,
-    RBAC_PERM_COMMAND_RELOAD_LOCALES_ACHIEVEMENT_REWARD      = 657,
-    RBAC_PERM_COMMAND_RELOAD_LOCALES_CRETURE                 = 658,
-    RBAC_PERM_COMMAND_RELOAD_LOCALES_CRETURE_TEXT            = 659,
-    RBAC_PERM_COMMAND_RELOAD_LOCALES_GAMEOBJECT              = 660,
-    RBAC_PERM_COMMAND_RELOAD_LOCALES_GOSSIP_MENU_OPTION      = 661,
-    RBAC_PERM_COMMAND_RELOAD_LOCALES_ITEM                    = 662,
-    RBAC_PERM_COMMAND_RELOAD_LOCALES_ITEM_SET_NAME           = 663,
-    RBAC_PERM_COMMAND_RELOAD_LOCALES_NPC_TEXT                = 664,
-    RBAC_PERM_COMMAND_RELOAD_LOCALES_PAGE_TEXT               = 665,
-    RBAC_PERM_COMMAND_RELOAD_LOCALES_POINTS_OF_INTEREST      = 666,
-    RBAC_PERM_COMMAND_RELOAD_LOCALES_QUEST                   = 667,
+    RBAC_PERM_COMMAND_RELOAD_ACHIEVEMENT_REWARD_LOCALE       = 657,
+    RBAC_PERM_COMMAND_RELOAD_CRETURE_TEMPLATE_LOCALE         = 658,
+    RBAC_PERM_COMMAND_RELOAD_CRETURE_TEXT_LOCALE             = 659,
+    RBAC_PERM_COMMAND_RELOAD_GAMEOBJECT_TEMPLATE_LOCALE      = 660,
+    RBAC_PERM_COMMAND_RELOAD_GOSSIP_MENU_OPTION_LOCALE       = 661,
+    RBAC_PERM_COMMAND_RELOAD_ITEM_TEMPLATE_LOCALE            = 662,
+    RBAC_PERM_COMMAND_RELOAD_ITEM_SET_NAME_LOCALE            = 663,
+    RBAC_PERM_COMMAND_RELOAD_NPC_TEXT_LOCALE                 = 664,
+    RBAC_PERM_COMMAND_RELOAD_PAGE_TEXT_LOCALE                = 665,
+    RBAC_PERM_COMMAND_RELOAD_POINTS_OF_INTEREST_LOCALE       = 666,
+    RBAC_PERM_COMMAND_RELOAD_QUEST_TEMPLATE_LOCALE           = 667,
     RBAC_PERM_COMMAND_RELOAD_MAIL_LEVEL_REWARD               = 668,
     RBAC_PERM_COMMAND_RELOAD_MAIL_LOOT_TEMPLATE              = 669,
     RBAC_PERM_COMMAND_RELOAD_MILLING_LOOT_TEMPLATE           = 670,
@@ -585,7 +579,7 @@ enum RBACPermissions
     RBAC_PERM_COMMAND_RELOAD_SPELL_LOOT_TEMPLATE             = 695,
     RBAC_PERM_COMMAND_RELOAD_SPELL_LINKED_SPELL              = 696,
     RBAC_PERM_COMMAND_RELOAD_SPELL_PET_AURAS                 = 697,
-    RBAC_PERM_COMMAND_RELOAD_SPELL_PROC_EVENT                = 698,
+    RBAC_PERM_COMMAND_CHARACTER_CHANGEACCOUNT                = 698,
     RBAC_PERM_COMMAND_RELOAD_SPELL_PROC                      = 699,
     RBAC_PERM_COMMAND_RELOAD_SPELL_SCRIPTS                   = 700,
     RBAC_PERM_COMMAND_RELOAD_SPELL_TARGET_POSITION           = 701,
@@ -662,11 +656,116 @@ enum RBACPermissions
     RBAC_PERM_COMMAND_WP_UNLOAD                              = 772,
     RBAC_PERM_COMMAND_WP_RELOAD                              = 773,
     RBAC_PERM_COMMAND_WP_SHOW                                = 774,
-    RBAC_PERM_COMMAND_MODIFY_CURRENCY                        = 775, // only 4.3.4
-    RBAC_PERM_COMMAND_DEBUG_PHASE                            = 776, // only 4.3.4
+    // 775 - reuse
+    // 776 - reuse
     RBAC_PERM_COMMAND_MAILBOX                                = 777,
+    RBAC_PERM_COMMAND_AHBOT                                  = 778,
+    RBAC_PERM_COMMAND_AHBOT_ITEMS                            = 779,
+    RBAC_PERM_COMMAND_AHBOT_ITEMS_GRAY                       = 780,
+    RBAC_PERM_COMMAND_AHBOT_ITEMS_WHITE                      = 781,
+    RBAC_PERM_COMMAND_AHBOT_ITEMS_GREEN                      = 782,
+    RBAC_PERM_COMMAND_AHBOT_ITEMS_BLUE                       = 783,
+    RBAC_PERM_COMMAND_AHBOT_ITEMS_PURPLE                     = 784,
+    RBAC_PERM_COMMAND_AHBOT_ITEMS_ORANGE                     = 785,
+    RBAC_PERM_COMMAND_AHBOT_ITEMS_YELLOW                     = 786,
+    RBAC_PERM_COMMAND_AHBOT_RATIO                            = 787,
+    RBAC_PERM_COMMAND_AHBOT_RATIO_ALLIANCE                   = 788,
+    RBAC_PERM_COMMAND_AHBOT_RATIO_HORDE                      = 789,
+    RBAC_PERM_COMMAND_AHBOT_RATIO_NEUTRAL                    = 790,
+    RBAC_PERM_COMMAND_AHBOT_REBUILD                          = 791,
+    RBAC_PERM_COMMAND_AHBOT_RELOAD                           = 792,
+    RBAC_PERM_COMMAND_AHBOT_STATUS                           = 793,
+    RBAC_PERM_COMMAND_GUILD_INFO                             = 794,
+    RBAC_PERM_COMMAND_INSTANCE_SET_BOSS_STATE                = 795,
+    RBAC_PERM_COMMAND_INSTANCE_GET_BOSS_STATE                = 796,
+    RBAC_PERM_COMMAND_PVPSTATS                               = 797,
+    RBAC_PERM_COMMAND_MODIFY_XP                              = 798,
+    // 799 - reuse
+    // 800 - reuse
+    // 801 - reuse
+    // 802 - reuse
+    // 803 - reuse
+    // 804 - reuse
+    // 805 - reuse
+    // 806 - reuse
+    // 807 - reuse
+    // 808 - reuse
+    // 809 - reuse
+    // 810 - reuse
+    // 811 - reuse
+    // 812 - reuse
+    // 813 - reuse
+    // 814 - reuse
+    // 815 - reuse
+    // 816 - reuse
+    // 817 - reuse
+    // 818 - reuse
+    // 819 - reuse
+    // 820 - reuse
+    // 821 - reuse
+    // 822 - reuse
+    // 823 - reuse
+    // 824 - reuse
+    // 825 - reuse
+    // 826 - reuse
+    // 827 - reuse
+    // 828 - reuse
+    // 829 - reuse
+    // 830 - reuse
+    // 831 - reuse
+    // 832 - reuse
+    // 833 - reuse
+    // 834 - reuse
+    RBAC_PERM_COMMAND_DEBUG_LOADCELLS                        = 835,
+    RBAC_PERM_COMMAND_DEBUG_BOUNDARY                         = 836,
+    RBAC_PERM_COMMAND_NPC_EVADE                              = 837,
+    RBAC_PERM_COMMAND_PET_LEVEL                              = 838,
+    RBAC_PERM_COMMAND_SERVER_SHUTDOWN_FORCE                  = 839,
+    RBAC_PERM_COMMAND_SERVER_RESTART_FORCE                   = 840,
+    RBAC_PERM_COMMAND_NEARGRAVEYARD                          = 841,
+    // 842 - reuse
+    RBAC_PERM_COMMAND_RELOAD_QUEST_GREETING                  = 843,
+    // 844 - reuse
+    // 845 - reuse
+    // 846 - reuse
+    // 847 - reuse
+    // 848 - reuse
+    // 849 - reuse
+    // 850 - reuse
+    // 851 - reuse
+    RBAC_PERM_COMMAND_DEBUG_DUMMY                            = 852,
+    // 853 - reuse
+    // 854 - reuse
+    RBAC_PERM_COMMAND_DEBUG_PLAY_MUSIC                       = 855,
+    RBAC_PERM_COMMAND_NPC_SPAWNGROUP                         = 856,
+    RBAC_PERM_COMMAND_NPC_DESPAWNGROUP                       = 857,
+    RBAC_PERM_COMMAND_GOBJECT_SPAWNGROUP                     = 858,
+    RBAC_PERM_COMMAND_GOBJECT_DESPAWNGROUP                   = 859,
+    RBAC_PERM_COMMAND_LIST_RESPAWNS                          = 860,
+    RBAC_PERM_COMMAND_GROUP_SET                              = 861,
+    RBAC_PERM_COMMAND_GROUP_ASSISTANT                        = 862,
+    RBAC_PERM_COMMAND_GROUP_MAINTANK                         = 863,
+    RBAC_PERM_COMMAND_GROUP_MAINASSIST                       = 864,
+    RBAC_PERM_COMMAND_NPC_SHOWLOOT                           = 865,
+    RBAC_PERM_COMMAND_LIST_SPAWNPOINTS                       = 866,
+    RBAC_PERM_COMMAND_RELOAD_QUEST_GREETING_LOCALE           = 867,
+    // 868 - reuse
+    // 869 - reuse
+    RBAC_PERM_COMMAND_DEBUG_THREATINFO                       = 870,
+    RBAC_PERM_COMMAND_DEBUG_INSTANCESPAWN                    = 871,
+    RBAC_PERM_COMMAND_SERVER_DEBUG                           = 872,
+    RBAC_PERM_COMMAND_RELOAD_CREATURE_MOVEMENT_OVERRIDE      = 873,
+    RBAC_PERM_COMMAND_GO_INSTANCE                            = 874,
 
     // custom permissions 1000+
+
+    // Konno Production Permissions
+    RBAC_PERM_COMMAND_LFG_DEBUG                              = 1000,
+    RBAC_PERM_COMMAND_NPC_RELOAD                             = 1001,
+    RBAC_PERM_COMMAND_LIST_QUESTS                            = 1002,
+    RBAC_PERM_COMMAND_DISABLE_ADD_ITEM                       = 1003,
+    RBAC_PERM_COMMAND_DISABLE_REMOVE_ITEM                    = 1004,
+
     RBAC_PERM_MAX
 };
 
@@ -682,11 +781,11 @@ enum RBACCommandResult
 
 typedef std::set<uint32> RBACPermissionContainer;
 
-class RBACPermission
+class TC_GAME_API RBACPermission
 {
     public:
-        RBACPermission(uint32 id = 0, std::string  name = ""):
-            _id(id), _name(std::move(name)), _perms() { }
+        RBACPermission(uint32 id = 0, std::string const& name = ""):
+            _id(id), _name(name), _perms() { }
 
         /// Gets the Name of the Object
         std::string const& GetName() const { return _name; }
@@ -717,11 +816,11 @@ class RBACPermission
  * - Granted permissions: through linked permissions and directly assigned
  * - Denied permissions: through linked permissions and directly assigned
  */
-class RBACData
+class TC_GAME_API RBACData
 {
     public:
-        RBACData(uint32 id, std::string  name, int32 realmId, uint8 secLevel = 255):
-            _id(id), _name(std::move(name)), _realmId(realmId), _secLevel(secLevel),
+        RBACData(uint32 id, std::string const& name, int32 realmId, uint8 secLevel = 255):
+            _id(id), _name(name), _realmId(realmId), _secLevel(secLevel),
             _grantedPerms(), _deniedPerms(), _globalPerms() { }
 
         /// Gets the Name of the Object
@@ -741,7 +840,7 @@ class RBACData
          * @code
          * bool Player::CanJoinArena(Battleground* bg)
          * {
-         *     return bg->IsArena() && HasPermission(RBAC_PERM_JOIN_ARENA);
+         *     return bg->isArena() && HasPermission(RBAC_PERM_JOIN_ARENA);
          * }
          * @endcode
          */
@@ -773,6 +872,7 @@ class RBACData
          * @return Success or failure (with reason) to grant the permission
          *
          * Example Usage:
+         * @code
          * // previously defined "RBACData* rbac" with proper initialization
          * uint32 permissionId = 2;
          * if (rbac->GrantRole(permissionId) == RBAC_IN_DENIED_LIST)
@@ -796,6 +896,7 @@ class RBACData
          * @return Success or failure (with reason) to deny the permission
          *
          * Example Usage:
+         * @code
          * // previously defined "RBACData* rbac" with proper initialization
          * uint32 permissionId = 2;
          * if (rbac->DenyRole(permissionId) == RBAC_ID_DOES_NOT_EXISTS)
@@ -820,6 +921,7 @@ class RBACData
          * @return Success or failure (with reason) to remove the permission
          *
          * Example Usage:
+         * @code
          * // previously defined "RBACData* rbac" with proper initialization
          * uint32 permissionId = 2;
          * if (rbac->RevokeRole(permissionId) == RBAC_OK)
@@ -830,6 +932,8 @@ class RBACData
 
         /// Loads all permissions assigned to current account
         void LoadFromDB();
+        QueryCallback LoadFromDBAsync();
+        void LoadFromDBCallback(PreparedQueryResult result);
 
         /// Sets security level
         void SetSecurityLevel(uint8 id)
@@ -901,8 +1005,8 @@ class RBACData
         /// Adds a list of permissions to another list
         void AddPermissions(RBACPermissionContainer const& permsFrom, RBACPermissionContainer& permsTo);
 
-        /// Removes a list of permissions to another list
-        void RemovePermissions(RBACPermissionContainer const& permsFrom, RBACPermissionContainer& permsTo);
+        /// Removes a list of permissions from another list
+        void RemovePermissions(RBACPermissionContainer& permsFrom, RBACPermissionContainer const& permsToRemove);
 
         /**
          * @name ExpandPermissions
@@ -910,9 +1014,6 @@ class RBACData
          *
          * Given a list of permissions, gets all the inherited permissions
          * @param permissions The list of permissions to expand
-         *
-         * @return new list of permissions containing original permissions and
-         * all other pemissions that are linked to the original ones
          */
         void ExpandPermissions(RBACPermissionContainer& permissions);
 

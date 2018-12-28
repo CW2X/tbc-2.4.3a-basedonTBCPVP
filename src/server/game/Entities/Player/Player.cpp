@@ -401,7 +401,7 @@ Player::~Player()
     delete _cinematicMgr;
     delete m_reputationMgr;
 
-	// Playerbot
+    // Playerbot
     delete m_playerbotAI;
     delete m_playerbotMgr;
 
@@ -1442,7 +1442,7 @@ void Player::Update( uint32 p_time )
     if (IsHasDelayedTeleport() /* && IsAlive()*/)
         TeleportTo(m_teleport_dest, m_teleport_options);
 
-	// Playerbot
+    // Playerbot
     if (m_playerbotAI)
        m_playerbotAI->UpdateAI(p_time);
 
@@ -5569,7 +5569,7 @@ void Player::UpdateWeaponSkill(WeaponAttackType attType)
             break;
         case ITEM_SUBCLASS_WEAPON_FIST:
             UpdateSkill(SKILL_UNARMED, weapon_skill_gain);
-			break;
+            break;
         default:
             UpdateSkill(tmpitem->GetSkill(), weapon_skill_gain);
             break;
@@ -23354,7 +23354,7 @@ void Player::SendPreparedGossip(WorldObject* source)
     if (uint32 menuId = PlayerTalkClass->GetGossipMenu().GetMenuId())
         textId = GetGossipTextId(menuId, source);
 
-    PlayerTalkClass->SendGossipMenuTextID(textId, source->GetGUID());
+    PlayerTalkClass->SendGossipMenu(textId, source->GetGUID());
 }
 
 void Player::OnGossipSelect(WorldObject* source, uint32 gossipListId, uint32 menuId)

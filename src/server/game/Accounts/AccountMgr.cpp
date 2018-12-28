@@ -26,7 +26,7 @@ AccountOpResult AccountMgr::CreateAccount(std::string username, std::string pass
     normalizeString(email);
 
     if (GetId(username))
-        return AOR_NAME_ALREADY_EXIST;                       // username does already exist
+        return AOR_NAME_ALREADY_EXIST;                      // username does already exist
 
     PreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_INS_ACCOUNT);
 
@@ -107,10 +107,10 @@ AccountOpResult AccountMgr::DeleteAccount(uint32 accountId)
 
     LoginDatabase.CommitTransaction(trans);
 
-	// Realm Database stuff here.
-	stmt = RealmDatabase.GetPreparedStatement(REALM_DEL_REALM_CHARACTERS);
-	stmt->setUInt32(0, accountId);
-	RealmDatabase.Execute(stmt);
+    // Realm Database stuff here.
+    stmt = RealmDatabase.GetPreparedStatement(REALM_DEL_REALM_CHARACTERS);
+    stmt->setUInt32(0, accountId);
+    RealmDatabase.Execute(stmt);
 
     return AOR_OK;
 }
@@ -390,7 +390,7 @@ bool AccountMgr::IsPlayerAccount(uint32 gmlevel)
 
 bool AccountMgr::IsAdminAccount(uint32 gmlevel)
 {
-    return gmlevel >= SEC_SUPERADMIN && gmlevel <= SEC_CONSOLE;
+    return gmlevel >= SEC_ADMINISTRATOR && gmlevel <= SEC_CONSOLE;
 }
 
 bool AccountMgr::IsConsoleAccount(uint32 gmlevel)
@@ -465,7 +465,7 @@ void AccountMgr::LoadRBAC()
         return;
     }
 
-    uint8 secId = 255;
+    uint8 secId = 0;
     rbac::RBACPermissionContainer* permissions = NULL;
     do
     {

@@ -1020,7 +1020,7 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
             {
                 if (Creature* creature = target->ToCreature())
                     creature->DespawnOrUnsummon(despawnDelay, forceRespawnTimer);
-				else if (GameObject* goTarget = target->ToGameObject())
+                else if (GameObject* goTarget = target->ToGameObject())
                     goTarget->DespawnOrUnsummon(despawnDelay, forceRespawnTimer);
             }
 
@@ -2339,18 +2339,11 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
                     if (e.action.sendGossipMenu.gossipMenuId)
                         player->PrepareGossipMenu(GetBaseObject(), e.action.sendGossipMenu.gossipMenuId, true);
                     else
-                        ClearGossipMenuFor(player);
+                        player->PlayerTalkClass->ClearMenus();
 
-                    //default to default menu text if no text id given in action
-                    uint32 textId = e.action.sendGossipMenu.gossipNpcTextId;
-                    if (!textId)
-                        textId = player->GetDefaultGossipMenuForSource(GetBaseObject());
-
-                    player->SEND_GOSSIP_MENU_TEXTID(textId, GetBaseObject()->GetGUID());
+                    player->PlayerTalkClass->SendGossipMenu(e.action.sendGossipMenu.gossipNpcTextId, GetBaseObject()->GetGUID());
                 }
             }
-
-
             break;
         }
         case SMART_ACTION_SET_HOME_POS:
