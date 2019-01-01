@@ -2305,9 +2305,6 @@ static const SpellPartialResistDistribution SPELL_PARTIAL_RESIST_DISTRIBUTION = 
 
 void Unit::AttackerStateUpdate(Unit* victim, WeaponAttackType attType, bool extra )
 {
-    if (ToPlayer() && ToPlayer()->isSpectator())
-        return;
-
     if((!extra && HasUnitState(UNIT_STATE_CANNOT_AUTOATTACK)) || HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PACIFIED) )
         return;
 
@@ -4411,7 +4408,7 @@ bool Unit::Attack(Unit *victim, bool meleeAttack)
 
     // nobody can attack GM in GM-mode
     if (victim->GetTypeId() == TYPEID_PLAYER) {
-        if ((victim->ToPlayer())->IsGameMaster() || (victim->ToPlayer())->isSpectator())
+        if ((victim->ToPlayer())->IsGameMaster())
             return false;
     } else {
         if (victim->ToCreature()->IsEvadingAttacks())
@@ -7378,8 +7375,7 @@ bool Unit::IsAttackableByAOE() const
 
     if(Player const* p = ToPlayer())
     {
-        if(   p->IsGameMaster()  
-           || p->isSpectator()
+        if(p->IsGameMaster()  
            || !p->IsVisible()
           )
         return false;
@@ -8413,14 +8409,6 @@ void Unit::SetHealth(uint32 val)
     // group update
     if (Player* player = ToPlayer())
     {
-        if (player->HaveSpectators())
-        {
-            SpectatorAddonMsg msg;
-            msg.SetPlayer(player->GetName());
-            msg.SetCurrentHP(val);
-            player->SendSpectatorAddonMsgToBG(msg);
-        }
-
         if(player->GetGroup())
             player->SetGroupUpdateFlag(GROUP_UPDATE_FLAG_CUR_HP);
     }
@@ -8468,14 +8456,6 @@ void Unit::SetMaxHealth(uint32 val)
     // group update
     if (GetTypeId() == TYPEID_PLAYER)
     {
-        if (ToPlayer()->HaveSpectators())
-        {
-            SpectatorAddonMsg msg;
-            msg.SetPlayer(ToPlayer()->GetName());
-            msg.SetMaxHP(val);
-            ToPlayer()->SendSpectatorAddonMsgToBG(msg);
-        }
-
         if((this->ToPlayer())->GetGroup())
             (this->ToPlayer())->SetGroupUpdateFlag(GROUP_UPDATE_FLAG_MAX_HP);
     }
@@ -8508,15 +8488,6 @@ void Unit::SetPower(Powers power, uint32 val)
     // group update
     if (Player* player = ToPlayer())
     {
-        if (player->HaveSpectators())
-        {
-            SpectatorAddonMsg msg;
-            msg.SetPlayer(player->GetName());
-            msg.SetCurrentPower(val);
-            msg.SetPowerType(power);
-            player->SendSpectatorAddonMsgToBG(msg);
-        }
-
         if(player->GetGroup())
             player->SetGroupUpdateFlag(GROUP_UPDATE_FLAG_CUR_POWER);
     }
@@ -8546,15 +8517,6 @@ void Unit::SetMaxPower(Powers power, uint32 val)
     // group update
     if(GetTypeId() == TYPEID_PLAYER)
     {
-        if (ToPlayer()->HaveSpectators())
-        {
-            SpectatorAddonMsg msg;
-            msg.SetPlayer(ToPlayer()->GetName());
-            msg.SetMaxPower(val);
-            msg.SetPowerType(power);
-            ToPlayer()->SendSpectatorAddonMsgToBG(msg);
-        }
-
         if((this->ToPlayer())->GetGroup())
             (this->ToPlayer())->SetGroupUpdateFlag(GROUP_UPDATE_FLAG_MAX_POWER);
     }

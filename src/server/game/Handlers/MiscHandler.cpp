@@ -481,18 +481,6 @@ void WorldSession::HandleSetSelectionOpcode( WorldPacket & recvData )
     _player->SetSelection(guid);
 
     Unit* unit = ObjectAccessor::GetUnit(*_player, guid);
-    if (_player->HaveSpectators())
-    {
-        if (Battleground *bg = _player->GetBattleground())
-        {
-            if (unit && bg->isSpectator(unit->GetGUID()))
-                return;
-        }
-        SpectatorAddonMsg msg;
-        msg.SetPlayer(_player->GetName());
-        msg.SetTarget(unit ? unit->GetName() : "0");
-        _player->SendSpectatorAddonMsgToBG(msg);
-    }
 }
 
 void WorldSession::HandleStandStateChangeOpcode(WorldPacket & recvData)

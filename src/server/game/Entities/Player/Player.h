@@ -27,7 +27,6 @@ class MotionTransport;
 class UpdateMask;
 class PlayerSocial;
 class OutdoorPvP;
-class SpectatorAddonMsg;
 class ArenaTeam;
 class Guild;
 enum PetType : int;
@@ -2406,15 +2405,6 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
 
         bool hasCustomXpRate() const { return m_customXp != 0.0f; }
         float getCustomXpRate() const { return m_customXp; }
-
-        bool HaveSpectators() const;
-        void SendSpectatorAddonMsgToBG(SpectatorAddonMsg msg);
-        bool isSpectateCanceled() { return spectateCanceled; }
-        void CancelSpectate()     { spectateCanceled = true; }
-        Player* getSpectateFrom()   { return spectateFrom; }
-        bool isSpectator() const  { return spectatorFlag; }
-        void SetSpectate(bool on);
-        void SendDataForSpectator();
 
         void setCommentator(bool on);
 

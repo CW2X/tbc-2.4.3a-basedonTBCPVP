@@ -105,32 +105,6 @@ public:
 
         handler->PSendSysMessage("Compiled on: %s", GitRevision::GetHostOSVersion());
 
-        uint32 updateFlags = sConfigMgr->GetIntDefault("Updates.EnableDatabases", DatabaseLoader::DATABASE_NONE);
-        if (!updateFlags)
-            handler->SendSysMessage("Automatic database updates are disabled for all databases!");
-        else
-        {
-            static char const* const databaseNames[3 /*TOTAL_DATABASES*/] =
-            {
-                "Auth",
-                "Characters",
-                "World"
-            };
-
-            std::string availableUpdateDatabases;
-            for (uint32 i = 0; i < 3 /* TOTAL_DATABASES*/; ++i)
-            {
-                if (!(updateFlags & (1 << i)))
-                    continue;
-
-                availableUpdateDatabases += databaseNames[i];
-                if (i != 3 /*TOTAL_DATABASES*/ - 1)
-                    availableUpdateDatabases += ", ";
-            }
-
-            handler->PSendSysMessage("Automatic database updates are enabled for the following databases: %s", availableUpdateDatabases.c_str());
-        }
-
         handler->PSendSysMessage("Worldserver listening connections on port %" PRIu16, worldPort);
         handler->PSendSysMessage("%s", dbPortOutput.c_str());
 
@@ -227,6 +201,7 @@ public:
         uint32 queuedClientsNum = sWorld->GetQueuedSessionCount();
         uint32 maxActiveClientsNum = sWorld->GetMaxActiveSessionCount();
         std::string str = secsToTimeString(GameTime::GetUptime());
+
         uint32 currentMapTimeDiff = 0;
         if (handler->GetSession())
             if (Player const* p = handler->GetSession()->GetPlayer())
@@ -234,12 +209,14 @@ public:
                     currentMapTimeDiff = sMonitor->GetLastDiffForMap(*m);
 
         handler->PSendSysMessage("%s", GitRevision::GetFullVersion());
+		handler->PSendSysMessage("%s", GitRevision::GetServerRevision());
         handler->PSendSysMessage("Players online: %u (Max: %u, Queued: %u)", activeClientsNum, maxActiveClientsNum, queuedClientsNum);
         handler->PSendSysMessage(LANG_UPTIME, str.c_str());
         handler->PSendSysMessage("Smoothed update time diff: %u.", sMonitor->GetSmoothTimeDiff());
         handler->PSendSysMessage("Instant update time diff: %u.", sWorldUpdateTime.GetLastUpdateTime());
         if(currentMapTimeDiff != 0)
             handler->PSendSysMessage("Current map update time diff: %u.", currentMapTimeDiff);
+
         if (sWorld->IsShuttingDown())
             handler->PSendSysMessage("Server restart in %s", secsToTimeString(sWorld->GetShutDownTimeLeft()).c_str());
 

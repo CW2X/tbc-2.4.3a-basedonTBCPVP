@@ -194,8 +194,6 @@ TC_COMMON_API extern char const* localeNames[TOTAL_LOCALES];
 
 TC_COMMON_API LocaleConstant GetLocaleByName(const std::string& name);
 
-typedef std::vector<std::string> StringVector;
-
 // we always use stdlibc++ std::max/std::min, undefine some not C++ standard defines (Win API and some pother platforms)
 #ifdef max
 #undef max

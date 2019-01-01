@@ -73,8 +73,14 @@ char const* GitRevision::GetFullDatabase()
 
 char const* GitRevision::GetFullVersion()
 {
-    return "Konno Productions - World of Warcraft Emulator\nCurrent Revision: " VER_PRODUCTVERSION_STR;
+	return "Konno Productions - World of Warcraft Emulator";
 }
+
+char const* GitRevision::GetServerRevision()
+{
+	return "Server Revision: " VER_PRODUCTVERSION_STR;
+}
+
 
 char const* GitRevision::GetCompanyNameStr()
 {

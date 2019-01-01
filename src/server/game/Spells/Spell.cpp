@@ -3424,16 +3424,6 @@ uint32 Spell::prepare(SpellCastTargets const& targets, AuraEffect const* trigger
     // set timer base at cast time
     ReSetTimer();
 
-    if (GetCaster())
-        if (Player *tmpPlayer = GetCaster()->ToPlayer())
-            if (tmpPlayer->HaveSpectators())
-            {
-                SpectatorAddonMsg msg;
-                msg.SetPlayer(tmpPlayer->GetName());
-                msg.CastSpell(m_spellInfo->Id, m_casttime);
-                tmpPlayer->SendSpectatorAddonMsgToBG(msg);
-            }
-
     CallScriptSpellStartHandlers();
 
     //Containers for channeled spells have to be set
@@ -3512,20 +3502,6 @@ void Spell::cancel()
             SendCastResult(SPELL_FAILED_INTERRUPTED);
 
             m_appliedMods.clear();
-
-            if (GetCaster())
-            {
-                if (Player *tmpPlayer = GetCaster()->ToPlayer())
-                {
-                    if (tmpPlayer->HaveSpectators())
-                    {
-                        SpectatorAddonMsg msg;
-                        msg.SetPlayer(tmpPlayer->GetName());
-                        msg.InterruptSpell(m_spellInfo->Id);
-                        tmpPlayer->SendSpectatorAddonMsgToBG(msg);
-                    }
-                }
-            }
         } break;
 
         default:
@@ -3548,20 +3524,6 @@ void Spell::cancel()
     //set state back so finish will be processed
     m_spellState = oldState;
     //TC_LOG_DEBUG("FIXME","Spell %u - m_spellState = oldState = %u", m_spellInfo->Id,m_spellState);
-
-    if (GetCaster())
-    {
-        if (Player *tmpPlayer = GetCaster()->ToPlayer())
-        {
-            if (tmpPlayer->HaveSpectators())
-            {
-                SpectatorAddonMsg msg;
-                msg.SetPlayer(tmpPlayer->GetName());
-                msg.CancelSpell(m_spellInfo->Id);
-                tmpPlayer->SendSpectatorAddonMsgToBG(msg);
-            }
-        }
-    }
 
     finish(false);
 }
@@ -5530,10 +5492,6 @@ SpellCastResult Spell::CheckCast(bool strict, uint32* param1 /*= nullptr*/, uint
                 m_caster->IsOutdoors())
             return SPELL_FAILED_ONLY_INDOORS;
     }
-
-    if (Player *tmpPlayer = m_caster->ToPlayer())
-        if (tmpPlayer->isSpectator())
-            return SPELL_FAILED_DONT_REPORT;
 
     if (Unit* caster = m_caster->ToUnit())
     {

@@ -2010,7 +2010,7 @@ CanAttackResult Creature::CanCreatureAttack(Unit const* target, bool force /*= t
     if (IsAIEnabled() && !AI()->CanAIAttack(target))
         return CAN_ATTACK_RESULT_OTHERS;
 
-    if (target->GetTypeId() == TYPEID_PLAYER && ((target->ToPlayer())->IsGameMaster() || (target->ToPlayer())->isSpectator()))
+    if (target->GetTypeId() == TYPEID_PLAYER && ((target->ToPlayer())->IsGameMaster()))
         return CAN_ATTACK_RESULT_OTHERS;
 
     if(target->GetTypeId() == TYPEID_UNIT && target->GetEntry() == 10 && GetTypeId() != TYPEID_PLAYER && !GetCharmerOrOwnerGUID().IsPlayer()) //training dummies

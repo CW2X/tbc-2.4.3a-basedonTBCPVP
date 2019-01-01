@@ -7,7 +7,7 @@
 using namespace std;
 
 #ifndef _PLAYERBOT_CONFIG
-# define _PLAYERBOT_CONFIG  "aiplayerbot.conf"
+# define _PLAYERBOT_CONFIG  "playerbotsystem.conf"
 #endif
 
 PlayerbotAIConfig::PlayerbotAIConfig()
@@ -30,19 +30,17 @@ void LoadList(std::string value, T &list)
 
 bool PlayerbotAIConfig::Initialize()
 {
-    sLog->outMessage("playerbot", LOG_LEVEL_INFO, "Initializing AI Playerbot by ike3, based on the original Playerbot by blueboy");
-
     std::string error;
     if (!config.LoadInitial(_PLAYERBOT_CONFIG, std::vector<std::string>(), error))
     {
-        sLog->outMessage("playerbot", LOG_LEVEL_INFO, "AI Playerbot is Disabled. Unable to open configuration file aiplayerbot.conf");
+        sLog->outMessage("playerbot", LOG_LEVEL_INFO, "AI Playerbot is Disabled. Unable to open configuration file playerbotsystem.conf");
         return false;
     }
 
     enabled = config.GetBoolDefault("AiPlayerbot.Enabled", true);
     if (!enabled)
     {
-        sLog->outMessage("playerbot", LOG_LEVEL_INFO, "AI Playerbot is Disabled in aiplayerbot.conf");
+        sLog->outMessage("playerbot", LOG_LEVEL_INFO, "AI Playerbot is Disabled in playerbotsystem.conf");
         return false;
     }
 

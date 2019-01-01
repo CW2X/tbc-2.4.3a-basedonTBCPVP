@@ -124,9 +124,6 @@ void WorldSession::HandleMoveWorldportAck()
         {
             if(player->IsInvitedForBattlegroundInstance(player->GetBattlegroundId()))
                 bg->AddPlayer(player);
-
-            if (bg->isSpectator(player->GetGUID()))
-                bg->onAddSpectator(player);
         }
     }
 

@@ -276,13 +276,6 @@ void WorldSession::HandleMessagechatOpcode( WorldPacket & recvData )
             if (!GetPlayer()->IsAlive())
                 return;
 
-            if (GetPlayer()->isSpectator())
-            {
-                //SendNotification("Vous ne pouvez pas effectuer cette action lorsque vous êtes spectateur.");
-                SendNotification("You cannot do this while spectating");
-                return;
-            }
-
             if(type == CHAT_MSG_SAY)
                 GetPlayer()->Say(msg, Language(lang));
             else if(type == CHAT_MSG_EMOTE)

@@ -52,7 +52,6 @@
 #include "Config.h"
 #include "InstanceScript.h"
 #include "ConditionMgr.h"
-#include "SpectatorAddon.h"
 #include "ScriptMgr.h"
 #include "Mail.h"
 #include "Bag.h"
@@ -1464,15 +1463,6 @@ void Player::SetDeathState(DeathState s)
             return;
         }
 
-        // send spectate addon message
-        if (HaveSpectators())
-        {
-            SpectatorAddonMsg msg;
-            msg.SetPlayer(GetName());
-            msg.SetStatus(false);
-            SendSpectatorAddonMsgToBG(msg);
-        }
-
         // drunken state is cleared on death
         SetDrunkValue(0);
         // lost combo points at any target (targeted combo points clear in Unit::setDeathState)
@@ -2028,9 +2018,6 @@ void Player::RemoveFromWorld()
     for(int i = PLAYER_SLOT_START; i < PLAYER_SLOT_END; i++)
         if(m_items[i])
             m_items[i]->RemoveFromWorld();
-
-    if (isSpectator())
-        SetSpectate(false);
 
     ///- Do not add/remove the player from the object storage
     ///- It will crash when updating the ObjectAccessor
@@ -4360,15 +4347,6 @@ void Player::ResurrectPlayer(float restore_percent, bool applySickness)
 
     if (!HasUnitState(UNIT_STATE_ROOT))
         SetRooted(false);
-
-    // send spectate addon message
-    if (HaveSpectators())
-    {
-        SpectatorAddonMsg msg;
-        msg.SetPlayer(GetName());
-        msg.SetStatus(true);
-        SendSpectatorAddonMsgToBG(msg);
-    }
 
     // speed change, land walk
     SetRooted(false);
@@ -19624,9 +19602,6 @@ void Player::LeaveBattleground(bool teleportToEntryPoint)
 {
     if(Battleground *bg = GetBattleground())
     {
-        if (bg->isSpectator(GetGUID()))
-            return;
-
         bool need_debuf = bg->isBattleground() && !IsGameMaster() && ((bg->GetStatus() == STATUS_IN_PROGRESS) || (bg->GetStatus() == STATUS_WAIT_JOIN)) && sWorld->getConfig(CONFIG_BATTLEGROUND_CAST_DESERTER) && !sWorld->IsShuttingDown();
 
         if(bg->IsArena() && bg->isRated() && bg->GetStatus() == STATUS_WAIT_JOIN) //if game has not end then make sure that personal raiting is decreased
@@ -22524,133 +22499,6 @@ void Player::setCommentator(bool on)
         data << uint8(0);
         SendMessageToSet(&data, true);
     }
-}
-
-void Player::SetSpectate(bool on)
-{
-    if (on)
-    {
-        SetSpeedRate(MOVE_RUN, 2.5);
-        spectatorFlag = true;
-
-        SetFaction(FACTION_FRIENDLY);
-
-        RemoveFlag(PLAYER_FLAGS, PLAYER_FLAGS_FFA_PVP);
-
-        CombatStopWithPets();
-        if (Pet* pet = GetPet())
-        {
-            RemovePet(pet, PET_SAVE_AS_CURRENT);
-        }
-        SetTemporaryUnsummonedPetNumber(0);
-        UnsummonPetTemporaryIfAny();
-        RemoveAllControlled();
-
-        ResetContestedPvP();
-
-        SetDisplayId(10045);
-
-        SetVisible(false);
-    }
-    else
-    {
-        SetFactionForRace(GetRace());
-
-        if (spectateFrom)
-            spectateFrom->RemovePlayerFromVision(this);
-
-        // restore FFA PvP Server state
-        if(sWorld->IsFFAPvPRealm())
-            SetFlag(PLAYER_FLAGS, PLAYER_FLAGS_FFA_PVP);
-
-        // restore FFA PvP area state, remove not allowed for GM mounts
-        UpdateArea(m_areaUpdateId);
-
-        spectateCanceled = false;
-        spectatorFlag = false;
-        SetDisplayId(GetNativeDisplayId());
-        UpdateSpeed(MOVE_RUN);
-
-        if (!(m_ExtraFlags & PLAYER_EXTRA_GM_INVISIBLE)) //don't reset gm visibility
-            SetVisible(true);
-    }
-
-    UpdateObjectVisibility();
-}
-
-bool Player::HaveSpectators() const
-{
-    if (Battleground *bg = GetBattleground())
-    {
-        if (bg->isSpectator(GetGUID()))
-            return false;
-
-        if (bg->IsArena())
-        {
-            if (bg->GetStatus() != STATUS_IN_PROGRESS)
-                return false;
-
-            return bg->HaveSpectators();
-        }
-    }
-
-    return false;
-}
-
-void Player::SendDataForSpectator()
-{
-    Battleground *bGround = GetBattleground();
-    if (!bGround)
-        return;
-
-    if (!bGround->isSpectator(GetGUID()))
-        return;
-
-    if (bGround->GetStatus() != STATUS_IN_PROGRESS)
-        return;
-
-    for (auto itr = bGround->GetPlayers().begin(); itr != bGround->GetPlayers().end(); ++itr)
-        if (Player* tmpPlayer = ObjectAccessor::FindPlayer(itr->first))
-        {
-            if (bGround->isSpectator(tmpPlayer->GetGUID()))
-                continue;
-
-            uint32 tmpID = bGround->GetPlayerTeam(tmpPlayer->GetGUID());
-
-            // generate addon massage
-            std::string pName = tmpPlayer->GetName();
-            std::string tName = "";
-
-            if (Player *target = tmpPlayer->GetSelectedPlayer())
-            {
-                if (!bGround->isSpectator(target->GetGUID()))
-                    tName = target->GetName();
-            }
-
-            SpectatorAddonMsg msg;
-            msg.SetPlayer(pName);
-            if (tName != "")
-                msg.SetTarget(tName);
-            msg.SetStatus(tmpPlayer->IsAlive());
-            msg.SetClass(tmpPlayer->GetClass());
-            msg.SetCurrentHP(tmpPlayer->GetHealth());
-            msg.SetMaxHP(tmpPlayer->GetMaxHealth());
-            Powers powerType = tmpPlayer->GetPowerType();
-            msg.SetMaxPower(tmpPlayer->GetMaxPower(powerType));
-            msg.SetCurrentPower(tmpPlayer->GetPower(powerType));
-            msg.SetPowerType(powerType);
-            msg.SetTeam(tmpID);
-            msg.SendPacket(GetGUID());
-        }
-}
-
-void Player::SendSpectatorAddonMsgToBG(SpectatorAddonMsg msg)
-{
-    if (!HaveSpectators())
-        return;
-
-    if (Battleground *bg = GetBattleground())
-        bg->SendSpectateAddonsMsg(msg);
 }
 
 void Player::UpdateKnownPvPTitles()

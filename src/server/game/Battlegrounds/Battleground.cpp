@@ -161,8 +161,6 @@ Battleground::Battleground()
 
     m_StartDelayTime = 0;
     m_PrematureCountDownTimer = 0;
-
-    m_Spectators.clear();
 }
 
 Battleground::~Battleground()
@@ -205,7 +203,7 @@ Battleground::~Battleground()
 
 void Battleground::Update(time_t diff)
 {
-    if(!GetPlayersSize() && !GetReviveQueueSize() && !m_Spectators.size())
+    if(!GetPlayersSize() && !GetReviveQueueSize())
         return; //BG is empty
 
     m_StartTime += diff;
@@ -346,9 +344,6 @@ inline void Battleground::_ProcessLeave(uint32 diff)
             RemovePlayerAtLeave(itr->first, true, true);// remove player from BG
                                                         // do not change any battleground's private variables
         }
-
-        for (ObjectGuid const& m_Spectator : m_Spectators)
-            RemovePlayerAtLeave(m_Spectator, true, true);
     }
 }
 
@@ -695,21 +690,6 @@ void Battleground::EndBattleground(uint32 winner)
         sBattlegroundMgr->BuildBattlegroundStatusPacket(&data, this, plr->GetBattlegroundQueueIndex(bgQueueTypeId), STATUS_IN_PROGRESS, TIME_TO_AUTOREMOVE, GetStartTime(), GetArenaType(), plr->GetBGTeam());
         plr->SendDirectMessage(&data);
     }
-
-    for (ObjectGuid m_Spectator : m_Spectators)
-    {
-        Player *plr = ObjectAccessor::FindPlayer(m_Spectator);
-        if(!plr)
-            continue;
-
-        BlockMovement(plr);
-
-        plr->SendDirectMessage(&pvpLogData);
-
-        WorldPacket data;
-        sBattlegroundMgr->BuildBattlegroundStatusPacket(&data, this, plr->GetBattlegroundQueueIndex(bgQueueTypeId), STATUS_IN_PROGRESS, TIME_TO_AUTOREMOVE, GetStartTime(), GetArenaType(), plr->GetBGTeam());
-        plr->SendDirectMessage(&data);
-    }
     
     if(IsArena() && isRated() && winner_arena_team && loser_arena_team)
     {
@@ -948,20 +928,6 @@ void Battleground::BlockMovement(Player *plr)
 
 void Battleground::RemovePlayerAtLeave(ObjectGuid guid, bool Transport, bool SendPacket)
 {
-    if (isSpectator(guid))
-    {
-        if (Player* player = ObjectAccessor::FindPlayer(guid))
-        {
-            player->CancelSpectate();
-
-            if (player->TeleportToBGEntryPoint())
-            {
-                player->SetSpectate(false);
-                RemoveSpectator(player->GetGUID());
-            }
-        }
-        return;
-    }
     uint32 team = GetPlayerTeam(guid);
     bool participant = false;
     // Remove from lists/maps
@@ -1109,7 +1075,7 @@ void Battleground::RemovePlayerAtLeave(ObjectGuid guid, bool Transport, bool Sen
         TC_LOG_DEBUG("battleground","BATTLEGROUND: Removed player %s from Battleground.", plr->GetName().c_str());
     }
 
-    if(!GetPlayersSize() && !GetInvitedCount(HORDE) && !GetInvitedCount(ALLIANCE) && !m_Spectators.size())
+    if(!GetPlayersSize() && !GetInvitedCount(HORDE) && !GetInvitedCount(ALLIANCE))
     {
         // if no players left AND no invitees left AND no spectators left, set this bg to delete in next update
         // direct deletion could cause crashes
@@ -1160,7 +1126,6 @@ void Battleground::Reset()
     m_InBGFreeSlotQueue = false;
 
     m_Players.clear();
-    m_Spectators.clear();
     PlayerScores.clear();
 }
 
@@ -1180,15 +1145,8 @@ void Battleground::StartBattleground()
         TC_LOG_DEBUG("arena","Arena match type: %u for Team1Id: %u - Team2Id: %u started.", m_ArenaType, _arenaTeamIds[TEAM_ALLIANCE], _arenaTeamIds[TEAM_HORDE]);
 }
 
-void Battleground::onAddSpectator(Player *spectator)
-{
-}
-
 void Battleground::AddPlayer(Player *plr)
 {
-    if (isSpectator(plr->GetGUID()))
-        return;
-
     // remove afk from player
     if (plr->HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_AFK))
         plr->ToggleAFK();
@@ -1946,28 +1904,6 @@ void Battleground::EventPlayerLoggedOut(Player* player)
     m_OfflineQueue.push_back(player->GetGUID());
 
     m_Players[guid].OfflineRemoveTime = GameTime::GetGameTime() + MAX_OFFLINE_TIME;
-
-    if( GetStatus() == STATUS_IN_PROGRESS )
-    {
-        if (!isSpectator(player->GetGUID()))
-        {
-            if( isBattleground() )
-                EventPlayerDroppedFlag(player);
-            else if( IsArena() )
-                player->LeaveBattleground();
-        }
-    }
-
-    if (isSpectator(player->GetGUID()))
-    {
-        player->CancelSpectate();
-
-        if (player->TeleportToBGEntryPoint())
-        {
-            player->SetSpectate(false);
-            RemoveSpectator(player->GetGUID());
-        }
-    }
 }
 
 void Battleground::PlayerInvitedInRatedArena(Player* player, uint32 team)
@@ -1983,37 +1919,6 @@ void Battleground::PlayerInvitedInRatedArena(Player* player, uint32 team)
         m_team1LogInfo[player->GetGUID()] = logInfo;
     else
         m_team2LogInfo[player->GetGUID()] = logInfo;
-}
-
-void Battleground::SendSpectateAddonsMsg(SpectatorAddonMsg msg)
-{
-    if (!HaveSpectators())
-        return;
-
-    for (ObjectGuid m_Spectator : m_Spectators)
-        msg.SendPacket(m_Spectator);
-}
-
-bool Battleground::isSpectator(ObjectGuid guid)
-{
-    for(ObjectGuid m_Spectator : m_Spectators)
-    {
-        if (guid == m_Spectator)
-            return true;
-    }
-
-    return false;
-}
-
-bool Battleground::canEnterSpectator(Player *spectator)
-{
-    if (isSpectator(spectator->GetGUID()))
-        return false;
-
-    if (m_Spectators.size() < sWorld->getConfig(CONFIG_ARENA_SPECTATOR_MAX))
-        return true;
-
-    return false;
 }
 
 Group* Battleground::GetBgRaid(uint32 TeamID) const

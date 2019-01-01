@@ -8724,7 +8724,7 @@ void ObjectMgr::LoadFactionChangeReputGeneric()
     
 }
 
-void ObjectMgr::AddLocaleString(std::string const& s, LocaleConstant locale, StringVector& data)
+void ObjectMgr::AddLocaleString(std::string const& s, LocaleConstant locale, std::vector<std::string>& data)
 {
     if (!s.empty())
     {

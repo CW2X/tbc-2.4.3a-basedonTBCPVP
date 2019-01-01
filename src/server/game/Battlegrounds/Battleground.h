@@ -5,7 +5,6 @@
 #include "Opcodes.h"
 #include "ObjectMgr.h"
 #include "SharedDefines.h"
-#include "SpectatorAddon.h"
 #include "Position.h"
 
 struct PvPDifficultyEntry;
@@ -523,15 +522,6 @@ class TC_GAME_API Battleground
         bool ToBeDeleted() const { return m_SetDeleteThis; }
         void SetDeleteThis() {m_SetDeleteThis = true;}
 
-        typedef std::set<ObjectGuid> SpectatorList;
-        void AddSpectator (ObjectGuid playerGuid) {m_Spectators.insert(playerGuid); }
-        void onAddSpectator (Player *spectator);
-        void RemoveSpectator(ObjectGuid playerGuid) { m_Spectators.erase(playerGuid); }
-        bool HaveSpectators() { return (m_Spectators.size() > 0); }
-        void SendSpectateAddonsMsg(SpectatorAddonMsg msg);
-        bool isSpectator(ObjectGuid guid);
-        bool canEnterSpectator(Player *spectator);
-
         virtual ObjectGuid GetFlagPickerGUID(int32 /*team*/ = -1) const { return ObjectGuid::Empty; }
         virtual void SetDroppedFlagGUID(ObjectGuid /*guid*/, int32 /*team*/ = -1) { }
         virtual void HandleQuestComplete(uint32 /*questid*/, Player* /*player*/) { }
@@ -652,8 +642,5 @@ class TC_GAME_API Battleground
         // using vector - also it contains 2*events concatenated with PAIR32
         // this is needed to avoid overhead of a 2dimensional std::map
         std::map<uint32, EventObjects> m_EventObjects;
-
-        SpectatorList m_Spectators;
 };
 #endif
-

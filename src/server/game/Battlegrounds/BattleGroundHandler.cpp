@@ -710,18 +710,7 @@ void WorldSession::HandleBattlefieldLeaveOpcode( WorldPacket & /*recvData*/ )
             if(bg->GetStatus() != STATUS_WAIT_LEAVE)
                 return;
 
-        if (bg->isSpectator(_player->GetGUID()))
-        {
-            _player->CancelSpectate();
-
-            if (_player->TeleportToBGEntryPoint())
-            {
-                _player->SetSpectate(false);
-                bg->RemoveSpectator(_player->GetGUID());
-            }
-        }
-        else
-            _player->LeaveBattleground();
+        _player->LeaveBattleground();
     }
 }
 
